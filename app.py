@@ -76,7 +76,7 @@ if keyword:
         current_price = float(df["Close"].iloc[-1])
         ma20 = float(df["MA20"].iloc[-1])
         ma60 = float(df["MA60"].iloc[-1])
-        pred_price = float(future_pred[-1])
+        pred_price = float(np.ravel(future_pred)[-1])
 
         # ======================================================
         # 매수 가격
@@ -133,3 +133,4 @@ if keyword:
         ax.plot(df.index, df["MA60"])
         ax.axhspan(buy_low, buy_high, alpha=0.2)
         st.pyplot(fig)
+
