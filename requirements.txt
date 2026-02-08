@@ -3,7 +3,8 @@ yfinance
 pandas
 numpy
 matplotlib
-requests
 scikit-learn
-textblob
 beautifulsoup4
+textblob
+lxml
+html5lib
