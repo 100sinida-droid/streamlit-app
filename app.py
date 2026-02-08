@@ -82,7 +82,10 @@ if ticker:
         st.stop()
 
     # ⭐ 거래정지 판별 (최근 5일 거래량 0)
-    if df["Volume"].tail(5).sum() == 0:
+    recent_volume = float(np.nansum(df["Volume"].tail(5).values))
+
+    if recent_volume == 0:
+
         st.error("🚫 해당 종목은 거래정지 종목입니다.")
         st.stop()
 
@@ -196,3 +199,4 @@ if ticker:
     ax.legend()
 
     st.pyplot(fig)
+
