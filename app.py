@@ -144,7 +144,7 @@ if selected_ticker:
     st.subheader("📊 분석 결과")
 
     st.write(f"현재가: {current_price:,.0f} 원")
-    st.write(f"30일 예측가: {future_pred[-1]:,.0f} 원")
+    st.write(f"30일 예측가: {float(future_pred[-1]):,.0f} 원")
 
     st.subheader("💰 추천 매수 가격대")
     st.success(f"{buy_low:,.0f} ~ {buy_high:,.0f} 원")
@@ -170,3 +170,4 @@ if selected_ticker:
 
     ax.legend()
     st.pyplot(fig)
+
