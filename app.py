@@ -71,14 +71,11 @@ if counts[user] >= MAX_SEARCH:
 # =====================================================
 # ✅ 한국 종목 CSV 로드 (로컬 파일)
 # =====================================================
-@st.cache_data
+
 def load_korea():
     df = pd.read_csv("korea_stocks.csv")
+    return df[["회사명","ticker","search"]]
 
-    df["ticker"] = df["ticker"].astype(str)
-    df["search"] = df["search"].astype(str)
-
-    return df
 
 
 krx = load_korea()
@@ -221,3 +218,4 @@ if ticker:
 
     ax.legend()
     st.pyplot(fig)
+
