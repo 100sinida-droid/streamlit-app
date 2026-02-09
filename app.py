@@ -113,7 +113,7 @@ def make_strategy(df):
     future_x = np.arange(len(close) + 5).reshape(-1, 1)
     pred = model.predict(future_x)
 
-    current = float(close[-1])
+    current = float(close.iloc[-1])
     future_price = float(pred[-1])
 
     buy_price = current * 0.97
@@ -203,5 +203,6 @@ if ticker:
 
 else:
     st.info("종목을 입력하세요")
+
 
 
