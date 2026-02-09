@@ -4,6 +4,4 @@ pandas
 numpy
 matplotlib
 scikit-learn
-pykrx
 requests
-setuptools
