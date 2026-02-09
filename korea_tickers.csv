@@ -1,9 +1,1 @@
-import pandas as pd
 
-url = "https://kind.krx.co.kr/corpgeneral/corpList.do?method=download"
-df = pd.read_html(url, encoding="cp949")[0]
-
-df["종목코드"] = df["종목코드"].astype(str).str.zfill(6)
-df["티커"] = df["종목코드"] + ".KS"
-
-df[["회사명","티커"]].to_csv("korea_tickers.csv", index=False, encoding="utf-8-sig")
