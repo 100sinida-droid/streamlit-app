@@ -1,191 +1,199 @@
+# =========================================
+# AI 주식 매수/매도 추천 프로그램 (최종 안정 버전)
+# Streamlit Cloud 100% 호환
+# =========================================
+
 import streamlit as st
-import yfinance as yf
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
+import yfinance as yf
 from sklearn.linear_model import LinearRegression
-import datetime, json, os, requests
+from datetime import datetime, timedelta
 
-plt.rcParams["font.family"] = "Malgun Gothic"
-st.set_page_config(layout="wide")
+st.set_page_config(page_title="AI 주식 추천", layout="wide")
 
-
-# =====================================================
-# 🔐 로그인 설정
-# =====================================================
-ALLOWED_USERS = ["sinida", "sinida2"]
-MAX_SEARCH = 100
-DB_FILE = "usage_db.json"
-
-
-# =====================================================
-# 🔐 사용량 관리
-# =====================================================
-def month():
-    return datetime.datetime.now().strftime("%Y-%m")
-
-def load_db():
-    if not os.path.exists(DB_FILE):
-        return {}
-    return json.load(open(DB_FILE))
-
-def save_db(d):
-    json.dump(d, open(DB_FILE, "w"))
-
-def get_count(u):
-    d = load_db()
-    if u not in d or d[u]["m"] != month():
-        return 0
-    return d[u]["c"]
-
-def add_count(u):
-    d = load_db()
-    if u not in d or d[u]["m"] != month():
-        d[u] = {"c":0,"m":month()}
-    d[u]["c"] += 1
-    save_db(d)
-
-
-# =====================================================
-# 🔐 로그인
-# =====================================================
-if "login" not in st.session_state:
-    st.session_state.login = False
-
-if not st.session_state.login:
-    st.title("🔐 로그인")
-
-    uid = st.text_input("아이디")
-
-    if st.button("접속"):
-        if uid in ALLOWED_USERS:
-            st.session_state.login=True
-            st.session_state.user=uid
-            st.rerun()
-        else:
-            st.error("허용되지 않은 ID")
-    st.stop()
-
-user = st.session_state.user
-
-
-# =====================================================
-# ⭐⭐⭐ 한국 종목 CSV (안정 버전)
-# =====================================================
+# =========================================
+# 한국 종목 로컬 CSV 로드 (외부 URL 절대 사용 X)
+# =========================================
 @st.cache_data
 def load_korea():
-    df = pd.read_csv(
-        "https://raw.githubusercontent.com/FinanceData/FinanceDataReader/master/data/krx_stock_list.csv"
-    )
+    df = pd.read_csv("korea_stocks.csv")
 
-    df["ticker"] = df["Symbol"] + ".KS"
-    df["name"] = df["Name"]
-    df["search"] = df["name"].str.lower()
+    df["name"] = df["name"].astype(str)
+    df["ticker"] = df["ticker"].astype(str)
+    df["search"] = df["search"].astype(str)
 
-    return df[["name","ticker","search"]]
+    return df
+
 
 krx = load_korea()
 
 
-# =====================================================
-# 미국 검색
-# =====================================================
-def search_us(q):
-    try:
-        url=f"https://query1.finance.yahoo.com/v1/finance/search?q={q}"
-        r=requests.get(url,timeout=5).json()
+# =========================================
+# 자동완성 검색
+# =========================================
+def search_candidates(keyword):
 
-        res=[]
-        for x in r["quotes"][:10]:
-            if "symbol" in x and "shortname" in x:
-                res.append(f"{x['shortname']} ({x['symbol']})")
-        return res
-    except:
+    if keyword == "":
         return []
 
+    keyword = keyword.lower()
 
-# =====================================================
+    df = krx[
+        krx["search"].str.contains(keyword) |
+        krx["ticker"].str.lower().str.contains(keyword)
+    ]
+
+    names = df["name"].tolist()
+
+    return names[:20]
+
+
+# =========================================
+# 가격 데이터 다운로드
+# =========================================
+def get_price(ticker):
+
+    try:
+        end = datetime.today()
+        start = end - timedelta(days=365)
+
+        df = yf.download(
+            ticker,
+            start=start,
+            end=end,
+            progress=False,
+            auto_adjust=True
+        )
+
+        if df.empty:
+            return None
+
+        return df
+
+    except:
+        return None
+
+
+# =========================================
+# 거래정지 체크
+# =========================================
+def is_halted(df):
+
+    if df is None:
+        return True
+
+    if "Volume" not in df.columns:
+        return True
+
+    vol = df["Volume"].tail(5).sum()
+
+    return vol == 0
+
+
+# =========================================
+# AI 예측 + 전략 생성
+# =========================================
+def make_strategy(df):
+
+    close = df["Close"].values
+
+    X = np.arange(len(close)).reshape(-1, 1)
+    y = close
+
+    model = LinearRegression()
+    model.fit(X, y)
+
+    future_x = np.arange(len(close) + 5).reshape(-1, 1)
+    pred = model.predict(future_x)
+
+    current = float(close[-1])
+    future_price = float(pred[-1])
+
+    buy_price = current * 0.97
+    stop_loss = -5
+    take_profit = 10
+
+    return current, future_price, buy_price, stop_loss, take_profit
+
+
+# =========================================
 # UI
-# =====================================================
-st.title("📈 AI 주식 매수/매도 전략 추천 시스템")
+# =========================================
 
-used=get_count(user)
-st.success(f"👤 {user} | 이번달 {used}/{MAX_SEARCH}")
+st.title("📈 AI 주식 매수/매도 전략 추천기")
 
-query=st.text_input("🔎 종목명/티커 입력 (삼성, sk, apple 등)").lower()
+keyword = st.text_input(
+    "🔎 종목명/티커 입력 (삼성전자, apple, tsla, 005930.KS 등)"
+)
 
+candidates = search_candidates(keyword)
 
-ticker=None
-
-if query:
-
-    k=krx[krx["search"].str.contains(query)]
-
-    options=list(k["name"]+" ("+k["ticker"]+")")
-    options+=search_us(query)
-
-    if options:
-        choice=st.selectbox("종목 선택",options)
-        ticker=choice.split("(")[-1].replace(")","")
-    else:
-        st.warning("검색 결과 없음")
-        st.stop()
+selected_name = None
+ticker = None
 
 
-# =====================================================
-# 분석
-# =====================================================
+# =========================================
+# 한국 주식 자동완성
+# =========================================
+if candidates:
+
+    selected_name = st.selectbox("종목 선택", candidates)
+
+    row = krx[krx["name"] == selected_name].iloc[0]
+    ticker = row["ticker"]
+
+
+# =========================================
+# 미국 주식 직접 입력
+# =========================================
+elif keyword:
+
+    ticker = keyword.upper()
+
+
+# =========================================
+# 분석 실행
+# =========================================
 if ticker:
 
-    if used>=MAX_SEARCH:
-        st.error("🚫 월 100회 초과")
+    st.write(f"📌 선택 티커: **{ticker}**")
+
+    df = get_price(ticker)
+
+    if df is None:
+        st.error("🚫 데이터 없음 / 상장폐지 종목")
         st.stop()
 
-    st.info(f"선택 티커: {ticker}")
-
-    df=yf.download(ticker,period="5y",progress=False)
-
-    if df.empty or len(df)<30:
-        st.error("🚫 데이터 없음 / 상장폐지")
+    if is_halted(df):
+        st.warning("🚫 해당 종목은 거래정지 종목입니다.")
         st.stop()
 
-    if float(np.nansum(df["Volume"].tail(5)))==0:
-        st.error("🚫 거래정지 종목")
-        st.stop()
+    current, future_price, buy_price, stop_loss, take_profit = make_strategy(df)
 
-    add_count(user)
-    used=get_count(user)
-    st.success(f"👤 {user} | 이번달 {used}/{MAX_SEARCH}")
+    st.line_chart(df["Close"])
 
-    df["MA20"]=df["Close"].rolling(20).mean()
-    df["MA60"]=df["Close"].rolling(60).mean()
-    df=df.dropna()
+    col1, col2, col3 = st.columns(3)
 
-    cur=float(df["Close"].iloc[-1])
-    ma20=float(df["MA20"].iloc[-1])
-    ma60=float(df["MA60"].iloc[-1])
+    with col1:
+        st.metric("현재가", f"{current:,.2f}")
 
-    df["Day"]=np.arange(len(df))
+    with col2:
+        st.metric("AI 5일 예측가", f"{future_price:,.2f}")
 
-    model=LinearRegression()
-    model.fit(df[["Day"]],df["Close"])
+    with col3:
+        change = (future_price/current - 1) * 100
+        st.metric("예상 수익률", f"{change:.2f}%")
 
-    pred=float(model.predict([[len(df)+30]]))
+    st.divider()
 
-    buy_low=ma60
-    buy_high=ma20
-    stop=buy_low*0.93
-    target=max(pred,cur*1.2)
+    st.subheader("📌 AI 매매 전략")
 
-    st.metric("현재가",f"{cur:,.0f}")
-    st.metric("30일 예측가",f"{pred:,.0f}")
+    st.success(f"""
+    👉 매수 추천가: {buy_price:,.2f}
+    👉 손절: {stop_loss}%
+    👉 목표수익: +{take_profit}%
+    """)
 
-    st.success(f"💰 매수구간 {buy_low:,.0f} ~ {buy_high:,.0f}")
-    st.error(f"🛑 손절 {stop:,.0f}")
-    st.info(f"🎯 목표 {target:,.0f}")
-
-    fig,ax=plt.subplots(figsize=(12,6))
-    ax.plot(df["Close"])
-    ax.plot(df["MA20"])
-    ax.plot(df["MA60"])
-    st.pyplot(fig)
+else:
+    st.info("종목을 입력하세요")
