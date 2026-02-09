@@ -24,18 +24,21 @@ plt.rcParams["font.family"] = "Malgun Gothic"
 st.set_page_config(layout="wide")
 
 # =====================================================
-# 🔐 1. 로그인 시스템
+# 🔐 1. 아이디만 로그인
 # =====================================================
 
-ALLOWED_USERS = {
-    "sinida": "1234",
-    "sinida2": "1234"
-}
+ALLOWED_USERS = [
+    "sinida",
+    "sinida2"
+]
 
 MAX_SEARCH = 100
 DB_FILE = "usage_db.json"
 
 
+# -----------------------------
+# 사용량 DB 함수
+# -----------------------------
 def load_usage():
     if not os.path.exists(DB_FILE):
         return {}
@@ -48,70 +51,66 @@ def save_usage(data):
         json.dump(data, f)
 
 
-def get_month():
+def current_month():
     return datetime.datetime.now().strftime("%Y-%m")
-
-
-def update_count(user):
-    data = load_usage()
-    month = get_month()
-
-    if user not in data or data[user]["month"] != month:
-        data[user] = {"count": 0, "month": month}
-
-    data[user]["count"] += 1
-    save_usage(data)
-    return data[user]["count"]
 
 
 def get_count(user):
     data = load_usage()
-    month = get_month()
+    m = current_month()
 
-    if user not in data or data[user]["month"] != month:
+    if user not in data or data[user]["month"] != m:
         return 0
     return data[user]["count"]
 
 
+def increase_count(user):
+    data = load_usage()
+    m = current_month()
+
+    if user not in data or data[user]["month"] != m:
+        data[user] = {"count": 0, "month": m}
+
+    data[user]["count"] += 1
+    save_usage(data)
+
+    return data[user]["count"]
+
+
+# -----------------------------
 # 로그인 UI
+# -----------------------------
 if "login" not in st.session_state:
     st.session_state.login = False
 
 if not st.session_state.login:
 
-    st.title("🔐 로그인")
+    st.title("🔐 아이디 로그인")
 
-    uid = st.text_input("아이디")
-    pw = st.text_input("비밀번호", type="password")
+    uid = st.text_input("아이디 입력")
 
-    if st.button("로그인"):
-        if uid in ALLOWED_USERS and ALLOWED_USERS[uid] == pw:
+    if st.button("접속"):
+        if uid in ALLOWED_USERS:
             st.session_state.login = True
             st.session_state.user = uid
             st.rerun()
         else:
-            st.error("접근 불가")
+            st.error("❌ 허용되지 않은 아이디")
 
     st.stop()
 
 user = st.session_state.user
 
 # =====================================================
-# 📊 사용량 표시
+# 상단 사용자 정보 표시
 # =====================================================
-
 used = get_count(user)
 
-st.sidebar.success(f"👤 {user}")
-st.sidebar.info(f"📊 이번달 사용량: {used} / {MAX_SEARCH}")
-
-# =====================================================
-# 앱 시작
-# =====================================================
 st.title("📈 AI 주식 매수/매도 전략 추천 시스템")
+st.success(f"👤 {user} | 이번달 사용 {used} / {MAX_SEARCH}")
 
 # =====================================================
-# 한국 종목
+# 한국 종목 리스트
 # =====================================================
 @st.cache_data
 def load_korea():
@@ -126,18 +125,19 @@ def load_korea():
 krx = load_korea()
 
 # =====================================================
-# 검색
+# 🔍 종목 검색
 # =====================================================
-search = st.text_input("🔎 종목 검색").lower()
+search = st.text_input("🔎 종목 검색 (삼성, apple, tsla 등)").lower()
 ticker = None
 
 if search:
 
     if used >= MAX_SEARCH:
-        st.error("🚫 월 100회 사용량 초과")
+        st.error("🚫 이번 달 100회 사용량 초과")
         st.stop()
 
     f = krx[krx["검색"].str.contains(search)]
+
     options = list(f["회사명"] + " (" + f["티커"] + ")")
     options.append(f"미국 직접입력 → {search.upper()}")
 
@@ -149,19 +149,18 @@ if search:
         ticker = choice.split("(")[-1].replace(")", "")
 
 # =====================================================
-# 분석
+# 📊 분석 시작
 # =====================================================
 if ticker:
 
-    # ⭐ 사용량 증가
-    used = update_count(user)
-
-    st.sidebar.info(f"📊 이번달 사용량: {used} / {MAX_SEARCH}")
+    used = increase_count(user)
+    st.success(f"👤 {user} | 이번달 사용 {used} / {MAX_SEARCH}")
 
     df = yf.download(ticker, period="5y")
 
+    # 거래 불가 체크
     if df.empty or len(df) < 30:
-        st.error("🚫 데이터 없음/상폐")
+        st.error("🚫 데이터 없음/상장폐지 종목")
         st.stop()
 
     recent_volume = float(np.nansum(df["Volume"].tail(5).values))
@@ -170,9 +169,7 @@ if ticker:
         st.error("🚫 해당 종목은 거래정지 종목입니다.")
         st.stop()
 
-    # =====================================================
     # 지표
-    # =====================================================
     df["MA20"] = df["Close"].rolling(20).mean()
     df["MA60"] = df["Close"].rolling(60).mean()
     df = df.dropna()
@@ -181,9 +178,7 @@ if ticker:
     ma20 = float(df["MA20"].iloc[-1])
     ma60 = float(df["MA60"].iloc[-1])
 
-    # =====================================================
-    # 예측
-    # =====================================================
+    # 머신러닝 예측
     df["Day"] = np.arange(len(df))
     model = LinearRegression()
     model.fit(df[["Day"]], df["Close"])
@@ -191,27 +186,30 @@ if ticker:
     future = model.predict(np.arange(len(df), len(df)+30).reshape(-1,1))
     future_price = float(np.ravel(future)[-1])
 
-    # 전략
+    # 전략 계산
     buy_low = ma60
     buy_high = ma20
     stop_loss = buy_low * 0.93
-    take_profit = max(future_price, current*1.2)
+    take_profit = max(future_price, current * 1.2)
 
     stop_pct = (stop_loss/current-1)*100
     take_pct = (take_profit/current-1)*100
 
+    # 출력
     st.metric("현재가", f"{current:,.0f}")
-    st.metric("예측가(30일)", f"{future_price:,.0f}")
+    st.metric("30일 예측가", f"{future_price:,.0f}")
 
-    st.success(f"💰 매수: {buy_low:,.0f} ~ {buy_high:,.0f}")
-    st.error(f"🛑 손절: {stop_loss:,.0f} ({stop_pct:.1f}%)")
-    st.info(f"🎯 목표: {take_profit:,.0f} (+{take_pct:.1f}%)")
+    st.success(f"💰 매수 구간: {buy_low:,.0f} ~ {buy_high:,.0f}")
+    st.error(f"🛑 손절가: {stop_loss:,.0f} ({stop_pct:.1f}%)")
+    st.info(f"🎯 목표가: {take_profit:,.0f} (+{take_pct:.1f}%)")
 
     # 차트
     fig, ax = plt.subplots(figsize=(12,6))
-    ax.plot(df.index, df["Close"])
-    ax.plot(df.index, df["MA20"])
-    ax.plot(df.index, df["MA60"])
+    ax.plot(df.index, df["Close"], label="Price")
+    ax.plot(df.index, df["MA20"], label="MA20")
+    ax.plot(df.index, df["MA60"], label="MA60")
     ax.axhline(stop_loss)
     ax.axhline(take_profit)
+    ax.legend()
+
     st.pyplot(fig)
