@@ -4,9 +4,6 @@ pandas
 numpy
 matplotlib
 scikit-learn
-beautifulsoup4
-textblob
-lxml
-html5lib
 pykrx
 requests
+setuptools
