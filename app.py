@@ -86,9 +86,14 @@ def is_halted(df):
     if "Volume" not in df.columns:
         return True
 
-    vol = df["Volume"].tail(5).sum()
+vol = df["Volume"]
 
-    return vol == 0
+if isinstance(vol, pd.DataFrame):
+    vol = vol.iloc[:, 0]
+
+total = float(vol.tail(5).sum())
+return total == 0
+
 
 
 # =========================================
@@ -197,3 +202,4 @@ if ticker:
 
 else:
     st.info("종목을 입력하세요")
+
