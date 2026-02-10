@@ -4,8 +4,9 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 
-<title>📈 KRX AI 매매 전략 분석기</title>
+<title>KRX AI 매매 전략 분석기</title>
 
+<!-- Plotly -->
 <script src="https://cdn.plot.ly/plotly-2.30.0.min.js"></script>
 
 <style>
@@ -22,32 +23,24 @@ body{
     padding:40px 20px;
 }
 
-h1{
-    font-size:30px;
-    margin-bottom:25px;
-}
-
 .controls{
     display:flex;
     gap:10px;
-    margin-bottom:25px;
 }
 
-input, select{
+input,select{
     flex:1;
     padding:12px;
     border-radius:8px;
     border:none;
-    font-size:15px;
 }
 
 button{
-    padding:12px 18px;
     background:#16c784;
-    border:none;
     color:white;
+    border:none;
+    padding:12px 18px;
     border-radius:8px;
-    font-weight:bold;
     cursor:pointer;
 }
 
@@ -55,39 +48,24 @@ button{
     display:grid;
     grid-template-columns:repeat(4,1fr);
     gap:12px;
-    margin-bottom:25px;
+    margin-top:20px;
 }
 
 .card{
     background:#1b222c;
-    border-radius:14px;
     padding:18px;
+    border-radius:12px;
     text-align:center;
 }
 
-.card h3{
-    font-size:13px;
-    opacity:.7;
-    margin:0;
-}
-
 .card p{
-    font-size:22px;
+    font-size:20px;
     font-weight:bold;
-    margin:10px 0 0;
 }
 
 #chart{
-    height:650px;
-    margin-top:20px;
-}
-
-#analysis{
-    background:#1b222c;
-    padding:20px;
-    border-radius:12px;
     margin-top:25px;
-    line-height:1.6;
+    height:650px;
 }
 </style>
 </head>
@@ -96,135 +74,103 @@ button{
 
 <div class="wrapper">
 
-<h1>📈 KRX AI 매매 전략 분석기</h1>
+<h2>📈 KRX AI 매매 전략 분석기</h2>
 
 <div class="controls">
-    <input id="search" placeholder="종목 검색 (삼성, sk, apple 등)" />
-    <select id="stock"></select>
-    <button onclick="run()">분석 시작</button>
+<input id="search" placeholder="종목 검색 (삼성, sk, apple)">
+<select id="stock"></select>
+<button id="runBtn">분석 시작</button>
 </div>
 
 <div class="metrics">
-    <div class="card"><h3>현재가</h3><p id="cur">-</p></div>
-    <div class="card"><h3>매수 추천가</h3><p id="buy">-</p></div>
-    <div class="card"><h3>손절</h3><p id="stop">-</p></div>
-    <div class="card"><h3>목표</h3><p id="target">-</p></div>
+<div class="card"><h4>현재가</h4><p id="cur">-</p></div>
+<div class="card"><h4>매수</h4><p id="buy">-</p></div>
+<div class="card"><h4>손절</h4><p id="stop">-</p></div>
+<div class="card"><h4>목표</h4><p id="target">-</p></div>
 </div>
 
 <div id="chart"></div>
 
-<div id="analysis"></div>
-
 </div>
 
 <script>
-
-////////////////////////////////////////////////////////
-// 종목 리스트 (CSV 대신 간단 내장, 필요하면 확장 가능)
-////////////////////////////////////////////////////////
+////////////////////////////////////////////////////
+// JS 전부 HTML 안에 포함 → 100% 실행 보장
+////////////////////////////////////////////////////
 
 const stocks = [
-    {name:"삼성전자", ticker:"005930.KS"},
-    {name:"SK하이닉스", ticker:"000660.KS"},
-    {name:"네이버", ticker:"035420.KS"},
-    {name:"카카오", ticker:"035720.KS"},
-    {name:"Apple", ticker:"AAPL"},
-    {name:"Tesla", ticker:"TSLA"},
+ {name:"삼성전자", ticker:"005930.KS"},
+ {name:"SK하이닉스", ticker:"000660.KS"},
+ {name:"네이버", ticker:"035420.KS"},
+ {name:"카카오", ticker:"035720.KS"},
+ {name:"Apple", ticker:"AAPL"},
+ {name:"Tesla", ticker:"TSLA"}
 ];
 
-const select = document.getElementById("stock");
+const select=document.getElementById("stock");
+const search=document.getElementById("search");
+const btn=document.getElementById("runBtn");
 
 function populate(list){
-    select.innerHTML="";
-    list.forEach(s=>{
-        const op=document.createElement("option");
-        op.value=s.ticker;
-        op.textContent=`${s.name} (${s.ticker})`;
-        select.appendChild(op);
-    });
+ select.innerHTML="";
+ list.forEach(s=>{
+   const o=document.createElement("option");
+   o.value=s.ticker;
+   o.textContent=s.name+" ("+s.ticker+")";
+   select.appendChild(o);
+ });
 }
-
 populate(stocks);
 
-////////////////////////////////////////////////////////
-// 검색 필터
-////////////////////////////////////////////////////////
-
-document.getElementById("search").addEventListener("input", e=>{
-    const q=e.target.value.toLowerCase();
-    const filtered=stocks.filter(s=>s.name.toLowerCase().includes(q));
-    populate(filtered);
+search.addEventListener("input",()=>{
+ const q=search.value.toLowerCase();
+ populate(stocks.filter(s=>s.name.toLowerCase().includes(q)));
 });
 
-////////////////////////////////////////////////////////
-// 계산 유틸
-////////////////////////////////////////////////////////
-
-const mean = arr => arr.reduce((a,b)=>a+b,0)/arr.length;
-
-const std = arr => {
-    const m=mean(arr);
-    return Math.sqrt(mean(arr.map(x=>(x-m)**2)));
+const mean=a=>a.reduce((x,y)=>x+y,0)/a.length;
+const std=a=>{
+ const m=mean(a);
+ return Math.sqrt(mean(a.map(x=>(x-m)**2)));
 };
-
-////////////////////////////////////////////////////////
-// 메인 실행 (Streamlit 로직 그대로 복제)
-////////////////////////////////////////////////////////
 
 async function run(){
 
-    const ticker = select.value;
+ const ticker=select.value;
 
-    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?range=2y&interval=1d`;
+ const url=`https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?range=2y&interval=1d`;
 
-    const res = await fetch(url);
-    const data = await res.json();
+ const r=await fetch(url);
+ const j=await r.json();
 
-    const close = data.chart.result[0].indicators.quote[0].close.filter(x=>x);
+ const close=j.chart.result[0].indicators.quote[0].close.filter(x=>x);
 
-    const current = close.at(-1);
+ const current=close.at(-1);
+ const ma20=mean(close.slice(-20));
+ const ma60=mean(close.slice(-60));
 
-    const ma20 = mean(close.slice(-20));
-    const ma60 = mean(close.slice(-60));
+ const returns=close.slice(1).map((p,i)=>(p-close[i])/close[i]);
+ const vol=std(returns);
 
-    const returns = close.slice(1).map((p,i)=>(p-close[i])/close[i]);
-    const vol = std(returns);
+ const buy=ma20*0.98;
+ const stop=buy*(1-vol*3);
+ const target=buy*1.20;
 
-    const buy = ma20*0.98;
-    const stop = buy*(1-vol*3);
-    const target = buy*1.20;
+ document.getElementById("cur").innerText=current.toFixed(0);
+ document.getElementById("buy").innerText=buy.toFixed(0);
+ document.getElementById("stop").innerText=stop.toFixed(0);
+ document.getElementById("target").innerText=target.toFixed(0);
 
-    document.getElementById("cur").innerText=current.toFixed(0);
-    document.getElementById("buy").innerText=buy.toFixed(0);
-    document.getElementById("stop").innerText=stop.toFixed(0);
-    document.getElementById("target").innerText=target.toFixed(0);
-
-    Plotly.newPlot("chart",[
-        {y:close,name:"Price"},
-        {y:close.map((_,i)=>i<20?null:mean(close.slice(i-20,i))),name:"MA20"},
-        {y:close.map((_,i)=>i<60?null:mean(close.slice(i-60,i))),name:"MA60"},
-    ],{
-        height:650,
-        hovermode:"x unified"
-    });
-
-    document.getElementById("analysis").innerHTML=`
-    <h3>🤖 AI 전략 분석</h3>
-    📉 매수 추천가: ${buy.toFixed(0)}원<br>
-    🛑 손절가: ${stop.toFixed(0)}원<br>
-    🎯 목표가: ${target.toFixed(0)}원<br>
-    변동성: ${(vol*100).toFixed(2)}%<br><br>
-    👉 단기 눌림목 매수 전략<br>
-    👉 스윙 트레이딩 적합
-    `;
+ Plotly.newPlot("chart",[
+   {y:close,name:"Price"},
+   {y:close.map((_,i)=>i<20?null:mean(close.slice(i-20,i))),name:"MA20"},
+   {y:close.map((_,i)=>i<60?null:mean(close.slice(i-60,i))),name:"MA60"}
+ ]);
 }
 
-////////////////////////////////////////////////////////
-// 엔터 실행
-////////////////////////////////////////////////////////
+btn.onclick=run;
 
 document.addEventListener("keydown",e=>{
-    if(e.key==="Enter") run();
+ if(e.key==="Enter") run();
 });
 </script>
 
