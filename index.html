@@ -1,50 +1,190 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8" />
-  <title>📈 KRX AI 매매 전략 분석기</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 
-  <link rel="stylesheet" href="/style.css">
+<title>KRX AI 매매 전략 분석기</title>
 
-  <!-- Plotly -->
-  <script src="https://cdn.plot.ly/plotly-2.30.0.min.js"></script>
+<script src="https://cdn.plot.ly/plotly-2.30.0.min.js"></script>
+
+<style>
+body{
+    margin:0;
+    font-family:Arial;
+    background:#0e1117;
+    color:white;
+}
+
+header{
+    text-align:center;
+    padding:40px 20px;
+    font-size:28px;
+    font-weight:bold;
+}
+
+.container{
+    max-width:1200px;
+    margin:auto;
+    padding:20px;
+}
+
+.controls{
+    display:flex;
+    gap:10px;
+    margin-bottom:20px;
+}
+
+input{
+    flex:1;
+    padding:12px;
+    border-radius:8px;
+    border:none;
+    font-size:16px;
+}
+
+button{
+    background:#16c784;
+    border:none;
+    color:white;
+    font-weight:bold;
+    padding:12px 20px;
+    border-radius:8px;
+    cursor:pointer;
+}
+
+.cards{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:10px;
+    margin:20px 0;
+}
+
+.card{
+    background:#1b222c;
+    padding:20px;
+    border-radius:12px;
+    text-align:center;
+}
+
+.card h3{
+    margin:0;
+    font-size:14px;
+    opacity:.7;
+}
+
+.card p{
+    font-size:22px;
+    font-weight:bold;
+    margin:10px 0 0;
+}
+
+#chart{
+    height:600px;
+}
+
+#comment{
+    margin-top:30px;
+    background:#1b222c;
+    padding:20px;
+    border-radius:12px;
+    line-height:1.6;
+}
+</style>
 </head>
 
 <body>
 
 <header>
-  <h1>📈 KRX AI 매매 전략 분석기</h1>
-  <p>매수 타점 · 손절가 · 목표가 자동 계산</p>
+📈 KRX AI 매매 전략 분석기
 </header>
 
 <div class="container">
 
-  <div class="card">
+<div class="controls">
+    <input id="ticker" placeholder="티커 입력 (예: 005930.KS)" />
+    <button onclick="run()">무료 분석 시작 →</button>
+</div>
 
-    <input id="search" placeholder="종목 검색 (삼성, sk, apple 등)" />
+<div class="cards">
+    <div class="card"><h3>현재가</h3><p id="cur">-</p></div>
+    <div class="card"><h3>매수</h3><p id="buy">-</p></div>
+    <div class="card"><h3>손절</h3><p id="stop">-</p></div>
+    <div class="card"><h3>목표</h3><p id="target">-</p></div>
+</div>
 
-    <select id="tickerList"></select>
-
-    <button id="analyzeBtn">무료 분석 시작 →</button>
-
-  </div>
-
-  <div class="grid">
-    <div class="metric">현재가<br><b id="m_current">-</b></div>
-    <div class="metric">매수<br><b id="m_buy">-</b></div>
-    <div class="metric">손절<br><b id="m_stop">-</b></div>
-    <div class="metric">목표<br><b id="m_target">-</b></div>
-  </div>
-
-  <div id="chart"></div>
-
-  <div id="comment" class="card"></div>
+<div id="chart"></div>
+<div id="comment"></div>
 
 </div>
 
-<script src="/app.js"></script>
+<script>
+
+function mean(arr){
+    return arr.reduce((a,b)=>a+b,0)/arr.length;
+}
+
+function std(arr){
+    const m = mean(arr);
+    return Math.sqrt(mean(arr.map(x => (x-m)**2)));
+}
+
+async function run(){
+
+    const ticker = document.getElementById("ticker").value.trim();
+
+    if(!ticker){
+        alert("티커 입력하세요 (예: 005930.KS)");
+        return;
+    }
+
+    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?range=2y&interval=1d`;
+
+    const res = await fetch(url);
+    const data = await res.json();
+
+    const quote = data.chart.result[0];
+    const close = quote.indicators.quote[0].close;
+
+    const prices = close.filter(x=>x);
+
+    const current = prices.at(-1);
+
+    const ma20 = mean(prices.slice(-20));
+    const ma60 = mean(prices.slice(-60));
+
+    const returns = prices.slice(1).map((p,i)=>(p-prices[i])/prices[i]);
+    const vol = std(returns);
+
+    const buy = ma20 * 0.98;
+    const stop = buy * (1 - vol*3);
+    const target = buy * 1.2;
+
+    document.getElementById("cur").innerText = current.toFixed(0);
+    document.getElementById("buy").innerText = buy.toFixed(0);
+    document.getElementById("stop").innerText = stop.toFixed(0);
+    document.getElementById("target").innerText = target.toFixed(0);
+
+    Plotly.newPlot("chart",[
+        {y:prices, name:"Price"},
+        {y:prices.map((_,i)=> i<20?null:mean(prices.slice(i-20,i))), name:"MA20"},
+        {y:prices.map((_,i)=> i<60?null:mean(prices.slice(i-60,i))), name:"MA60"},
+    ]);
+
+    document.getElementById("comment").innerHTML = `
+    <h3>🤖 AI 전략 분석</h3>
+    매수 추천가: ${buy.toFixed(0)}원<br>
+    손절가: ${stop.toFixed(0)}원<br>
+    목표가: ${target.toFixed(0)}원<br>
+    변동성: ${(vol*100).toFixed(2)}%<br>
+    👉 단기 눌림목 매수 전략
+    `;
+}
+
+document.getElementById("ticker").addEventListener("keydown", e=>{
+    if(e.key==="Enter") run();
+});
+</script>
+
 </body>
 </html>
-
-
