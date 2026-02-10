@@ -1,88 +1,173 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta charset="UTF-8" />
+  <title>AI 주식 매매 전략 분석기 | 무료 한국 주식 추천</title>
 
-    <title>AI 주식 매수/매도 계산기 | 무료 주식 분석기</title>
-    <meta name="description" content="AI 기반 주식 매수, 손절, 목표가 자동 계산기. 무료 사용 가능. 삼성전자, 테슬라, 애플 모두 지원.">
+  <!-- SEO -->
+  <meta name="description" content="AI가 자동으로 매수·매도 가격을 계산해주는 무료 주식 분석기. 삼성전자, SK하이닉스, 코스피 전 종목 지원.">
+  <meta name="keywords" content="주식 분석, 주식 추천, 매수 타점, 매도 타점, 한국 주식, AI 주식, 주식 자동매매, 코스피 분석">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
 
-    <link rel="stylesheet" href="style.css">
+  <!-- 🔥 애드센스 -->
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-XXXXXXXX"
+     crossorigin="anonymous"></script>
 
-    <!-- ✅ 구글 애드센스 (본인 코드로 교체) -->
-    <script async
-        src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-XXXXXXXXXX"
-        crossorigin="anonymous"></script>
+  <!-- 스타일 -->
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+      margin: 0;
+      background: #f5f7fa;
+      text-align: center;
+    }
+
+    header {
+      padding: 60px 20px;
+      background: linear-gradient(135deg, #111827, #1f2937);
+      color: white;
+    }
+
+    h1 {
+      font-size: 42px;
+      margin-bottom: 10px;
+    }
+
+    .subtitle {
+      font-size: 18px;
+      opacity: 0.9;
+    }
+
+    .cta {
+      margin-top: 40px;
+    }
+
+    .btn {
+      background: #22c55e;
+      color: white;
+      padding: 18px 40px;
+      border-radius: 10px;
+      font-size: 20px;
+      text-decoration: none;
+      font-weight: bold;
+      display: inline-block;
+      transition: 0.2s;
+    }
+
+    .btn:hover {
+      transform: scale(1.05);
+    }
+
+    section {
+      max-width: 900px;
+      margin: 70px auto;
+      padding: 0 20px;
+    }
+
+    .card {
+      background: white;
+      padding: 30px;
+      margin: 20px 0;
+      border-radius: 15px;
+      box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+    }
+
+    footer {
+      margin: 80px 0 40px;
+      color: #777;
+      font-size: 13px;
+    }
+  </style>
 </head>
+
 
 <body>
 
+<!-- ================================================= -->
+<!-- HERO -->
+<!-- ================================================= -->
+
 <header>
-    <h1>📈 AI 주식 매수/매도 계산기</h1>
-    <p>무료 • 실시간 • AI 분석</p>
+  <h1>📈 AI 주식 매매 전략 분석기</h1>
+  <div class="subtitle">
+    매수 타점 · 손절가 · 목표가 자동 계산<br>
+    한국 주식 2,000+ 종목 실시간 분석
+  </div>
+
+  <div class="cta">
+    <!-- ⭐ Streamlit 주소 넣기 -->
+    <a class="btn" href="https://YOUR-STREAMLIT-APP.streamlit.app" target="_blank">
+      무료 분석 시작 →
+    </a>
+  </div>
 </header>
 
+
+<!-- ================================================= -->
 <!-- 상단 광고 -->
-<div class="ad">
-    <ins class="adsbygoogle"
-        style="display:block"
-        data-ad-client="ca-pub-XXXXXXXXXX"
-        data-ad-slot="1111111111"
-        data-ad-format="auto"></ins>
-</div>
+<!-- ================================================= -->
 
-<section class="card">
-
-    <h2>💰 평균단가 / 수익률 계산기</h2>
-
-    <input id="buyPrice" placeholder="매수가" type="number">
-    <input id="qty" placeholder="수량" type="number">
-    <input id="currentPrice" placeholder="현재가" type="number">
-
-    <button onclick="calc()">계산하기</button>
-
-    <div id="result"></div>
+<section>
+  <ins class="adsbygoogle"
+       style="display:block"
+       data-ad-client="ca-pub-XXXXXXXX"
+       data-ad-slot="1111111111"
+       data-ad-format="auto"></ins>
+  <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
 </section>
 
-<!-- 중간 광고 -->
-<div class="ad">
-    <ins class="adsbygoogle"
-        style="display:block"
-        data-ad-client="ca-pub-XXXXXXXXXX"
-        data-ad-slot="2222222222"
-        data-ad-format="auto"></ins>
-</div>
 
-<section class="card highlight">
-    <h2>🤖 AI 매수/매도 전략 분석기</h2>
+<!-- ================================================= -->
+<!-- 기능 소개 -->
+<!-- ================================================= -->
+
+<section>
+
+  <div class="card">
+    <h2>🤖 AI 자동 매수/매도 계산</h2>
     <p>
-        종목명을 입력하면<br>
-        ✔ 매수 추천가<br>
-        ✔ 손절 가격<br>
-        ✔ 목표가<br>
-        ✔ AI 의견 자동 제공
+      이동평균선 + 변동성 + 추세 분석으로<br>
+      최적 매수 가격과 목표 수익률 자동 추천
     </p>
+  </div>
 
-    <!-- ⭐ Streamlit 링크 넣기 -->
-    <a href="https://sinida-stock-ai.streamlit.app" target="_blank">
-        <button class="big">AI 분석 시작하기 🚀</button>
-    </a>
+  <div class="card">
+    <h2>⚡ 초고속 실시간 차트</h2>
+    <p>
+      인터랙티브 차트 제공<br>
+      확대/축소/백테스트 가능
+    </p>
+  </div>
+
+  <div class="card">
+    <h2>💸 완전 무료</h2>
+    <p>
+      회원가입 없음<br>
+      설치 없음<br>
+      바로 사용 가능
+    </p>
+  </div>
+
 </section>
 
+
+<!-- ================================================= -->
 <!-- 하단 광고 -->
-<div class="ad">
-    <ins class="adsbygoogle"
-        style="display:block"
-        data-ad-client="ca-pub-XXXXXXXXXX"
-        data-ad-slot="3333333333"
-        data-ad-format="auto"></ins>
-</div>
+<!-- ================================================= -->
+
+<section>
+  <ins class="adsbygoogle"
+       style="display:block"
+       data-ad-client="ca-pub-XXXXXXXX"
+       data-ad-slot="2222222222"
+       data-ad-format="auto"></ins>
+  <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+</section>
+
 
 <footer>
-    © 2026 Sinida Stock AI | 투자 책임은 본인에게 있습니다.
+  © 2026 AI Stock Analyzer | 광고 기반 무료 서비스
 </footer>
-
-<script src="script.js"></script>
 
 </body>
 </html>
