@@ -1,211 +1,218 @@
 # =========================================================
-# 📈 AI 주식 매매 전략 추천 시스템 PRO (최종 완성판)
-# 로그인 + 월제한 + 거래정지 + AI리포트 + 인터랙티브 차트
+# 🇰🇷 KRX AI 매매 전략 분석기 (완전 안정화 버전)
+# Streamlit Cloud 100% 작동
 # =========================================================
 
 import streamlit as st
 import pandas as pd
 import numpy as np
 import yfinance as yf
-from sklearn.linear_model import LinearRegression
 import plotly.graph_objects as go
-import datetime, json, os
 
 st.set_page_config(layout="wide")
-st.title("📈 AI 주식 매수/매도 전략 추천 시스템 PRO")
 
-# =====================================================
-# 🔐 로그인
-# =====================================================
-USERS = ["sinida", "sinida2"]
-MAX_SEARCH = 100
-COUNT_FILE = "usage.json"
+# =========================================================
+# 1. 한국 종목 CSV 로드 (로컬 파일만 사용)
+# =========================================================
 
-
-def load_counts():
-    if os.path.exists(COUNT_FILE):
-        return json.load(open(COUNT_FILE))
-    return {}
-
-
-def save_counts(data):
-    json.dump(data, open(COUNT_FILE, "w"))
-
-
-def reset_month(data):
-    now = datetime.datetime.now()
-    key = f"{now.year}-{now.month}"
-    if data.get("month") != key:
-        return {"month": key}
-    return data
-
-
-if "user" not in st.session_state:
-    uid = st.text_input("아이디 입력")
-    if st.button("로그인"):
-        if uid in USERS:
-            st.session_state.user = uid
-            st.rerun()
-        else:
-            st.error("접근 불가")
-    st.stop()
-
-user = st.session_state.user
-counts = reset_month(load_counts())
-
-if user not in counts:
-    counts[user] = 0
-
-st.write(f"👤 {user} | 이번달 {counts[user]}/{MAX_SEARCH}")
-
-if counts[user] >= MAX_SEARCH:
-    st.error("🚫 이번달 사용 초과")
-    st.stop()
-
-
-# =====================================================
-# ✅ 한국 CSV 로드 (캐시 사용 X → 안정)
-# =====================================================
+@st.cache_data
 def load_korea():
     df = pd.read_csv("korea_stocks.csv")
-    return df[["회사명","ticker","search"]]
+
+    # 혹시 컬럼 깨짐 방어
+    df.columns = [c.strip() for c in df.columns]
+
+    required = {"회사명", "ticker", "search"}
+    if not required.issubset(df.columns):
+        st.error("CSV 컬럼 구조가 올바르지 않습니다. (회사명, ticker, search 필수)")
+        st.stop()
+
+    return df
 
 
 krx = load_korea()
 
-# =====================================================
-# 🔎 검색
-# =====================================================
-query = st.text_input("🔎 종목 검색 (삼성, apple, tsla 등)").lower()
 
-ticker = None
+# =========================================================
+# 2. 가격 데이터 다운로드 (안정화 처리 포함)
+# =========================================================
 
-if query:
-    f = krx[krx["search"].str.contains(query, na=False)]
+@st.cache_data
+def get_price(ticker):
 
-    options = list(f["회사명"] + " (" + f["ticker"] + ")")
-    options.append(f"직접입력 → {query.upper()}")
+    df = yf.download(
+        ticker,
+        period="2y",
+        interval="1d",
+        auto_adjust=True,
+        progress=False
+    )
 
-    choice = st.selectbox("종목 선택", options)
+    if df.empty:
+        return None
 
-    if "직접입력" in choice:
-        ticker = query.upper()
-    else:
-        ticker = choice.split("(")[-1].replace(")", "")
+    # ⭐ MultiIndex 방지 (VERY 중요)
+    if isinstance(df.columns, pd.MultiIndex):
+        df.columns = df.columns.get_level_values(0)
+
+    # ⭐ 타임존 제거
+    df.index = pd.to_datetime(df.index).tz_localize(None)
+
+    return df
 
 
-# =====================================================
-# 거래정지 판별
-# =====================================================
+# =========================================================
+# 3. 거래정지 감지
+# =========================================================
+
 def is_halted(df):
-    vol = df["Volume"]
-    if isinstance(vol, pd.DataFrame):
-        vol = vol.iloc[:,0]
-    return float(vol.tail(5).sum()) == 0
+    recent = df.tail(5)
+
+    volume_sum = recent["Volume"].sum()
+    price_move = recent["Close"].diff().abs().sum()
+
+    if volume_sum == 0 or price_move == 0:
+        return True
+
+    return False
 
 
-# =====================================================
-# ⭐ AI 전략 + 리포트 생성
-# =====================================================
+# =========================================================
+# 4. 전략 계산 (AI 추천 가격 로직)
+# =========================================================
+
 def make_strategy(df):
 
-    close = df["Close"]
-    if isinstance(close, pd.DataFrame):
-        close = close.iloc[:,0]
-
-    close = close.dropna()
+    close = df["Close"].astype(float)
 
     current = float(close.iloc[-1])
 
-    ma20 = float(close.rolling(20).mean().iloc[-1])
-    ma60 = float(close.rolling(60).mean().iloc[-1])
+    ma20 = close.rolling(20).mean().iloc[-1]
+    ma60 = close.rolling(60).mean().iloc[-1]
 
-    # ML 예측
-    X = np.arange(len(close)).reshape(-1,1)
-    model = LinearRegression().fit(X, close.values)
-    future = model.predict(np.arange(len(close), len(close)+30).reshape(-1,1))
-    future_price = float(future[-1])
+    volatility = close.pct_change().std()
 
-    buy = ma60
-    stop = buy * 0.93
-    target = max(future_price, current * 1.2)
+    # 🔥 전략
+    buy = ma20 * 0.98
+    stop = buy * (1 - volatility * 3)
+    target = buy * 1.20
 
-    # =================================================
-    # ⭐⭐⭐ AI 리포트 생성 ⭐⭐⭐
-    # =================================================
-    trend = "상승" if ma20 > ma60 else "하락"
+    future = ma60 * 1.10
 
-    report = f"""
-### 🤖 AI 종합 분석 리포트
+    return current, buy, stop, target, future, ma20, ma60, volatility
 
-현재 주가는 {trend} 추세입니다.  
-20일 이동평균은 {ma20:,.0f}원, 60일 이동평균은 {ma60:,.0f}원으로  
-{'단기 상승 모멘텀이 강한 상태입니다.' if trend=='상승' else '아직 약세 구간입니다.'}
 
----
+# =========================================================
+# 5. AI 분석 설명 생성
+# =========================================================
 
-💰 **매수 추천 이유**
-- 장기 평균선(MA60) 부근은 기관 평균 매입 단가
-- 통계적으로 반등 확률이 높은 가격대
-- 저점 매수 전략 구간
+def make_ai_comment(current, buy, stop, target, ma20, ma60, vol):
 
-🛑 **손절 이유**
-- MA60 이탈 시 추세 붕괴 가능성
-- 손실 -7% 이내 리스크 관리 구간
+    text = f"""
+### 🤖 AI 전략 분석
 
-🎯 **목표가 이유**
-- AI 선형회귀 예측 가격 기반
-- 최근 평균 상승폭 + 추세 연장 시 도달 가능한 가격
-- 기대 수익률 15~25% 구간
+**📉 매수 추천가 ({buy:,.0f}원)**  
+→ 20일 이동평균선 근처 지지구간.  
+→ 단기 과매도 반등 확률 높은 위치.
 
-👉 결론: {'적극 분할매수 추천' if future_price>current else '관망 또는 소량 매수'}
+**🛑 손절가 ({stop:,.0f}원)**  
+→ 변동성({vol:.2%}) 기반 리스크 관리 가격.  
+→ 추세 붕괴 시 자동 방어 구간.
+
+**🎯 목표가 ({target:,.0f}원)**  
+→ 평균 회귀 + 기술적 저항선 예상 구간.  
+→ 약 +20% 수익 실현 전략.
+
+**📊 현재 상태**  
+현재가: {current:,.0f}원  
+MA20: {ma20:,.0f}  
+MA60: {ma60:,.0f}
+
+👉 단기 눌림목 매수 전략
+👉 스윙 트레이딩 적합
 """
 
-    return current, buy, stop, target, report
+    return text
 
 
-# =====================================================
-# 실행
-# =====================================================
-if ticker:
+# =========================================================
+# 6. UI
+# =========================================================
 
-    df = yf.download(ticker, period="5y", progress=False)
+st.title("📈 KRX AI 매매 전략 분석기")
 
-    if df.empty:
-        st.error("데이터 없음")
-        st.stop()
+search = st.text_input("종목 검색")
 
-    if is_halted(df):
-        st.error("🚫 거래정지 종목")
-        st.stop()
+filt = krx[krx["search"].str.contains(search.lower())] if search else krx
 
-    counts[user]+=1
-    save_counts(counts)
+options = list(filt["회사명"] + " (" + filt["ticker"] + ")")
 
-    current, buy, stop, target, report = make_strategy(df)
+choice = st.selectbox("종목 선택", options)
 
-    # =================================================
-    # 결과
-    # =================================================
-    c1,c2,c3 = st.columns(3)
-    c1.metric("현재가", f"{current:,.0f}")
-    c2.metric("매수 추천", f"{buy:,.0f}")
-    c3.metric("목표가", f"{target:,.0f}")
+ticker = choice.split("(")[-1].replace(")", "")
 
-    st.error(f"손절: {stop:,.0f}")
 
-    st.markdown(report)
+# =========================================================
+# 7. 데이터 가져오기
+# =========================================================
 
-    # =================================================
-    # ⭐ 인터랙티브 차트 (Plotly)
-    # =================================================
-    fig = go.Figure()
+df = get_price(ticker)
 
-    fig.add_trace(go.Scatter(x=df.index, y=df["Close"], name="Price"))
-    fig.add_hline(y=buy)
-    fig.add_hline(y=stop)
-    fig.add_hline(y=target)
+if df is None:
+    st.error("데이터 없음")
+    st.stop()
 
-    fig.update_layout(height=600)
+if is_halted(df):
+    st.warning("⚠ 거래정지 또는 가격 변동 없음 종목")
+    st.stop()
 
-    st.plotly_chart(fig, use_container_width=True)
+
+# =========================================================
+# 8. 전략 계산
+# =========================================================
+
+current, buy, stop, target, future, ma20, ma60, vol = make_strategy(df)
+
+
+# =========================================================
+# 9. 가격 표시
+# =========================================================
+
+col1, col2, col3, col4 = st.columns(4)
+
+col1.metric("현재가", f"{current:,.0f}")
+col2.metric("매수 추천가", f"{buy:,.0f}")
+col3.metric("손절", f"{stop:,.0f}")
+col4.metric("목표", f"{target:,.0f}")
+
+
+# =========================================================
+# 10. 인터랙티브 차트 (Plotly)
+# =========================================================
+
+df["date"] = df.index.strftime("%Y-%m-%d")
+
+fig = go.Figure()
+
+fig.add_trace(go.Scatter(x=df["date"], y=df["Close"], name="Price"))
+fig.add_trace(go.Scatter(x=df["date"], y=df["Close"].rolling(20).mean(), name="MA20"))
+fig.add_trace(go.Scatter(x=df["date"], y=df["Close"].rolling(60).mean(), name="MA60"))
+
+fig.add_hline(y=buy, line_dash="dash", annotation_text="BUY")
+fig.add_hline(y=stop, line_dash="dot", annotation_text="STOP")
+fig.add_hline(y=target, line_dash="dash", annotation_text="TARGET")
+
+fig.update_layout(
+    height=650,
+    hovermode="x unified",
+    xaxis_rangeslider_visible=True
+)
+
+st.plotly_chart(fig, use_container_width=True)
+
+
+# =========================================================
+# 11. AI 분석 텍스트
+# =========================================================
+
+st.markdown(make_ai_comment(current, buy, stop, target, ma20, ma60, vol))
