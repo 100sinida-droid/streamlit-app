@@ -1,173 +1,238 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8" />
-  <title>AI 주식 매매 전략 분석기 | 무료 한국 주식 추천</title>
+<meta charset="UTF-8" />
+<title>📈 KRX AI 매매 전략 분석기</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
 
-  <!-- SEO -->
-  <meta name="description" content="AI가 자동으로 매수·매도 가격을 계산해주는 무료 주식 분석기. 삼성전자, SK하이닉스, 코스피 전 종목 지원.">
-  <meta name="keywords" content="주식 분석, 주식 추천, 매수 타점, 매도 타점, 한국 주식, AI 주식, 주식 자동매매, 코스피 분석">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- Plotly -->
+<script src="https://cdn.plot.ly/plotly-2.30.0.min.js"></script>
+<!-- CSV 파서 -->
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 
-  <!-- 🔥 애드센스 -->
-  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-XXXXXXXX"
-     crossorigin="anonymous"></script>
+<style>
+body{
+  font-family:-apple-system,BlinkMacSystemFont,sans-serif;
+  background:#f3f4f6;
+  margin:0;
+  padding:20px;
+}
 
-  <!-- 스타일 -->
-  <style>
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-      margin: 0;
-      background: #f5f7fa;
-      text-align: center;
-    }
+h1{text-align:center;margin-bottom:30px}
 
-    header {
-      padding: 60px 20px;
-      background: linear-gradient(135deg, #111827, #1f2937);
-      color: white;
-    }
+.controls{
+  display:flex;
+  gap:10px;
+  justify-content:center;
+  margin-bottom:20px;
+}
 
-    h1 {
-      font-size: 42px;
-      margin-bottom: 10px;
-    }
+input,select{
+  padding:10px;
+  font-size:14px;
+}
 
-    .subtitle {
-      font-size: 18px;
-      opacity: 0.9;
-    }
+.metrics{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:10px;
+  margin:20px 0;
+}
 
-    .cta {
-      margin-top: 40px;
-    }
+.card{
+  background:white;
+  padding:20px;
+  border-radius:10px;
+  text-align:center;
+  box-shadow:0 4px 12px rgba(0,0,0,0.1);
+}
 
-    .btn {
-      background: #22c55e;
-      color: white;
-      padding: 18px 40px;
-      border-radius: 10px;
-      font-size: 20px;
-      text-decoration: none;
-      font-weight: bold;
-      display: inline-block;
-      transition: 0.2s;
-    }
+.value{
+  font-size:22px;
+  font-weight:bold;
+  margin-top:5px;
+}
 
-    .btn:hover {
-      transform: scale(1.05);
-    }
+#chart{
+  height:650px;
+}
 
-    section {
-      max-width: 900px;
-      margin: 70px auto;
-      padding: 0 20px;
-    }
-
-    .card {
-      background: white;
-      padding: 30px;
-      margin: 20px 0;
-      border-radius: 15px;
-      box-shadow: 0 5px 20px rgba(0,0,0,0.08);
-    }
-
-    footer {
-      margin: 80px 0 40px;
-      color: #777;
-      font-size: 13px;
-    }
-  </style>
+.analysis{
+  background:white;
+  padding:20px;
+  margin-top:20px;
+  border-radius:10px;
+}
+</style>
 </head>
 
 
 <body>
 
-<!-- ================================================= -->
-<!-- HERO -->
-<!-- ================================================= -->
+<h1>📈 KRX AI 매매 전략 분석기</h1>
 
-<header>
-  <h1>📈 AI 주식 매매 전략 분석기</h1>
-  <div class="subtitle">
-    매수 타점 · 손절가 · 목표가 자동 계산<br>
-    한국 주식 2,000+ 종목 실시간 분석
-  </div>
+<div class="controls">
+  <input id="search" placeholder="종목 검색">
+  <select id="tickerSelect"></select>
+  <button onclick="loadStock()">분석</button>
+</div>
 
-  <div class="cta">
-    <!-- ⭐ Streamlit 주소 넣기 -->
-    <a class="btn" href="https://YOUR-STREAMLIT-APP.streamlit.app" target="_blank">
-      무료 분석 시작 →
-    </a>
-  </div>
-</header>
+<div class="metrics">
+  <div class="card">현재가<div class="value" id="current"></div></div>
+  <div class="card">매수 추천가<div class="value" id="buy"></div></div>
+  <div class="card">손절<div class="value" id="stop"></div></div>
+  <div class="card">목표<div class="value" id="target"></div></div>
+</div>
 
+<div id="chart"></div>
 
-<!-- ================================================= -->
-<!-- 상단 광고 -->
-<!-- ================================================= -->
-
-<section>
-  <ins class="adsbygoogle"
-       style="display:block"
-       data-ad-client="ca-pub-XXXXXXXX"
-       data-ad-slot="1111111111"
-       data-ad-format="auto"></ins>
-  <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
-</section>
+<div class="analysis" id="analysis"></div>
 
 
-<!-- ================================================= -->
-<!-- 기능 소개 -->
-<!-- ================================================= -->
 
-<section>
+<script>
+// ======================================
+// 1. CSV 로드 (korea_stocks.csv 필요)
+// ======================================
 
-  <div class="card">
-    <h2>🤖 AI 자동 매수/매도 계산</h2>
-    <p>
-      이동평균선 + 변동성 + 추세 분석으로<br>
-      최적 매수 가격과 목표 수익률 자동 추천
-    </p>
-  </div>
+let stocks = []
 
-  <div class="card">
-    <h2>⚡ 초고속 실시간 차트</h2>
-    <p>
-      인터랙티브 차트 제공<br>
-      확대/축소/백테스트 가능
-    </p>
-  </div>
+Papa.parse("korea_stocks.csv", {
+  download:true,
+  header:true,
+  complete:(res)=>{
+    stocks = res.data
+    updateOptions()
+  }
+})
 
-  <div class="card">
-    <h2>💸 완전 무료</h2>
-    <p>
-      회원가입 없음<br>
-      설치 없음<br>
-      바로 사용 가능
-    </p>
-  </div>
+const select = document.getElementById("tickerSelect")
 
-</section>
+function updateOptions(){
+  select.innerHTML=""
+  stocks.forEach(s=>{
+    const opt=document.createElement("option")
+    opt.value=s.ticker
+    opt.textContent=`${s.회사명} (${s.ticker})`
+    select.appendChild(opt)
+  })
+}
 
-
-<!-- ================================================= -->
-<!-- 하단 광고 -->
-<!-- ================================================= -->
-
-<section>
-  <ins class="adsbygoogle"
-       style="display:block"
-       data-ad-client="ca-pub-XXXXXXXX"
-       data-ad-slot="2222222222"
-       data-ad-format="auto"></ins>
-  <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
-</section>
+document.getElementById("search").oninput=(e)=>{
+  const q=e.target.value.toLowerCase()
+  const filtered=stocks.filter(s=>s.search.includes(q))
+  select.innerHTML=""
+  filtered.forEach(s=>{
+    const opt=document.createElement("option")
+    opt.value=s.ticker
+    opt.textContent=`${s.회사명} (${s.ticker})`
+    select.appendChild(opt)
+  })
+}
 
 
-<footer>
-  © 2026 AI Stock Analyzer | 광고 기반 무료 서비스
-</footer>
+// ======================================
+// 2. Yahoo Finance fetch
+// ======================================
+
+async function loadStock(){
+
+  const ticker=select.value
+
+  const url=`https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?range=2y&interval=1d`
+
+  const res=await fetch(url)
+  const data=await res.json()
+
+  const result=data.chart.result[0]
+
+  const t=result.timestamp
+  const close=result.indicators.quote[0].close
+  const volume=result.indicators.quote[0].volume
+
+  const dates=t.map(x=>new Date(x*1000))
+
+  makeStrategy(dates,close,volume)
+}
+
+
+// ======================================
+// 3. 전략 계산 (Python 로직 동일)
+// ======================================
+
+function rollingMean(arr,n){
+  return arr.map((_,i)=>{
+    if(i<n) return null
+    const slice=arr.slice(i-n,i)
+    return slice.reduce((a,b)=>a+b,0)/n
+  })
+}
+
+function std(arr){
+  const m=arr.reduce((a,b)=>a+b)/arr.length
+  return Math.sqrt(arr.map(x=>(x-m)**2).reduce((a,b)=>a+b)/arr.length)
+}
+
+function makeStrategy(dates,close,volume){
+
+  const current=close.at(-1)
+
+  const ma20=rollingMean(close,20).at(-1)
+  const ma60=rollingMean(close,60).at(-1)
+
+  const returns=close.slice(1).map((v,i)=>v/close[i]-1)
+  const vol=std(returns)
+
+  const buy=ma20*0.98
+  const stop=buy*(1-vol*3)
+  const target=buy*1.2
+
+  updateUI(current,buy,stop,target,ma20,ma60,vol,dates,close)
+}
+
+
+// ======================================
+// 4. UI 업데이트
+// ======================================
+
+function fmt(x){return x.toLocaleString("ko-KR",{maximumFractionDigits:0})}
+
+function updateUI(current,buy,stop,target,ma20,ma60,vol,dates,close){
+
+  currentEl.textContent=fmt(current)
+  buyEl.textContent=fmt(buy)
+  stopEl.textContent=fmt(stop)
+  targetEl.textContent=fmt(target)
+
+  analysis.innerHTML=`
+  <h3>🤖 AI 전략 분석</h3>
+  📉 매수 추천가 (${fmt(buy)}원)<br>
+  → MA20 지지구간<br><br>
+
+  🛑 손절가 (${fmt(stop)}원)<br>
+  → 변동성 ${(vol*100).toFixed(2)}% 기반 리스크 관리<br><br>
+
+  🎯 목표가 (${fmt(target)}원)<br>
+  → 평균 회귀 +20% 전략<br><br>
+
+  현재가 ${fmt(current)} / MA20 ${fmt(ma20)} / MA60 ${fmt(ma60)}
+  `
+
+
+  const trace={
+    x:dates,
+    y:close,
+    type:"scatter",
+    name:"Price"
+  }
+
+  Plotly.newPlot("chart",[trace],{
+    dragmode:"zoom",
+    hovermode:"x unified"
+  })
+}
+
+</script>
 
 </body>
 </html>
