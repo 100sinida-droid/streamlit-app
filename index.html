@@ -2,48 +2,46 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
-  <title>KRX AI 매매 전략 분석기</title>
+  <title>📈 KRX AI 매매 전략 분석기</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <link rel="stylesheet" href="style.css" />
 
   <!-- Plotly -->
   <script src="https://cdn.plot.ly/plotly-2.30.0.min.js"></script>
-
-  <!-- Google Ads 자리 -->
-  <!--
-  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-XXXX"></script>
-  -->
 </head>
 
 <body>
 
 <header>
   <h1>📈 KRX AI 매매 전략 분석기</h1>
+  <p>매수 타점 · 손절가 · 목표가 자동 계산</p>
 </header>
 
-<!-- 광고 상단 -->
-<div class="ad">광고 영역 (728x90)</div>
+<div class="container">
 
-<section class="search-box">
-  <input id="searchInput" placeholder="종목 검색 (삼성전자)" />
-  <select id="stockSelect"></select>
-  <button id="analyzeBtn">무료 분석 시작 →</button>
-</section>
+  <div class="card">
 
-<section class="metrics">
-  <div class="card" id="current">현재가 -</div>
-  <div class="card buy" id="buy">매수 -</div>
-  <div class="card stop" id="stop">손절 -</div>
-  <div class="card target" id="target">목표 -</div>
-</section>
+    <input id="search" placeholder="종목 검색 (삼성, sk, apple 등)" />
 
-<div id="chart"></div>
+    <select id="tickerList"></select>
 
-<section id="aiBox" class="ai-box"></section>
+    <button id="analyzeBtn">무료 분석 시작 →</button>
 
-<!-- 광고 하단 -->
-<div class="ad">광고 영역 (300x250)</div>
+  </div>
+
+  <div class="grid">
+    <div class="metric">현재가<br><b id="m_current">-</b></div>
+    <div class="metric">매수<br><b id="m_buy">-</b></div>
+    <div class="metric">손절<br><b id="m_stop">-</b></div>
+    <div class="metric">목표<br><b id="m_target">-</b></div>
+  </div>
+
+  <div id="chart"></div>
+
+  <div id="comment" class="card"></div>
+
+</div>
 
 <script src="app.js"></script>
 </body>
