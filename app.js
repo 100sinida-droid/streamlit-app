@@ -27,18 +27,26 @@ function setupEventListeners() {
 // =========================================================
 
 function handleSearch() {
-    const searchTerm = document.getElementById('searchInput').value.toLowerCase().trim();
+    const searchTerm = document.getElementById('searchInput').value.trim();
     
     if (!searchTerm) {
         loadStockList(allStocks);
         return;
     }
 
+    // 대소문자 구분 없이 검색
     const filtered = allStocks.filter(stock => 
-        stock.search.includes(searchTerm)
+        stock.search.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
     loadStockList(filtered);
+    
+    // 검색 결과 표시
+    if (filtered.length === 0) {
+        showError(`"${searchTerm}"에 대한 검색 결과가 없습니다.`);
+    } else {
+        hideError();
+    }
 }
 
 function loadStockList(stocks) {

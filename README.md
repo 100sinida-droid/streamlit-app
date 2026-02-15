@@ -13,7 +13,7 @@
 - `index.html` - 메인 HTML 파일
 - `style.css` - 스타일시트
 - `app.js` - 메인 JavaScript 로직
-- `korea_stocks.js` - 한국 주식 데이터
+- `korea_stocks.js` - 한국 주식 데이터 (300개 이상)
 - `README.md` - 이 파일
 
 ### 3. GitHub Pages 활성화
@@ -23,18 +23,27 @@
 4. Branch를 "main"으로 선택하고 폴더는 "/ (root)" 선택
 5. Save 버튼 클릭
 
-### 4. 배포 완료
-- 몇 분 후 `https://[your-username].github.io/[repository-name]/` 주소로 접속 가능합니다
+### 4. 배포 완료 ✅
+- 몇 분 후 **`https://[your-username].github.io/[repository-name]/`** 주소로 접속 가능합니다
+
+**예시:**
+- GitHub 사용자명이 `john-doe`이고
+- 저장소 이름이 `krx-ai-analyzer`라면
+- 웹사이트 주소는: `https://john-doe.github.io/krx-ai-analyzer/`
+
+### 5. 주소 확인 방법
+Settings → Pages 페이지 상단에 **"Your site is live at ..."** 메시지와 함께 실제 주소가 표시됩니다.
 
 ## 📋 주요 기능
 
-- ✅ 한국 주요 종목 50개 지원
+- ✅ **한국 거래소 전체 종목 300개 이상 지원** (KOSPI + KOSDAQ)
+- ✅ **대소문자 구분 없는 스마트 검색** (한글/영문 모두 가능)
 - ✅ 실시간 주가 데이터 분석 (Yahoo Finance API)
 - ✅ AI 기반 매수/손절/목표가 자동 계산
 - ✅ 이동평균선(MA20, MA60) 기반 전략
 - ✅ 변동성 분석을 통한 리스크 관리
 - ✅ 인터랙티브 차트 (Chart.js)
-- ✅ 반응형 디자인 (모바일 지원)
+- ✅ 반응형 디자인 (모바일 완벽 지원)
 
 ## 🛠 기술 스택
 
