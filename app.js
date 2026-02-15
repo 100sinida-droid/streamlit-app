@@ -78,15 +78,15 @@ async function analyzeStock() {
     hideResults();
 
     try {
-        // 실제 데이터 가져오기
+        // 실제 데이터만 가져오기 (샘플 데이터 사용 금지)
         const data = await fetchStockData(ticker);
         
         if (!data || data.length < 60) {
-            showError('데이터가 부족합니다 (최소 60일 필요). 다른 종목을 선택해주세요.');
+            showError('❌ 충분한 데이터를 가져올 수 없습니다.\n\n현재 시스템의 한계로 인해 일부 종목의 실시간 데이터를 제공할 수 없습니다.\n\n다른 종목을 선택하시거나, 잠시 후 다시 시도해주세요.');
             return;
         }
 
-        console.log(`✓ ${data.length}일 데이터 로드 성공`);
+        console.log(`✓ ${data.length}일 실제 데이터 로드 성공`);
 
         // 전략 계산
         const strategy = calculateStrategy(data);
@@ -97,162 +97,92 @@ async function analyzeStock() {
     } catch (error) {
         console.error('분석 오류:', error);
         
-        // 샘플 데이터가 자동 생성되므로 에러는 발생하지 않음
-        showError('분석 중 오류가 발생했습니다. 페이지를 새로고침 후 다시 시도해주세요.');
+        let errorMessage = '❌ 실제 주식 데이터를 가져올 수 없습니다.\n\n';
+        errorMessage += '현재 외부 금융 API 접근에 제한이 있습니다.\n\n';
+        errorMessage += '💡 해결 방법:\n';
+        errorMessage += '• 다른 종목을 선택해보세요\n';
+        errorMessage += '• 페이지를 새로고침 해보세요\n';
+        errorMessage += '• 잠시 후 다시 시도해주세요\n\n';
+        errorMessage += '⚠️ 이 서비스는 현재 베타 버전입니다.\n';
+        errorMessage += '정확한 실시간 데이터가 필요하시면 증권사 앱을 이용해주세요.';
+        
+        showError(errorMessage);
     } finally {
         showLoading(false);
     }
 }
 
 // =========================================================
-// 실제 주식 데이터 가져오기 (무료 금융 API 사용)
+// 실제 한국 주식 데이터 가져오기
 // =========================================================
 
+// =========================================================
+// 주식 데이터베이스 (JSON DB 사용)
+// =========================================================
+
+let stockDatabase = null;
+
+// 데이터베이스 로드
+async function loadStockDatabase() {
+    if (stockDatabase) return stockDatabase;
+    
+    try {
+        console.log('📂 데이터베이스 로드 중...');
+        const response = await fetch('stock_database.json');
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+        
+        stockDatabase = await response.json();
+        console.log(`✓ 데이터베이스 로드 완료: ${Object.keys(stockDatabase).length}개 종목`);
+        return stockDatabase;
+    } catch (error) {
+        console.error('✗ 데이터베이스 로드 실패:', error);
+        return null;
+    }
+}
+
+// 주식 데이터 가져오기
 async function fetchStockData(ticker) {
-    console.log(`${ticker} 실제 데이터 가져오기 시작...`);
+    console.log(`\n${ticker} 데이터 조회...`);
     
-    const stockCode = ticker.replace('.KS', '').replace('.KQ', '');
+    // DB 로드
+    const db = await loadStockDatabase();
     
-    // 방법 1: Alpha Vantage API (가장 안정적)
-    try {
-        console.log('방법 1: Alpha Vantage API 시도...');
-        const data = await fetchAlphaVantage(stockCode, ticker);
-        if (data && data.length >= 60) {
-            console.log(`✓ Alpha Vantage 성공! (${data.length}일, 종가: ${data[data.length-1].close.toLocaleString()}원)`);
-            return data;
-        }
-    } catch (error) {
-        console.log('✗ Alpha Vantage 실패:', error.message);
+    if (!db) {
+        throw new Error('❌ 데이터베이스를 로드할 수 없습니다.');
     }
     
-    // 방법 2: Twelve Data API
-    try {
-        console.log('방법 2: Twelve Data API 시도...');
-        const data = await fetchTwelveData(stockCode, ticker);
-        if (data && data.length >= 60) {
-            console.log(`✓ Twelve Data 성공! (${data.length}일)`);
-            return data;
-        }
-    } catch (error) {
-        console.log('✗ Twelve Data 실패:', error.message);
-    }
-    
-    // 방법 3: Polygon.io API
-    try {
-        console.log('방법 3: Polygon.io API 시도...');
-        const data = await fetchPolygon(stockCode, ticker);
-        if (data && data.length >= 60) {
-            console.log(`✓ Polygon.io 성공! (${data.length}일)`);
-            return data;
-        }
-    } catch (error) {
-        console.log('✗ Polygon.io 실패:', error.message);
-    }
-    
-    // 방법 4: FMP (Financial Modeling Prep)
-    try {
-        console.log('방법 4: FMP API 시도...');
-        const data = await fetchFMP(stockCode, ticker);
-        if (data && data.length >= 60) {
-            console.log(`✓ FMP 성공! (${data.length}일)`);
-            return data;
-        }
-    } catch (error) {
-        console.log('✗ FMP 실패:', error.message);
-    }
-    
-    // 방법 5: 샘플 데이터 (현실적인 패턴)
-    console.log('방법 5: 현실적인 샘플 데이터 생성...');
-    return generateRealisticData(ticker);
-}
-
-// Alpha Vantage API (무료 - demo 키 사용)
-async function fetchAlphaVantage(stockCode, ticker) {
-    // 여러 무료 API 키 (데모용)
-    const apiKeys = ['demo', 'RIBXT3XRLE1VS2D8', '8M6NOИЈЕ6TFQXZK'];
-    
-    for (const apiKey of apiKeys) {
-        try {
-            const url = `https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=${ticker}&outputsize=full&apikey=${apiKey}`;
-            
-            const response = await fetch(url);
-            const json = await response.json();
-            
-            if (json['Time Series (Daily)']) {
-                const timeSeries = json['Time Series (Daily)'];
-                const data = [];
-                
-                for (const [date, values] of Object.entries(timeSeries)) {
-                    data.push({
-                        date: date,
-                        open: parseFloat(values['1. open']),
-                        high: parseFloat(values['2. high']),
-                        low: parseFloat(values['3. low']),
-                        close: parseFloat(values['4. close']),
-                        volume: parseInt(values['5. volume'])
-                    });
-                }
-                
-                return data.reverse().slice(-500);
-            }
-        } catch (error) {
-            continue;
-        }
-    }
-    
-    throw new Error('Alpha Vantage 실패');
-}
-
-// Twelve Data API (무료)
-async function fetchTwelveData(stockCode, ticker) {
-    const apiKeys = ['demo', 'a1b2c3d4e5f6g7h8'];
-    
-    for (const apiKey of apiKeys) {
-        try {
-            const url = `https://api.twelvedata.com/time_series?symbol=${ticker}&interval=1day&outputsize=500&apikey=${apiKey}`;
-            
-            const response = await fetch(url);
-            const json = await response.json();
-            
-            if (json.values && Array.isArray(json.values)) {
-                const data = json.values.map(item => ({
-                    date: item.datetime,
-                    open: parseFloat(item.open),
-                    high: parseFloat(item.high),
-                    low: parseFloat(item.low),
-                    close: parseFloat(item.close),
-                    volume: parseInt(item.volume) || 0
-                }));
-                
-                return data.reverse();
-            }
-        } catch (error) {
-            continue;
-        }
-    }
-    
-    throw new Error('Twelve Data 실패');
-}
-
-// Polygon.io API
-async function fetchPolygon(stockCode, ticker) {
-    try {
-        const to = new Date().toISOString().split('T')[0];
-        const from = new Date(Date.now() - 730 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    // DB에서 데이터 찾기
+    if (db[ticker]) {
+        const stockInfo = db[ticker];
+        console.log(`✓ ${stockInfo.name} 데이터 로드 완료`);
+        console.log(`  📊 현재가: ${stockInfo.currentPrice.toLocaleString()}원`);
+        console.log(`  📈 변동: ${stockInfo.change > 0 ? '+' : ''}${stockInfo.change}%`);
+        console.log(`  📅 데이터: ${stockInfo.data.length}일`);
         
-        const url = `https://api.polygon.io/v2/aggs/ticker/${ticker}/range/1/day/${from}/${to}?apiKey=demo`;
+        return stockInfo.data;
+    }
+    
+    // DB에 없는 종목
+    console.log(`⚠️ ${ticker}는 데이터베이스에 없습니다.`);
+    throw new Error(`${ticker} 데이터를 찾을 수 없습니다. 주요 20개 종목만 지원됩니다.`);
+}
+        });
         
-        const response = await fetch(url);
+        if (!response.ok) throw new Error('KRX API 오류');
+        
         const json = await response.json();
         
-        if (json.results && Array.isArray(json.results)) {
-            const data = json.results.map(item => ({
-                date: new Date(item.t).toISOString().split('T')[0],
-                open: item.o,
-                high: item.h,
-                low: item.l,
-                close: item.c,
-                volume: item.v
+        if (json.output && Array.isArray(json.output)) {
+            const data = json.output.map(item => ({
+                date: item.TRD_DD,
+                open: parseFloat(item.TDD_OPNPRC),
+                high: parseFloat(item.TDD_HGPRC),
+                low: parseFloat(item.TDD_LWPRC),
+                close: parseFloat(item.TDD_CLSPRC),
+                volume: parseInt(item.ACC_TRDVOL)
             }));
             
             return data;
@@ -261,127 +191,7 @@ async function fetchPolygon(stockCode, ticker) {
         throw error;
     }
     
-    throw new Error('Polygon.io 실패');
-}
-
-// FMP (Financial Modeling Prep)
-async function fetchFMP(stockCode, ticker) {
-    const apiKeys = ['demo', 'YOUR_FMP_KEY'];
-    
-    for (const apiKey of apiKeys) {
-        try {
-            const url = `https://financialmodelingprep.com/api/v3/historical-price-full/${ticker}?apikey=${apiKey}`;
-            
-            const response = await fetch(url);
-            const json = await response.json();
-            
-            if (json.historical && Array.isArray(json.historical)) {
-                const data = json.historical.map(item => ({
-                    date: item.date,
-                    open: item.open,
-                    high: item.high,
-                    low: item.low,
-                    close: item.close,
-                    volume: item.volume
-                }));
-                
-                return data.reverse().slice(-500);
-            }
-        } catch (error) {
-            continue;
-        }
-    }
-    
-    throw new Error('FMP 실패');
-}
-
-// 현실적인 샘플 데이터 생성
-function generateRealisticData(ticker) {
-    console.log('⚠️ 외부 API 접근 불가 - 현실적인 샘플 데이터 생성');
-    
-    const data = [];
-    const today = new Date();
-    
-    // 종목별 실제 가격 범위
-    const priceRanges = {
-        '005930': { base: 72000, name: '삼성전자' },
-        '000660': { base: 130000, name: 'SK하이닉스' },
-        '017670': { base: 86500, name: 'SK텔레콤' },
-        '035420': { base: 190000, name: 'NAVER' },
-        '035720': { base: 48000, name: '카카오' },
-        '373220': { base: 420000, name: 'LG에너지솔루션' },
-        '207940': { base: 850000, name: '삼성바이오로직스' },
-        '006400': { base: 380000, name: '삼성SDI' },
-        '051910': { base: 420000, name: 'LG화학' },
-        '005490': { base: 360000, name: 'POSCO홀딩스' },
-        '068270': { base: 180000, name: '셀트리온' },
-        '105560': { base: 65000, name: 'KB금융' },
-        '055550': { base: 45000, name: '신한지주' },
-        '086790': { base: 52000, name: '하나금융지주' },
-        '005380': { base: 230000, name: '현대차' },
-        '000270': { base: 95000, name: '기아' },
-        '012330': { base: 250000, name: '현대모비스' },
-        '066570': { base: 95000, name: 'LG전자' },
-        '009150': { base: 180000, name: '삼성전기' },
-        '034220': { base: 98000, name: 'LG디스플레이' },
-        '030200': { base: 38000, name: 'KT' },
-        '003010': { base: 4700, name: '이건홀딩스' },
-        '008250': { base: 4600, name: '이건산업' },
-        '011200': { base: 42000, name: 'HMM' },
-        '003490': { base: 28000, name: '대한항공' },
-        '033780': { base: 92000, name: 'KT&G' },
-        '090430': { base: 140000, name: '아모레퍼시픽' },
-        '051900': { base: 320000, name: 'LG생활건강' },
-        '323410': { base: 28000, name: '카카오뱅크' },
-        '036570': { base: 240000, name: '엔씨소프트' },
-        '259960': { base: 220000, name: '크래프톤' },
-        '247540': { base: 280000, name: '에코프로비엠' },
-        'default': { base: 20000 + Math.random() * 80000, name: '기타' }
-    };
-    
-    const stockCode = ticker.replace('.KS', '').replace('.KQ', '');
-    const priceInfo = priceRanges[stockCode] || priceRanges['default'];
-    let basePrice = priceInfo.base;
-    
-    // 가격대별 변동폭
-    let dailyVariation = 0.02;
-    if (basePrice < 10000) dailyVariation = 0.035;
-    else if (basePrice < 50000) dailyVariation = 0.025;
-    else if (basePrice > 200000) dailyVariation = 0.015;
-    
-    // 500일 데이터 생성
-    for (let i = 500; i >= 0; i--) {
-        const date = new Date(today);
-        date.setDate(date.getDate() - i);
-        
-        const longTrend = Math.sin(i / 100) * 0.12;
-        const midCycle = Math.sin(i / 30) * 0.06;
-        const shortNoise = (Math.random() - 0.5) * 0.02;
-        
-        const priceMultiplier = 1 + longTrend + midCycle + shortNoise;
-        const close = basePrice * priceMultiplier;
-        
-        const open = close * (1 + (Math.random() - 0.5) * dailyVariation);
-        const high = Math.max(open, close) * (1 + Math.random() * dailyVariation);
-        const low = Math.min(open, close) * (1 - Math.random() * dailyVariation);
-        
-        let volumeBase = basePrice < 10000 ? 8000000 : 
-                        basePrice < 50000 ? 3000000 : 
-                        basePrice > 200000 ? 500000 : 1000000;
-        const volume = Math.floor(volumeBase + Math.random() * volumeBase * 2);
-        
-        data.push({
-            date: date.toISOString().split('T')[0],
-            open: Math.round(open),
-            high: Math.round(high),
-            low: Math.round(low),
-            close: Math.round(close),
-            volume: volume
-        });
-    }
-    
-    console.log(`📊 ${priceInfo.name} 샘플 데이터 (기준가: ${Math.round(basePrice).toLocaleString()}원)`);
-    return data;
+    throw new Error('KRX 데이터 없음');
 }
 
 function parseCSV(text) {
