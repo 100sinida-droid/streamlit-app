@@ -108,12 +108,23 @@ Settings → Pages 페이지 상단에 **"Your site is live at ..."** 메시지�
 **원인**: CORS (Cross-Origin Resource Sharing) 정책으로 인한 브라우저 차단
 
 **해결**: 
-- 이미 AllOrigins 프록시 서버를 통해 해결되어 있습니다
-- 만약 계속 오류가 발생하면:
-  1. 인터넷 연결 확인
-  2. 브라우저 캐시 삭제
-  3. 다른 브라우저로 시도
-  4. 프록시 서버 상태 확인 (allorigins.win)
+- 현재 3개의 CORS 프록시를 순차적으로 시도합니다
+  1. corsproxy.io (1순위)
+  2. allorigins.win (2순위)
+  3. cors-anywhere.herokuapp.com (3순위)
+- 모든 프록시가 실패하면 **자동으로 데모 모드**로 전환됩니다
+
+### 📺 데모 모드
+실제 데이터를 가져올 수 없을 때:
+- ⚠️ 경고 메시지와 함께 **샘플 데이터로 작동**
+- 실제와 유사한 가격 패턴 생성
+- AI 분석 알고리즘은 정상 작동
+- **기능 테스트 및 데모 목적으로 사용 가능**
+
+### 실제 데이터 사용 방법
+1. **로컬 환경에서 실행**: 브라우저 CORS 제한 없음
+2. **서버에 배포**: 백엔드 API를 통해 데이터 가져오기
+3. **VPN 사용**: 일부 지역에서 Yahoo Finance 차단 우회
 
 ### 특정 종목이 검색되지 않을 때
 1. `korea_stocks.js` 파일에 해당 종목이 있는지 확인
@@ -124,6 +135,24 @@ Settings → Pages 페이지 상단에 **"Your site is live at ..."** 메시지�
 - Chart.js CDN 로딩 확인
 - 브라우저 콘솔에서 에러 메시지 확인
 - 페이지 새로고침 시도
+
+### 로컬에서 제대로 테스트하기
+로컬 파일로는 CORS 문제가 발생합니다. 다음 방법 중 하나를 사용하세요:
+
+**방법 1: Python 간단한 서버**
+```bash
+# Python 3
+python -m http.server 8000
+
+# 브라우저에서 http://localhost:8000 접속
+```
+
+**방법 2: VS Code Live Server**
+- VS Code Extension "Live Server" 설치
+- HTML 파일 우클릭 → "Open with Live Server"
+
+**방법 3: GitHub Pages** (권장)
+- GitHub에 업로드하면 CORS 문제 없이 작동
 
 ## 📝 라이선스
 
