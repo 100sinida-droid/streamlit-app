@@ -78,7 +78,7 @@ async function analyzeStock() {
     hideResults();
 
     try {
-        // 데이터 가져오기
+        // 실제 데이터만 가져오기 (샘플 데이터 사용 안 함)
         const data = await fetchStockData(ticker);
         
         if (!data || data.length < 60) {
@@ -86,7 +86,7 @@ async function analyzeStock() {
             return;
         }
 
-        console.log(`✓ ${data.length}일 데이터 로드 성공`);
+        console.log(`✓ 실제 데이터 ${data.length}일 로드 성공`);
 
         // 전략 계산
         const strategy = calculateStrategy(data);
@@ -96,170 +96,214 @@ async function analyzeStock() {
         
     } catch (error) {
         console.error('분석 오류:', error);
-        showError('분석 중 오류가 발생했습니다. 페이지를 새로고침 후 다시 시도해주세요.');
+        
+        let errorMessage = '❌ 실제 주식 데이터를 가져올 수 없습니다.\n\n';
+        errorMessage += '🔍 시도한 방법:\n';
+        errorMessage += '1. Yahoo Finance Query API\n';
+        errorMessage += '2. Yahoo Finance Chart API\n';
+        errorMessage += '3. Yahoo Finance CSV 직접 다운로드\n\n';
+        errorMessage += '💡 해결 방법:\n';
+        errorMessage += '• 다른 종목을 선택해보세요\n';
+        errorMessage += '• 페이지를 새로고침 해보세요\n';
+        errorMessage += '• 잠시 후 다시 시도해주세요\n';
+        errorMessage += '• 다른 브라우저를 사용해보세요\n\n';
+        errorMessage += '⚠️ Yahoo Finance 서버가 일시적으로 접근을 차단했을 수 있습니다.';
+        
+        showError(errorMessage);
     } finally {
         showLoading(false);
     }
 }
 
 // =========================================================
-// 주식 데이터 가져오기 (여러 소스 시도)
+// 실제 주식 데이터 가져오기 (여러 API 시도)
 // =========================================================
 
 async function fetchStockData(ticker) {
-    console.log(`${ticker} 데이터 가져오기 시작...`);
+    console.log(`${ticker} 실제 데이터 가져오기 시작...`);
     
-    // 한국 종목 코드에서 .KS, .KQ 제거
-    const stockCode = ticker.replace('.KS', '').replace('.KQ', '');
-    
-    // 방법 1: Alpha Vantage API (무료, 안정적)
+    // 방법 1: Yahoo Finance Query API (가장 안정적)
     try {
-        console.log('방법 1: Alpha Vantage API 시도...');
-        const data = await fetchFromAlphaVantage(ticker);
+        console.log('방법 1: Yahoo Finance Query API 시도...');
+        const data = await fetchYahooQuery(ticker);
         if (data && data.length >= 60) {
-            console.log('✓ Alpha Vantage API 성공!');
+            console.log('✓ Yahoo Finance Query API 성공!');
             return data;
         }
     } catch (error) {
-        console.log('✗ Alpha Vantage 실패:', error.message);
+        console.log('✗ Yahoo Finance Query 실패:', error.message);
     }
     
-    // 방법 2: Finnhub API (무료)
+    // 방법 2: Yahoo Finance Chart API
     try {
-        console.log('방법 2: Finnhub API 시도...');
-        const data = await fetchFromFinnhub(ticker);
+        console.log('방법 2: Yahoo Finance Chart API 시도...');
+        const data = await fetchYahooChart(ticker);
         if (data && data.length >= 60) {
-            console.log('✓ Finnhub API 성공!');
+            console.log('✓ Yahoo Finance Chart API 성공!');
             return data;
         }
     } catch (error) {
-        console.log('✗ Finnhub 실패:', error.message);
+        console.log('✗ Yahoo Finance Chart 실패:', error.message);
     }
     
-    // 방법 3: Yahoo Finance (프록시 통해)
+    // 방법 3: 직접 CSV 다운로드
     try {
-        console.log('방법 3: Yahoo Finance 시도...');
-        const data = await fetchFromYahoo(ticker);
+        console.log('방법 3: Yahoo Finance CSV 직접 다운로드 시도...');
+        const data = await fetchYahooDirectCSV(ticker);
         if (data && data.length >= 60) {
-            console.log('✓ Yahoo Finance 성공!');
+            console.log('✓ CSV 직접 다운로드 성공!');
             return data;
         }
     } catch (error) {
-        console.log('✗ Yahoo Finance 실패:', error.message);
+        console.log('✗ CSV 직접 다운로드 실패:', error.message);
     }
     
-    // 방법 4: 생성된 샘플 데이터 (최후의 수단)
-    console.log('방법 4: 샘플 데이터 생성...');
-    return generateRealisticData(ticker);
+    throw new Error('실제 데이터를 가져올 수 없습니다. 모든 방법이 실패했습니다.');
 }
 
-// Alpha Vantage API (무료 키: demo)
-async function fetchFromAlphaVantage(ticker) {
-    const apiKey = 'demo'; // 무료 데모 키
-    const symbol = ticker.replace('.KS', '').replace('.KQ', '');
-    
-    const url = `https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=${symbol}&outputsize=full&apikey=${apiKey}`;
-    
-    try {
-        const response = await fetch(url);
-        const json = await response.json();
-        
-        if (json['Time Series (Daily)']) {
-            const timeSeries = json['Time Series (Daily)'];
-            const data = [];
-            
-            for (const [date, values] of Object.entries(timeSeries)) {
-                data.push({
-                    date: date,
-                    open: parseFloat(values['1. open']),
-                    high: parseFloat(values['2. high']),
-                    low: parseFloat(values['3. low']),
-                    close: parseFloat(values['4. close']),
-                    volume: parseInt(values['5. volume'])
-                });
-            }
-            
-            return data.reverse().slice(-500); // 최근 500일
-        }
-    } catch (error) {
-        throw error;
-    }
-    
-    throw new Error('Alpha Vantage 데이터 없음');
-}
-
-// Finnhub API (무료)
-async function fetchFromFinnhub(ticker) {
-    const apiKey = 'demo'; // 무료 키
-    
-    const to = Math.floor(Date.now() / 1000);
-    const from = to - (730 * 24 * 60 * 60); // 2년 전
-    
-    const url = `https://finnhub.io/api/v1/stock/candle?symbol=${ticker}&resolution=D&from=${from}&to=${to}&token=${apiKey}`;
-    
-    try {
-        const response = await fetch(url);
-        const json = await response.json();
-        
-        if (json.c && json.c.length > 0) {
-            const data = [];
-            for (let i = 0; i < json.t.length; i++) {
-                data.push({
-                    date: new Date(json.t[i] * 1000).toISOString().split('T')[0],
-                    open: json.o[i],
-                    high: json.h[i],
-                    low: json.l[i],
-                    close: json.c[i],
-                    volume: json.v[i]
-                });
-            }
-            return data;
-        }
-    } catch (error) {
-        throw error;
-    }
-    
-    throw new Error('Finnhub 데이터 없음');
-}
-
-// Yahoo Finance (개선된 프록시)
-async function fetchFromYahoo(ticker) {
+// Yahoo Finance Query API (v8)
+async function fetchYahooQuery(ticker) {
     const period1 = Math.floor(Date.now() / 1000) - (730 * 24 * 60 * 60);
     const period2 = Math.floor(Date.now() / 1000);
     
-    const url = `https://query1.finance.yahoo.com/v7/finance/download/${ticker}?period1=${period1}&period2=${period2}&interval=1d&events=history`;
+    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?period1=${period1}&period2=${period2}&interval=1d&includeAdjustedClose=true`;
     
-    // 강력한 프록시 목록
+    // 여러 CORS 프록시 시도
     const proxies = [
-        `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
-        `https://corsproxy.io/?${encodeURIComponent(url)}`,
-        `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
-        // 직접 시도 (일부 브라우저에서 작동할 수 있음)
-        url
+        '', // 직접 시도
+        'https://api.allorigins.win/raw?url=',
+        'https://api.codetabs.com/v1/proxy?quest=',
+        'https://corsproxy.io/?',
     ];
     
-    for (const proxyUrl of proxies) {
+    for (const proxy of proxies) {
         try {
-            const response = await fetch(proxyUrl, {
+            const fetchUrl = proxy ? proxy + encodeURIComponent(url) : url;
+            const response = await fetch(fetchUrl, {
                 method: 'GET',
                 headers: {
-                    'Accept': 'text/csv,text/plain,*/*'
+                    'Accept': 'application/json'
                 }
             });
             
             if (!response.ok) continue;
             
+            const json = await response.json();
+            
+            if (json.chart && json.chart.result && json.chart.result[0]) {
+                const result = json.chart.result[0];
+                const timestamps = result.timestamp;
+                const quotes = result.indicators.quote[0];
+                
+                if (!timestamps || timestamps.length === 0) continue;
+                
+                const data = [];
+                for (let i = 0; i < timestamps.length; i++) {
+                    if (quotes.close[i] !== null) {
+                        const date = new Date(timestamps[i] * 1000);
+                        data.push({
+                            date: date.toISOString().split('T')[0],
+                            open: quotes.open[i] || quotes.close[i],
+                            high: quotes.high[i] || quotes.close[i],
+                            low: quotes.low[i] || quotes.close[i],
+                            close: quotes.close[i],
+                            volume: quotes.volume[i] || 0
+                        });
+                    }
+                }
+                
+                if (data.length >= 60) {
+                    console.log(`✓ 실제 데이터 ${data.length}일 수신 완료`);
+                    return data;
+                }
+            }
+        } catch (error) {
+            continue;
+        }
+    }
+    
+    throw new Error('Query API 모든 프록시 실패');
+}
+
+// Yahoo Finance Chart API (대체)
+async function fetchYahooChart(ticker) {
+    const period1 = Math.floor(Date.now() / 1000) - (730 * 24 * 60 * 60);
+    const period2 = Math.floor(Date.now() / 1000);
+    
+    const url = `https://query2.finance.yahoo.com/v8/finance/chart/${ticker}?period1=${period1}&period2=${period2}&interval=1d`;
+    
+    const proxies = [
+        'https://api.allorigins.win/raw?url=',
+        'https://corsproxy.io/?',
+    ];
+    
+    for (const proxy of proxies) {
+        try {
+            const response = await fetch(proxy + encodeURIComponent(url));
+            if (!response.ok) continue;
+            
+            const json = await response.json();
+            
+            if (json.chart && json.chart.result && json.chart.result[0]) {
+                const result = json.chart.result[0];
+                const timestamps = result.timestamp;
+                const quotes = result.indicators.quote[0];
+                
+                const data = [];
+                for (let i = 0; i < timestamps.length; i++) {
+                    if (quotes.close[i] !== null) {
+                        const date = new Date(timestamps[i] * 1000);
+                        data.push({
+                            date: date.toISOString().split('T')[0],
+                            open: quotes.open[i] || quotes.close[i],
+                            high: quotes.high[i] || quotes.close[i],
+                            low: quotes.low[i] || quotes.close[i],
+                            close: quotes.close[i],
+                            volume: quotes.volume[i] || 0
+                        });
+                    }
+                }
+                
+                if (data.length >= 60) {
+                    return data;
+                }
+            }
+        } catch (error) {
+            continue;
+        }
+    }
+    
+    throw new Error('Chart API 실패');
+}
+
+// Yahoo Finance CSV 직접 다운로드
+async function fetchYahooDirectCSV(ticker) {
+    const period1 = Math.floor(Date.now() / 1000) - (730 * 24 * 60 * 60);
+    const period2 = Math.floor(Date.now() / 1000);
+    
+    const url = `https://query1.finance.yahoo.com/v7/finance/download/${ticker}?period1=${period1}&period2=${period2}&interval=1d&events=history`;
+    
+    const proxies = [
+        'https://api.allorigins.win/raw?url=',
+        'https://api.codetabs.com/v1/proxy?quest=',
+        'https://corsproxy.io/?',
+    ];
+    
+    for (const proxy of proxies) {
+        try {
+            const response = await fetch(proxy + encodeURIComponent(url));
+            
+            if (!response.ok) continue;
+            
             const text = await response.text();
             
-            // 응답 검증
-            if (!text || text.length < 100 || 
-                text.includes('<!DOCTYPE') || 
-                text.includes('<html') ||
-                text.includes('error')) {
+            // HTML 응답 체크
+            if (text.includes('<!DOCTYPE') || text.includes('<html') || text.length < 100) {
                 continue;
             }
             
             const data = parseCSV(text);
+            
             if (data && data.length >= 60) {
                 return data;
             }
@@ -268,199 +312,7 @@ async function fetchFromYahoo(ticker) {
         }
     }
     
-    throw new Error('Yahoo Finance 접근 실패');
-}
-
-// 현실적인 샘플 데이터 생성
-function generateRealisticData(ticker) {
-    console.log('⚠️ 실제 데이터를 가져올 수 없어 현실적인 샘플 데이터를 생성합니다.');
-    
-    const data = [];
-    const today = new Date();
-    
-    // 종목별 실제 가격 범위 설정 (2024-2025년 기준)
-    const priceRanges = {
-        // 대형주 (10만원 이상)
-        '005930': { base: 72000, name: '삼성전자' },
-        '000660': { base: 130000, name: 'SK하이닉스' },
-        '035420': { base: 190000, name: 'NAVER' },
-        '373220': { base: 420000, name: 'LG에너지솔루션' },
-        '207940': { base: 850000, name: '삼성바이오로직스' },
-        '006400': { base: 380000, name: '삼성SDI' },
-        '051910': { base: 420000, name: 'LG화학' },
-        '005490': { base: 360000, name: 'POSCO홀딩스' },
-        '068270': { base: 180000, name: '셀트리온' },
-        '105560': { base: 65000, name: 'KB금융' },
-        '055550': { base: 45000, name: '신한지주' },
-        '086790': { base: 52000, name: '하나금융지주' },
-        
-        // 현대/기아 그룹
-        '005380': { base: 230000, name: '현대차' },
-        '000270': { base: 95000, name: '기아' },
-        '012330': { base: 250000, name: '현대모비스' },
-        '086280': { base: 220000, name: '현대글로비스' },
-        
-        // 중형주 (5만~10만원)
-        '035720': { base: 48000, name: '카카오' },
-        '066570': { base: 95000, name: 'LG전자' },
-        '009150': { base: 180000, name: '삼성전기' },
-        '034220': { base: 98000, name: 'LG디스플레이' },
-        '017670': { base: 58000, name: 'SK텔레콤' },
-        '030200': { base: 38000, name: 'KT' },
-        '028260': { base: 125000, name: '삼성물산' },
-        
-        // 중소형주 (1만~5만원)
-        '011200': { base: 42000, name: 'HMM' },
-        '003490': { base: 28000, name: '대한항공' },
-        '028050': { base: 18000, name: '삼성엔지니어링' },
-        '010950': { base: 45000, name: 'S-Oil' },
-        '078930': { base: 32000, name: 'GS' },
-        '032830': { base: 82000, name: '삼성생명' },
-        '000810': { base: 280000, name: '삼성화재' },
-        '033780': { base: 92000, name: 'KT&G' },
-        '010130': { base: 485000, name: '고려아연' },
-        '090430': { base: 140000, name: '아모레퍼시픽' },
-        '051900': { base: 320000, name: 'LG생활건강' },
-        
-        // 저가주 (1만원 이하)
-        '003010': { base: 4700, name: '이건홀딩스' },
-        '008250': { base: 4600, name: '이건산업' },
-        '000080': { base: 7800, name: '하이트진로' },
-        '004370': { base: 8500, name: '농심' },
-        '271560': { base: 9200, name: '오리온' },
-        '015760': { base: 24000, name: '한국전력' },
-        '000720': { base: 31000, name: '현대건설' },
-        '006360': { base: 18000, name: 'GS건설' },
-        '000210': { base: 72000, name: '대림산업' },
-        '009540': { base: 120000, name: 'HD한국조선해양' },
-        
-        // 제약/바이오
-        '000100': { base: 68000, name: '유한양행' },
-        '128940': { base: 290000, name: '한미약품' },
-        '069620': { base: 95000, name: '대웅제약' },
-        '185750': { base: 118000, name: '종근당' },
-        '006280': { base: 128000, name: '녹십자' },
-        
-        // 화학/소재
-        '096770': { base: 125000, name: 'SK이노베이션' },
-        '011170': { base: 145000, name: '롯데케미칼' },
-        '009830': { base: 32000, name: '한화솔루션' },
-        '004020': { base: 34000, name: '현대제철' },
-        '001230': { base: 48000, name: '동국제강' },
-        
-        // 유통/식품
-        '139480': { base: 105000, name: '이마트' },
-        '023530': { base: 62000, name: '롯데쇼핑' },
-        '004170': { base: 195000, name: '신세계' },
-        '097950': { base: 265000, name: 'CJ제일제당' },
-        '007310': { base: 215000, name: '오뚜기' },
-        '003230': { base: 82000, name: '삼양식품' },
-        
-        // IT/게임 (KOSDAQ)
-        '035720': { base: 48000, name: '카카오' },
-        '323410': { base: 28000, name: '카카오뱅크' },
-        '377300': { base: 42000, name: '카카오페이' },
-        '293490': { base: 38000, name: '카카오게임즈' },
-        '036570': { base: 240000, name: '엔씨소프트' },
-        '251270': { base: 52000, name: '넷마블' },
-        '112040': { base: 45000, name: '위메이드' },
-        '259960': { base: 220000, name: '크래프톤' },
-        '263750': { base: 62000, name: '펄어비스' },
-        
-        // 2차전지
-        '247540': { base: 280000, name: '에코프로비엠' },
-        '086520': { base: 68000, name: '에코프로' },
-        '066970': { base: 180000, name: '엘앤에프' },
-        '003670': { base: 310000, name: '포스코퓨처엠' },
-        
-        // 반도체/디스플레이 (KOSDAQ)
-        '058470': { base: 180000, name: '리노공업' },
-        '039030': { base: 145000, name: '이오테크닉스' },
-        '036490': { base: 95000, name: 'SK머티리얼즈' },
-        '240810': { base: 52000, name: '원익IPS' },
-        
-        // 바이오 (KOSDAQ)
-        '196170': { base: 320000, name: '알테오젠' },
-        '214150': { base: 62000, name: '클래시스' },
-        '028300': { base: 38000, name: 'HLB' },
-        '214450': { base: 145000, name: '파마리서치' },
-        
-        // 엔터테인먼트
-        '352820': { base: 185000, name: '하이브' },
-        '035900': { base: 68000, name: 'JYP Ent.' },
-        '041510': { base: 82000, name: 'SM' },
-        
-        // 기타 주요 종목
-        '021240': { base: 58000, name: '코웨이' },
-        '192820': { base: 125000, name: '코스맥스' },
-        '383220': { base: 32000, name: 'F&F' },
-        '000120': { base: 92000, name: 'CJ대한통운' },
-        '008770': { base: 82000, name: '호텔신라' },
-        
-        // 건설/중공업
-        '034020': { base: 18000, name: '두산에너빌리티' },
-        '012450': { base: 185000, name: '한화에어로스페이스' },
-        '047810': { base: 52000, name: '한국항공우주' },
-        '079550': { base: 68000, name: 'LIG넥스원' },
-        
-        // 기본값 (검색되지 않은 종목)
-        'default': { base: 15000 + Math.random() * 35000, name: '기타' }
-    };
-    
-    const stockCode = ticker.replace('.KS', '').replace('.KQ', '');
-    const priceInfo = priceRanges[stockCode] || priceRanges['default'];
-    let basePrice = priceInfo.base;
-    
-    // 가격대별 변동폭 조정
-    let dailyVariation = 0.02; // 기본 2%
-    if (basePrice < 10000) {
-        dailyVariation = 0.035; // 저가주는 변동성 높음 (3.5%)
-    } else if (basePrice < 50000) {
-        dailyVariation = 0.025; // 중소형주 (2.5%)
-    } else if (basePrice > 200000) {
-        dailyVariation = 0.015; // 고가주는 변동성 낮음 (1.5%)
-    }
-    
-    // 500일 데이터 생성 (더 현실적인 패턴)
-    for (let i = 500; i >= 0; i--) {
-        const date = new Date(today);
-        date.setDate(date.getDate() - i);
-        
-        // 장기 추세 + 중기 사이클 + 단기 노이즈
-        const longTrend = Math.sin(i / 100) * 0.12; // 장기 추세 (-12% ~ +12%)
-        const midCycle = Math.sin(i / 30) * 0.06;   // 중기 사이클 (-6% ~ +6%)
-        const shortNoise = (Math.random() - 0.5) * 0.02; // 단기 변동 (-1% ~ +1%)
-        
-        const priceMultiplier = 1 + longTrend + midCycle + shortNoise;
-        const close = basePrice * priceMultiplier;
-        
-        const open = close * (1 + (Math.random() - 0.5) * dailyVariation);
-        const high = Math.max(open, close) * (1 + Math.random() * dailyVariation);
-        const low = Math.min(open, close) * (1 - Math.random() * dailyVariation);
-        
-        // 거래량도 가격대에 맞게 조정
-        let volumeBase = 1000000;
-        if (basePrice < 10000) {
-            volumeBase = 8000000; // 저가주는 거래량 많음
-        } else if (basePrice < 50000) {
-            volumeBase = 3000000; // 중형주
-        } else if (basePrice > 200000) {
-            volumeBase = 500000; // 고가주는 거래량 적음
-        }
-        const volume = Math.floor(volumeBase + Math.random() * volumeBase * 2);
-        
-        data.push({
-            date: date.toISOString().split('T')[0],
-            open: Math.round(open),
-            high: Math.round(high),
-            low: Math.round(low),
-            close: Math.round(close),
-            volume: volume
-        });
-    }
-    
-    console.log(`📊 ${priceInfo.name} 샘플 데이터 생성 완료 (기준가: ${Math.round(basePrice).toLocaleString()}원)`);
-    return data;
+    throw new Error('CSV 다운로드 실패');
 }
 
 function parseCSV(text) {
