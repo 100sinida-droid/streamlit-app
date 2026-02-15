@@ -20,18 +20,9 @@ export async function onRequest(context) {
     }
   });
 
-  if (!response.ok) {
-    return new Response(JSON.stringify({ error: "Fetch failed" }), {
-      status: 500,
-      headers: { "Content-Type": "application/json" }
-    });
-  }
-
   const data = await response.text();
 
   return new Response(data, {
-    headers: {
-      "Content-Type": "application/json"
-    }
+    headers: { "Content-Type": "application/json" }
   });
 }
