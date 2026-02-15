@@ -116,113 +116,93 @@ async function analyzeStock() {
 }
 
 // =========================================================
-// 실제 주식 데이터 가져오기 (한국 거래소 중심)
+// 실제 주식 데이터 가져오기 (CORS 우회)
 // =========================================================
 
 async function fetchStockData(ticker) {
     console.log(`${ticker} 실제 데이터 가져오기 시작...`);
     
-    // 방법 1: Yahoo Finance - 조정 안 된 원본 가격 사용
+    // 방법 1: CORS Anywhere 프록시 사용
     try {
-        console.log('방법 1: Yahoo Finance 원본 가격 시도...');
-        const data = await fetchYahooRawPrice(ticker);
+        console.log('방법 1: CORS 프록시 시도...');
+        const data = await fetchWithCORS(ticker);
         if (data && data.length >= 60) {
-            console.log(`✓ Yahoo Finance 실제 가격 성공! (${data.length}일)`);
+            console.log(`✓ 프록시 성공! (${data.length}일, 실제 종가: ${data[data.length-1].close.toLocaleString()}원)`);
             return data;
         }
     } catch (error) {
-        console.log('✗ Yahoo Finance 실패:', error.message);
+        console.log('✗ 프록시 실패:', error.message);
     }
     
-    // 방법 2: Yahoo Finance Chart API (Close 가격)
+    // 방법 2: JSONP 방식 시도
     try {
-        console.log('방법 2: Yahoo Finance Chart API 시도...');
-        const data = await fetchYahooChartRaw(ticker);
+        console.log('방법 2: JSONP 방식 시도...');
+        const data = await fetchWithJSONP(ticker);
         if (data && data.length >= 60) {
-            console.log(`✓ Chart API 성공! (${data.length}일)`);
+            console.log(`✓ JSONP 성공! (${data.length}일)`);
             return data;
         }
     } catch (error) {
-        console.log('✗ Chart API 실패:', error.message);
+        console.log('✗ JSONP 실패:', error.message);
     }
     
-    // 방법 3: 네이버 금융 API (한국 전용)
+    // 방법 3: 여러 프록시 동시 시도
     try {
-        console.log('방법 3: 네이버 금융 API 시도...');
-        const data = await fetchNaverFinance(ticker);
+        console.log('방법 3: 다중 프록시 동시 시도...');
+        const data = await fetchWithMultipleProxies(ticker);
         if (data && data.length >= 60) {
-            console.log(`✓ 네이버 금융 성공! (${data.length}일)`);
+            console.log(`✓ 다중 프록시 성공! (${data.length}일)`);
             return data;
         }
     } catch (error) {
-        console.log('✗ 네이버 금융 실패:', error.message);
+        console.log('✗ 다중 프록시 실패:', error.message);
     }
     
-    throw new Error('실제 데이터를 가져올 수 없습니다.');
+    throw new Error('모든 방법 실패');
 }
 
-// Yahoo Finance - 원본 가격 (조정 안 됨)
-async function fetchYahooRawPrice(ticker) {
+// CORS 프록시 사용
+async function fetchWithCORS(ticker) {
     const period1 = Math.floor(Date.now() / 1000) - (730 * 24 * 60 * 60);
     const period2 = Math.floor(Date.now() / 1000);
     
-    // CSV 다운로드 - 원본 Close 가격 사용
-    const url = `https://query1.finance.yahoo.com/v7/finance/download/${ticker}?period1=${period1}&period2=${period2}&interval=1d&events=history&includeAdjustedClose=true`;
+    const yahooUrl = `https://query1.finance.yahoo.com/v7/finance/download/${ticker}?period1=${period1}&period2=${period2}&interval=1d&events=history`;
     
+    // 더 강력한 프록시 목록
     const proxies = [
-        '',
+        'https://corsproxy.io/?',
         'https://api.allorigins.win/raw?url=',
         'https://api.codetabs.com/v1/proxy?quest=',
-        'https://corsproxy.io/?',
+        'https://thingproxy.freeboard.io/fetch/',
     ];
     
     for (const proxy of proxies) {
         try {
-            const fetchUrl = proxy ? proxy + encodeURIComponent(url) : url;
-            const response = await fetch(fetchUrl);
+            const url = proxy + encodeURIComponent(yahooUrl);
+            console.log(`시도: ${proxy.split('/')[2]}`);
+            
+            const response = await fetch(url, {
+                method: 'GET',
+                headers: {
+                    'Accept': 'text/csv,text/plain,*/*',
+                },
+            });
             
             if (!response.ok) continue;
             
             const text = await response.text();
             
-            if (text.includes('<!DOCTYPE') || text.includes('<html') || text.length < 100) {
+            // 유효성 검사
+            if (!text || text.length < 100 || 
+                text.includes('<!DOCTYPE') || 
+                text.includes('<html>') ||
+                text.includes('error')) {
                 continue;
             }
             
-            const lines = text.trim().split('\n');
-            if (lines.length < 2) continue;
+            const data = parseCSVRaw(text);
             
-            const headers = lines[0].split(',');
-            const dateIdx = headers.indexOf('Date');
-            const openIdx = headers.indexOf('Open');
-            const highIdx = headers.indexOf('High');
-            const lowIdx = headers.indexOf('Low');
-            const closeIdx = headers.indexOf('Close'); // 조정 안 된 원본 가격
-            const volumeIdx = headers.indexOf('Volume');
-            
-            const data = [];
-            
-            for (let i = 1; i < lines.length; i++) {
-                const values = lines[i].split(',');
-                
-                if (values.length >= 6) {
-                    const close = parseFloat(values[closeIdx]);
-                    
-                    if (!isNaN(close) && close > 0) {
-                        data.push({
-                            date: values[dateIdx],
-                            open: parseFloat(values[openIdx]) || close,
-                            high: parseFloat(values[highIdx]) || close,
-                            low: parseFloat(values[lowIdx]) || close,
-                            close: close, // 원본 Close 가격 사용!
-                            volume: parseInt(values[volumeIdx]) || 0
-                        });
-                    }
-                }
-            }
-            
-            if (data.length >= 60) {
-                console.log(`실제 종가: ${data[data.length - 1].close.toLocaleString()}원`);
+            if (data && data.length >= 60) {
                 return data;
             }
         } catch (error) {
@@ -230,120 +210,156 @@ async function fetchYahooRawPrice(ticker) {
         }
     }
     
-    throw new Error('CSV 다운로드 실패');
+    throw new Error('CORS 프록시 모두 실패');
 }
 
-// Yahoo Finance Chart API - 원본 가격
-async function fetchYahooChartRaw(ticker) {
+// CSV 파싱 (원본 Close 가격 사용)
+function parseCSVRaw(text) {
+    const lines = text.trim().split('\n');
+    
+    if (lines.length < 2) return null;
+    
+    const headers = lines[0].split(',');
+    const data = [];
+    
+    // 헤더에서 인덱스 찾기
+    const dateIdx = headers.findIndex(h => h.toLowerCase().includes('date'));
+    const openIdx = headers.findIndex(h => h.toLowerCase().includes('open'));
+    const highIdx = headers.findIndex(h => h.toLowerCase().includes('high'));
+    const lowIdx = headers.findIndex(h => h.toLowerCase().includes('low'));
+    const closeIdx = headers.findIndex(h => h.toLowerCase() === 'close'); // 원본 종가!
+    const volumeIdx = headers.findIndex(h => h.toLowerCase().includes('volume'));
+    
+    for (let i = 1; i < lines.length; i++) {
+        const values = lines[i].split(',');
+        
+        if (values.length >= 6) {
+            const close = parseFloat(values[closeIdx]);
+            
+            if (!isNaN(close) && close > 0) {
+                data.push({
+                    date: values[dateIdx],
+                    open: parseFloat(values[openIdx]) || close,
+                    high: parseFloat(values[highIdx]) || close,
+                    low: parseFloat(values[lowIdx]) || close,
+                    close: close, // 원본 Close 가격
+                    volume: parseInt(values[volumeIdx]) || 0
+                });
+            }
+        }
+    }
+    
+    return data;
+}
+
+// JSONP 방식
+async function fetchWithJSONP(ticker) {
     const period1 = Math.floor(Date.now() / 1000) - (730 * 24 * 60 * 60);
     const period2 = Math.floor(Date.now() / 1000);
     
     const url = `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?period1=${period1}&period2=${period2}&interval=1d`;
     
-    const proxies = [
-        '',
-        'https://api.allorigins.win/raw?url=',
-        'https://corsproxy.io/?',
-    ];
-    
-    for (const proxy of proxies) {
-        try {
-            const fetchUrl = proxy ? proxy + encodeURIComponent(url) : url;
-            const response = await fetch(fetchUrl);
+    return new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        const callbackName = 'yahooCallback_' + Date.now();
+        
+        window[callbackName] = (data) => {
+            delete window[callbackName];
+            document.body.removeChild(script);
             
-            if (!response.ok) continue;
-            
-            const json = await response.json();
-            
-            if (json.chart && json.chart.result && json.chart.result[0]) {
-                const result = json.chart.result[0];
-                const timestamps = result.timestamp;
-                const quotes = result.indicators.quote[0];
-                
-                if (!timestamps || timestamps.length === 0) continue;
-                
-                const data = [];
-                
-                for (let i = 0; i < timestamps.length; i++) {
-                    // 원본 close 가격 사용 (adjusted 아님)
-                    const close = quotes.close[i];
+            try {
+                if (data.chart && data.chart.result && data.chart.result[0]) {
+                    const result = data.chart.result[0];
+                    const timestamps = result.timestamp;
+                    const quotes = result.indicators.quote[0];
                     
-                    if (close !== null && !isNaN(close) && close > 0) {
-                        const date = new Date(timestamps[i] * 1000);
-                        data.push({
-                            date: date.toISOString().split('T')[0],
-                            open: quotes.open[i] || close,
-                            high: quotes.high[i] || close,
-                            low: quotes.low[i] || close,
-                            close: close, // 원본 종가
-                            volume: quotes.volume[i] || 0
-                        });
+                    const stockData = [];
+                    
+                    for (let i = 0; i < timestamps.length; i++) {
+                        const close = quotes.close[i];
+                        
+                        if (close !== null && !isNaN(close) && close > 0) {
+                            const date = new Date(timestamps[i] * 1000);
+                            stockData.push({
+                                date: date.toISOString().split('T')[0],
+                                open: quotes.open[i] || close,
+                                high: quotes.high[i] || close,
+                                low: quotes.low[i] || close,
+                                close: close,
+                                volume: quotes.volume[i] || 0
+                            });
+                        }
                     }
+                    
+                    resolve(stockData);
+                } else {
+                    reject(new Error('JSONP 데이터 없음'));
                 }
-                
-                if (data.length >= 60) {
-                    console.log(`실제 종가: ${data[data.length - 1].close.toLocaleString()}원`);
-                    return data;
-                }
+            } catch (error) {
+                reject(error);
             }
-        } catch (error) {
-            continue;
-        }
-    }
-    
-    throw new Error('Chart API 실패');
+        };
+        
+        script.src = url + `&callback=${callbackName}`;
+        script.onerror = () => {
+            delete window[callbackName];
+            reject(new Error('JSONP 스크립트 로드 실패'));
+        };
+        
+        document.body.appendChild(script);
+        
+        // 타임아웃
+        setTimeout(() => {
+            if (window[callbackName]) {
+                delete window[callbackName];
+                document.body.removeChild(script);
+                reject(new Error('JSONP 타임아웃'));
+            }
+        }, 10000);
+    });
 }
 
-// 네이버 금융 API (한국 전용)
-async function fetchNaverFinance(ticker) {
-    // 티커에서 종목 코드 추출
-    const stockCode = ticker.replace('.KS', '').replace('.KQ', '');
+// 여러 프록시 동시 시도 (가장 빠른 것 사용)
+async function fetchWithMultipleProxies(ticker) {
+    const period1 = Math.floor(Date.now() / 1000) - (730 * 24 * 60 * 60);
+    const period2 = Math.floor(Date.now() / 1000);
     
-    // 네이버 금융 API
-    const url = `https://api.finance.naver.com/siseJson.naver?symbol=${stockCode}&requestType=1&startTime=20220101&endTime=20251231&timeframe=day`;
+    const yahooUrl = `https://query1.finance.yahoo.com/v7/finance/download/${ticker}?period1=${period1}&period2=${period2}&interval=1d&events=history`;
     
-    try {
-        const response = await fetch(url);
-        
-        if (!response.ok) throw new Error('네이버 API 오류');
-        
-        const text = await response.text();
-        
-        // JSON 파싱
-        const jsonText = text.replace(/'/g, '"');
-        const jsonData = JSON.parse(jsonText);
-        
-        const data = [];
-        
-        // 첫 번째 행은 헤더
-        for (let i = 1; i < jsonData.length; i++) {
-            const row = jsonData[i];
+    const proxies = [
+        'https://corsproxy.io/?',
+        'https://api.allorigins.win/raw?url=',
+        'https://api.codetabs.com/v1/proxy?quest=',
+    ];
+    
+    const promises = proxies.map(async (proxy) => {
+        try {
+            const url = proxy + encodeURIComponent(yahooUrl);
+            const response = await fetch(url);
             
-            if (row && row.length >= 6) {
-                const date = row[0]; // 날짜
-                const close = parseFloat(row[4]); // 종가
-                
-                if (!isNaN(close) && close > 0) {
-                    data.push({
-                        date: date,
-                        open: parseFloat(row[1]) || close,
-                        high: parseFloat(row[2]) || close,
-                        low: parseFloat(row[3]) || close,
-                        close: close,
-                        volume: parseInt(row[5]) || 0
-                    });
-                }
+            if (!response.ok) throw new Error('HTTP 오류');
+            
+            const text = await response.text();
+            
+            if (text.includes('<!DOCTYPE') || text.includes('<html>')) {
+                throw new Error('HTML 응답');
             }
+            
+            return parseCSVRaw(text);
+        } catch (error) {
+            return null;
         }
-        
-        if (data.length >= 60) {
+    });
+    
+    const results = await Promise.all(promises);
+    
+    for (const data of results) {
+        if (data && data.length >= 60) {
             return data;
         }
-    } catch (error) {
-        throw error;
     }
     
-    throw new Error('네이버 금융 데이터 없음');
+    throw new Error('모든 동시 프록시 실패');
 }
 
 function parseCSV(text) {
