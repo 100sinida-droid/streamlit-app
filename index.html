@@ -1,178 +1,81 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-
-<title>KRX AI 매매 전략 분석기</title>
-
-<!-- Plotly -->
-<script src="https://cdn.plot.ly/plotly-2.30.0.min.js"></script>
-
-<style>
-body{
-    margin:0;
-    font-family:Arial;
-    background:#0e1117;
-    color:white;
-}
-
-.wrapper{
-    max-width:1200px;
-    margin:auto;
-    padding:40px 20px;
-}
-
-.controls{
-    display:flex;
-    gap:10px;
-}
-
-input,select{
-    flex:1;
-    padding:12px;
-    border-radius:8px;
-    border:none;
-}
-
-button{
-    background:#16c784;
-    color:white;
-    border:none;
-    padding:12px 18px;
-    border-radius:8px;
-    cursor:pointer;
-}
-
-.metrics{
-    display:grid;
-    grid-template-columns:repeat(4,1fr);
-    gap:12px;
-    margin-top:20px;
-}
-
-.card{
-    background:#1b222c;
-    padding:18px;
-    border-radius:12px;
-    text-align:center;
-}
-
-.card p{
-    font-size:20px;
-    font-weight:bold;
-}
-
-#chart{
-    margin-top:25px;
-    height:650px;
-}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📈 KRX AI 매매 전략 분석기</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- Chart.js for charting -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+    <!-- Date adapter for Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
 </head>
-
 <body>
+    <div class="container">
+        <header>
+            <h1>📈 KRX AI 매매 전략 분석기</h1>
+            <p class="subtitle">한국 주식시장 AI 기반 매매 전략 분석 도구</p>
+        </header>
 
-<div class="wrapper">
+        <div class="search-section">
+            <div class="search-box">
+                <input type="text" id="searchInput" placeholder="종목 검색 (예: 삼성전자, 005930)">
+                <button id="searchBtn">🔍 검색</button>
+            </div>
+            
+            <div class="select-box">
+                <label for="stockSelect">종목 선택:</label>
+                <select id="stockSelect">
+                    <option value="">종목을 선택하세요</option>
+                </select>
+            </div>
 
-<h2>📈 KRX AI 매매 전략 분석기</h2>
+            <button id="analyzeBtn" class="analyze-btn">📊 분석하기</button>
+        </div>
 
-<div class="controls">
-<input id="search" placeholder="종목 검색 (삼성, sk, apple)">
-<select id="stock"></select>
-<button id="runBtn">분석 시작</button>
-</div>
+        <div id="loadingSpinner" class="loading-spinner" style="display: none;">
+            <div class="spinner"></div>
+            <p>데이터를 분석하고 있습니다...</p>
+        </div>
 
-<div class="metrics">
-<div class="card"><h4>현재가</h4><p id="cur">-</p></div>
-<div class="card"><h4>매수</h4><p id="buy">-</p></div>
-<div class="card"><h4>손절</h4><p id="stop">-</p></div>
-<div class="card"><h4>목표</h4><p id="target">-</p></div>
-</div>
+        <div id="errorMessage" class="error-message" style="display: none;"></div>
 
-<div id="chart"></div>
+        <div id="resultsSection" style="display: none;">
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="metric-label">현재가</div>
+                    <div class="metric-value" id="currentPrice">-</div>
+                </div>
+                <div class="metric-card buy">
+                    <div class="metric-label">매수 추천가</div>
+                    <div class="metric-value" id="buyPrice">-</div>
+                </div>
+                <div class="metric-card stop">
+                    <div class="metric-label">손절가</div>
+                    <div class="metric-value" id="stopPrice">-</div>
+                </div>
+                <div class="metric-card target">
+                    <div class="metric-label">목표가</div>
+                    <div class="metric-value" id="targetPrice">-</div>
+                </div>
+            </div>
 
-</div>
+            <div class="chart-container">
+                <canvas id="priceChart"></canvas>
+            </div>
 
-<script>
-////////////////////////////////////////////////////
-// JS 전부 HTML 안에 포함 → 100% 실행 보장
-////////////////////////////////////////////////////
+            <div class="ai-analysis">
+                <h2>🤖 AI 전략 분석</h2>
+                <div id="aiComment"></div>
+            </div>
+        </div>
 
-const stocks = [
- {name:"삼성전자", ticker:"005930.KS"},
- {name:"SK하이닉스", ticker:"000660.KS"},
- {name:"네이버", ticker:"035420.KS"},
- {name:"카카오", ticker:"035720.KS"},
- {name:"Apple", ticker:"AAPL"},
- {name:"Tesla", ticker:"TSLA"}
-];
+        <footer>
+            <p>⚠️ 본 정보는 투자 참고용이며, 투자 판단의 책임은 투자자 본인에게 있습니다.</p>
+        </footer>
+    </div>
 
-const select=document.getElementById("stock");
-const search=document.getElementById("search");
-const btn=document.getElementById("runBtn");
-
-function populate(list){
- select.innerHTML="";
- list.forEach(s=>{
-   const o=document.createElement("option");
-   o.value=s.ticker;
-   o.textContent=s.name+" ("+s.ticker+")";
-   select.appendChild(o);
- });
-}
-populate(stocks);
-
-search.addEventListener("input",()=>{
- const q=search.value.toLowerCase();
- populate(stocks.filter(s=>s.name.toLowerCase().includes(q)));
-});
-
-const mean=a=>a.reduce((x,y)=>x+y,0)/a.length;
-const std=a=>{
- const m=mean(a);
- return Math.sqrt(mean(a.map(x=>(x-m)**2)));
-};
-
-async function run(){
-
- const ticker=select.value;
-
- const url=`https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?range=2y&interval=1d`;
-
- const r=await fetch(url);
- const j=await r.json();
-
- const close=j.chart.result[0].indicators.quote[0].close.filter(x=>x);
-
- const current=close.at(-1);
- const ma20=mean(close.slice(-20));
- const ma60=mean(close.slice(-60));
-
- const returns=close.slice(1).map((p,i)=>(p-close[i])/close[i]);
- const vol=std(returns);
-
- const buy=ma20*0.98;
- const stop=buy*(1-vol*3);
- const target=buy*1.20;
-
- document.getElementById("cur").innerText=current.toFixed(0);
- document.getElementById("buy").innerText=buy.toFixed(0);
- document.getElementById("stop").innerText=stop.toFixed(0);
- document.getElementById("target").innerText=target.toFixed(0);
-
- Plotly.newPlot("chart",[
-   {y:close,name:"Price"},
-   {y:close.map((_,i)=>i<20?null:mean(close.slice(i-20,i))),name:"MA20"},
-   {y:close.map((_,i)=>i<60?null:mean(close.slice(i-60,i))),name:"MA60"}
- ]);
-}
-
-btn.onclick=run;
-
-document.addEventListener("keydown",e=>{
- if(e.key==="Enter") run();
-});
-</script>
-
+    <script src="korea_stocks.js"></script>
+    <script src="app.js"></script>
 </body>
 </html>
