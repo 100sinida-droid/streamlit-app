@@ -54,10 +54,23 @@ Settings → Pages 페이지 상단에 **"Your site is live at ..."** 메시지�
 
 ## ⚙️ 기술적 특징
 
+### 3단계 데이터 수집 시스템
+1. **Yahoo Finance CSV 다운로드** (1순위)
+   - 가장 안정적이고 빠른 방법
+   - 3개 CORS 프록시 순차 시도
+   
+2. **Yahoo Finance API v8** (2순위)
+   - JSON 기반 실시간 데이터
+   - CSV 실패 시 자동 전환
+
+3. **대체 금융 API** (3순위)
+   - Twelve Data 등 무료 API
+   - 최종 백업 데이터 소스
+
 ### CORS 문제 해결
-- AllOrigins 프록시 서버를 통해 Yahoo Finance API 접근
+- AllOrigins, CodeTabs, CorsProxy 등 다중 프록시
 - 브라우저 보안 정책(CORS) 우회
-- 안정적인 실시간 데이터 수신
+- **실제 데이터만 사용** (샘플 데이터 없음)
 
 ### 스마트 검색
 - 대소문자 구분 없음 (Samsung = SAMSUNG = samsung)
@@ -105,26 +118,36 @@ Settings → Pages 페이지 상단에 **"Your site is live at ..."** 메시지�
 ## 🐛 문제 해결 (Troubleshooting)
 
 ### "데이터를 가져오는 중 오류가 발생했습니다" 오류
-**원인**: CORS (Cross-Origin Resource Sharing) 정책으로 인한 브라우저 차단
+**원인**: CORS (Cross-Origin Resource Sharing) 정책 또는 Yahoo Finance 서버 문제
 
-**해결**: 
-- 현재 3개의 CORS 프록시를 순차적으로 시도합니다
-  1. corsproxy.io (1순위)
-  2. allorigins.win (2순위)
-  3. cors-anywhere.herokuapp.com (3순위)
-- 모든 프록시가 실패하면 **자동으로 데모 모드**로 전환됩니다
+**해결 방법**: 
+이 애플리케이션은 **3단계 데이터 수집 시스템**을 사용합니다:
 
-### 📺 데모 모드
-실제 데이터를 가져올 수 없을 때:
-- ⚠️ 경고 메시지와 함께 **샘플 데이터로 작동**
-- 실제와 유사한 가격 패턴 생성
-- AI 분석 알고리즘은 정상 작동
-- **기능 테스트 및 데모 목적으로 사용 가능**
+**1단계: Yahoo Finance CSV (가장 안정적)**
+- 3개의 CORS 프록시를 순차 시도
+- api.codetabs.com → corsproxy.io → allorigins.win
 
-### 실제 데이터 사용 방법
-1. **로컬 환경에서 실행**: 브라우저 CORS 제한 없음
-2. **서버에 배포**: 백엔드 API를 통해 데이터 가져오기
-3. **VPN 사용**: 일부 지역에서 Yahoo Finance 차단 우회
+**2단계: Yahoo Finance API v8 (JSON 방식)**
+- CSV가 실패하면 JSON API로 시도
+- 더 빠르고 안정적인 응답
+
+**3단계: 대체 금융 데이터 API**
+- Twelve Data API 등 무료 금융 API
+- 백업 데이터 소스
+
+### 추가 해결 방법
+1. **페이지 새로고침**: 브라우저 캐시 문제 해결
+2. **다른 종목 시도**: 일부 종목은 데이터가 없을 수 있음
+3. **잠시 후 재시도**: Yahoo Finance 서버 과부하 시
+4. **브라우저 변경**: Chrome, Firefox, Edge 등
+5. **GitHub Pages 사용**: 로컬보다 안정적
+
+### 실제 데이터 확인 방법
+브라우저 콘솔(F12)을 열어 다음 로그 확인:
+```
+✓ Yahoo Finance CSV 성공!
+✓ 500일 데이터 로드 성공
+```
 
 ### 특정 종목이 검색되지 않을 때
 1. `korea_stocks.js` 파일에 해당 종목이 있는지 확인

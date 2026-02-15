@@ -78,22 +78,15 @@ async function analyzeStock() {
     hideResults();
 
     try {
-        // Yahoo Finance API를 통해 데이터 가져오기
-        let data = null;
-        
-        try {
-            data = await fetchStockData(ticker);
-        } catch (fetchError) {
-            console.warn('실제 데이터 가져오기 실패, 샘플 데이터 사용:', fetchError);
-            // 샘플 데이터 생성 (데모용)
-            data = generateSampleData(ticker);
-            showError('⚠️ 데모 모드: 실제 데이터를 가져올 수 없어 샘플 데이터로 표시합니다. (Yahoo Finance 접속 제한)');
-        }
+        // 실제 데이터 가져오기 (샘플 데이터 사용 안 함)
+        const data = await fetchStockData(ticker);
         
         if (!data || data.length < 60) {
             showError('데이터가 부족합니다 (최소 60일 필요). 다른 종목을 선택해주세요.');
             return;
         }
+
+        console.log(`✓ ${data.length}일 데이터 로드 성공`);
 
         // 전략 계산
         const strategy = calculateStrategy(data);
@@ -104,8 +97,15 @@ async function analyzeStock() {
     } catch (error) {
         console.error('분석 오류:', error);
         
-        let errorMessage = '분석 중 오류가 발생했습니다. ';
-        errorMessage += '다른 종목을 선택하거나 잠시 후 다시 시도해주세요.';
+        let errorMessage = '⚠️ 데이터를 가져오는 중 오류가 발생했습니다.\n\n';
+        errorMessage += '가능한 원인:\n';
+        errorMessage += '• Yahoo Finance 서버 일시적 문제\n';
+        errorMessage += '• 네트워크 연결 불안정\n';
+        errorMessage += '• 종목 코드 오류\n\n';
+        errorMessage += '해결 방법:\n';
+        errorMessage += '1. 잠시 후 다시 시도해주세요\n';
+        errorMessage += '2. 다른 종목을 선택해보세요\n';
+        errorMessage += '3. 페이지를 새로고침 해보세요';
         
         showError(errorMessage);
     } finally {
@@ -114,99 +114,189 @@ async function analyzeStock() {
 }
 
 // =========================================================
-// 샘플 데이터 생성 (데모용)
-// =========================================================
-
-function generateSampleData(ticker) {
-    const data = [];
-    const today = new Date();
-    const basePrice = 50000 + Math.random() * 100000; // 5만원 ~ 15만원
-    
-    for (let i = 500; i >= 0; i--) {
-        const date = new Date(today);
-        date.setDate(date.getDate() - i);
-        
-        // 랜덤 가격 변동 (현실적인 패턴)
-        const trend = Math.sin(i / 50) * 0.1; // 장기 추세
-        const noise = (Math.random() - 0.5) * 0.05; // 단기 변동
-        const priceChange = 1 + trend + noise;
-        
-        const close = basePrice * priceChange * (1 + (500 - i) * 0.0002);
-        const open = close * (1 + (Math.random() - 0.5) * 0.02);
-        const high = Math.max(open, close) * (1 + Math.random() * 0.02);
-        const low = Math.min(open, close) * (1 - Math.random() * 0.02);
-        const volume = Math.floor(1000000 + Math.random() * 5000000);
-        
-        data.push({
-            date: date.toISOString().split('T')[0],
-            open: open,
-            high: high,
-            low: low,
-            close: close,
-            volume: volume
-        });
-    }
-    
-    return data;
-}
-
-// =========================================================
-// Yahoo Finance 데이터 가져오기 (여러 프록시 시도)
+// Yahoo Finance 데이터 가져오기 (여러 방법 시도)
 // =========================================================
 
 async function fetchStockData(ticker) {
-    // Yahoo Finance API를 사용하여 주식 데이터 가져오기
-    const period1 = Math.floor(Date.now() / 1000) - (730 * 24 * 60 * 60); // 2년 전
-    const period2 = Math.floor(Date.now() / 1000); // 현재
+    console.log(`${ticker} 데이터 가져오기 시작...`);
     
-    const targetUrl = `https://query1.finance.yahoo.com/v7/finance/download/${ticker}?period1=${period1}&period2=${period2}&interval=1d&events=history`;
+    // 방법 1: Yahoo Finance CSV 직접 다운로드 (가장 안정적)
+    try {
+        console.log('방법 1: Yahoo Finance CSV 시도...');
+        const data = await fetchYahooCSV(ticker);
+        if (data && data.length >= 60) {
+            console.log('✓ Yahoo Finance CSV 성공!');
+            return data;
+        }
+    } catch (error) {
+        console.log('✗ Yahoo Finance CSV 실패:', error.message);
+    }
     
-    // 여러 프록시 서버 시도
+    // 방법 2: Yahoo Finance API v8 (JSON)
+    try {
+        console.log('방법 2: Yahoo Finance API v8 시도...');
+        const data = await fetchYahooAPIv8(ticker);
+        if (data && data.length >= 60) {
+            console.log('✓ Yahoo Finance API v8 성공!');
+            return data;
+        }
+    } catch (error) {
+        console.log('✗ Yahoo Finance API v8 실패:', error.message);
+    }
+    
+    // 방법 3: 대체 금융 데이터 API
+    try {
+        console.log('방법 3: 대체 API 시도...');
+        const data = await fetchAlternativeAPI(ticker);
+        if (data && data.length >= 60) {
+            console.log('✓ 대체 API 성공!');
+            return data;
+        }
+    } catch (error) {
+        console.log('✗ 대체 API 실패:', error.message);
+    }
+    
+    throw new Error('모든 방법으로 데이터 가져오기 실패');
+}
+
+// Yahoo Finance CSV 다운로드
+async function fetchYahooCSV(ticker) {
+    const period1 = Math.floor(Date.now() / 1000) - (730 * 24 * 60 * 60);
+    const period2 = Math.floor(Date.now() / 1000);
+    
+    const url = `https://query1.finance.yahoo.com/v7/finance/download/${ticker}?period1=${period1}&period2=${period2}&interval=1d&events=history`;
+    
+    // CORS 프록시 목록 (순서대로 시도)
     const proxies = [
-        `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`,
-        `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`,
-        `https://cors-anywhere.herokuapp.com/${targetUrl}`
+        `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
+        `https://corsproxy.io/?${encodeURIComponent(url)}`,
+        `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
     ];
     
-    // 각 프록시를 순차적으로 시도
-    for (let i = 0; i < proxies.length; i++) {
+    for (const proxyUrl of proxies) {
         try {
-            console.log(`시도 중: 프록시 ${i + 1}/${proxies.length}`);
-            
-            const response = await fetch(proxies[i], {
+            const response = await fetch(proxyUrl, {
                 method: 'GET',
                 headers: {
-                    'Accept': 'text/csv'
+                    'Accept': 'text/csv,text/plain,*/*'
                 }
             });
             
-            if (!response.ok) {
-                console.log(`프록시 ${i + 1} 실패: ${response.status}`);
-                continue;
-            }
+            if (!response.ok) continue;
             
             const text = await response.text();
             
-            // 응답 데이터 검증
-            if (!text || text.length < 100 || text.includes('<!DOCTYPE') || text.includes('error')) {
-                console.log(`프록시 ${i + 1} 데이터 오류`);
+            // HTML이나 에러 응답 체크
+            if (text.includes('<!DOCTYPE') || text.includes('<html') || 
+                text.includes('error') || text.length < 100) {
                 continue;
             }
             
-            console.log(`프록시 ${i + 1} 성공!`);
-            return parseCSV(text);
-            
+            const data = parseCSV(text);
+            if (data && data.length >= 60) {
+                return data;
+            }
         } catch (error) {
-            console.error(`프록시 ${i + 1} 오류:`, error);
-            // 마지막 프록시가 아니면 다음 프록시 시도
-            if (i < proxies.length - 1) {
-                continue;
-            }
+            continue;
         }
     }
     
-    // 모든 프록시 실패 시 대체 방법 시도
-    throw new Error('모든 데이터 소스에서 데이터를 가져오는데 실패했습니다.');
+    throw new Error('CSV 다운로드 실패');
+}
+
+// Yahoo Finance API v8 (JSON)
+async function fetchYahooAPIv8(ticker) {
+    const period1 = Math.floor(Date.now() / 1000) - (730 * 24 * 60 * 60);
+    const period2 = Math.floor(Date.now() / 1000);
+    
+    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?period1=${period1}&period2=${period2}&interval=1d`;
+    
+    const proxies = [
+        `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
+        `https://corsproxy.io/?${encodeURIComponent(url)}`,
+    ];
+    
+    for (const proxyUrl of proxies) {
+        try {
+            const response = await fetch(proxyUrl);
+            
+            if (!response.ok) continue;
+            
+            const json = await response.json();
+            
+            if (json.chart && json.chart.result && json.chart.result[0]) {
+                const result = json.chart.result[0];
+                const timestamps = result.timestamp;
+                const quotes = result.indicators.quote[0];
+                
+                const data = [];
+                for (let i = 0; i < timestamps.length; i++) {
+                    const date = new Date(timestamps[i] * 1000);
+                    data.push({
+                        date: date.toISOString().split('T')[0],
+                        open: quotes.open[i] || quotes.close[i],
+                        high: quotes.high[i] || quotes.close[i],
+                        low: quotes.low[i] || quotes.close[i],
+                        close: quotes.close[i],
+                        volume: quotes.volume[i] || 0
+                    });
+                }
+                
+                if (data.length >= 60) {
+                    return data;
+                }
+            }
+        } catch (error) {
+            continue;
+        }
+    }
+    
+    throw new Error('API v8 실패');
+}
+
+// 대체 금융 데이터 API (Alpha Vantage 등)
+async function fetchAlternativeAPI(ticker) {
+    // 한국 주식 티커에서 .KS, .KQ 제거
+    const symbol = ticker.replace('.KS', '').replace('.KQ', '');
+    
+    // 여러 무료 API 시도
+    const apis = [
+        // API 1: Twelve Data (무료 플랜)
+        `https://api.twelvedata.com/time_series?symbol=${symbol}&interval=1day&outputsize=500&format=JSON`,
+        
+        // API 2: Polygon.io (무료 플랜)
+        // 추가 API 필요 시 여기에 추가
+    ];
+    
+    for (const apiUrl of apis) {
+        try {
+            const response = await fetch(apiUrl);
+            
+            if (!response.ok) continue;
+            
+            const json = await response.json();
+            
+            // Twelve Data 응답 파싱
+            if (json.values && Array.isArray(json.values)) {
+                const data = json.values.map(item => ({
+                    date: item.datetime,
+                    open: parseFloat(item.open),
+                    high: parseFloat(item.high),
+                    low: parseFloat(item.low),
+                    close: parseFloat(item.close),
+                    volume: parseInt(item.volume) || 0
+                }));
+                
+                if (data.length >= 60) {
+                    return data.reverse(); // 날짜 순서 정렬
+                }
+            }
+        } catch (error) {
+            continue;
+        }
+    }
+    
+    throw new Error('대체 API 실패');
 }
 
 function parseCSV(text) {
