@@ -49,8 +49,20 @@ Settings → Pages 페이지 상단에 **"Your site is live at ..."** 메시지�
 
 - **Frontend**: HTML5, CSS3, JavaScript (ES6+)
 - **Chart Library**: Chart.js
-- **Data Source**: Yahoo Finance API
+- **Data Source**: Yahoo Finance API (CORS 프록시를 통한 안전한 접근)
 - **Hosting**: GitHub Pages
+
+## ⚙️ 기술적 특징
+
+### CORS 문제 해결
+- AllOrigins 프록시 서버를 통해 Yahoo Finance API 접근
+- 브라우저 보안 정책(CORS) 우회
+- 안정적인 실시간 데이터 수신
+
+### 스마트 검색
+- 대소문자 구분 없음 (Samsung = SAMSUNG = samsung)
+- 한글/영문/숫자 혼합 검색 가능
+- 실시간 필터링
 
 ## 📊 분석 전략
 
@@ -89,6 +101,29 @@ Settings → Pages 페이지 상단에 **"Your site is live at ..."** 메시지�
 
 ### 전략 수정
 `app.js` 파일의 `calculateStrategy()` 함수에서 전략 로직을 수정할 수 있습니다.
+
+## 🐛 문제 해결 (Troubleshooting)
+
+### "데이터를 가져오는 중 오류가 발생했습니다" 오류
+**원인**: CORS (Cross-Origin Resource Sharing) 정책으로 인한 브라우저 차단
+
+**해결**: 
+- 이미 AllOrigins 프록시 서버를 통해 해결되어 있습니다
+- 만약 계속 오류가 발생하면:
+  1. 인터넷 연결 확인
+  2. 브라우저 캐시 삭제
+  3. 다른 브라우저로 시도
+  4. 프록시 서버 상태 확인 (allorigins.win)
+
+### 특정 종목이 검색되지 않을 때
+1. `korea_stocks.js` 파일에 해당 종목이 있는지 확인
+2. 없다면 위의 "종목 추가" 방법으로 추가
+3. Yahoo Finance에서 정확한 티커 코드 확인 (예: 이건홀딩스는 003010.KS)
+
+### 차트가 표시되지 않을 때
+- Chart.js CDN 로딩 확인
+- 브라우저 콘솔에서 에러 메시지 확인
+- 페이지 새로고침 시도
 
 ## 📝 라이선스
 

@@ -109,11 +109,23 @@ async function fetchStockData(ticker) {
     const period1 = Math.floor(Date.now() / 1000) - (730 * 24 * 60 * 60); // 2년 전
     const period2 = Math.floor(Date.now() / 1000); // 현재
     
-    const url = `https://query1.finance.yahoo.com/v7/finance/download/${ticker}?period1=${period1}&period2=${period2}&interval=1d&events=history`;
+    // CORS 우회를 위한 프록시 서버 사용
+    const proxyUrl = 'https://api.allorigins.win/raw?url=';
+    const targetUrl = `https://query1.finance.yahoo.com/v7/finance/download/${ticker}?period1=${period1}&period2=${period2}&interval=1d&events=history`;
+    const url = proxyUrl + encodeURIComponent(targetUrl);
     
     try {
         const response = await fetch(url);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
         const text = await response.text();
+        
+        if (!text || text.includes('404') || text.includes('error')) {
+            throw new Error('데이터를 찾을 수 없습니다.');
+        }
         
         return parseCSV(text);
     } catch (error) {

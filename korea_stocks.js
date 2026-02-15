@@ -18,10 +18,16 @@ const koreaStocks = [
     { name: "신한지주", ticker: "055550.KS", search: "신한지주 신한은행 shinhan 055550" },
     { name: "하나금융지주", ticker: "086790.KS", search: "하나금융 하나은행 hana 086790" },
     
+    // === 이건 계열 추가 ===
+    { name: "이건홀딩스", ticker: "003010.KS", search: "이건홀딩스 ekoenholdings 003010" },
+    { name: "이건산업", ticker: "008250.KS", search: "이건산업 ekoen 008250" },
+    
     // === 운송/해운 ===
     { name: "HMM", ticker: "011200.KS", search: "hmm 현대상선 hyundaimm 011200" },
     { name: "대한항공", ticker: "003490.KS", search: "대한항공 koreanair kal 003490" },
     { name: "아시아나항공", ticker: "020560.KS", search: "아시아나항공 asiana 020560" },
+    { name: "팬오션", ticker: "028670.KS", search: "팬오션 panocean 028670" },
+    { name: "흥아해운", ticker: "003280.KS", search: "흥아해운 heungareshipping 003280" },
     
     // === 전자/IT ===
     { name: "LG전자", ticker: "066570.KS", search: "lg전자 lge lgelectronics 066570" },
@@ -40,6 +46,7 @@ const koreaStocks = [
     { name: "메리츠금융지주", ticker: "138040.KS", search: "메리츠금융 meritz 138040" },
     { name: "미래에셋증권", ticker: "006800.KS", search: "미래에셋증권 miraeasset 006800" },
     { name: "한국금융지주", ticker: "071050.KS", search: "한국금융지주 bnkfg 071050" },
+    { name: "JB금융지주", ticker: "175330.KS", search: "jb금융 jbfg 175330" },
     
     // === 에너지/화학 ===
     { name: "SK이노베이션", ticker: "096770.KS", search: "sk이노베이션 skinnovation 096770" },
@@ -50,6 +57,8 @@ const koreaStocks = [
     { name: "GS", ticker: "078930.KS", search: "gs 078930" },
     { name: "SK가스", ticker: "018670.KS", search: "sk가스 skgas 018670" },
     { name: "한국전력", ticker: "015760.KS", search: "한국전력 한전 kepco 015760" },
+    { name: "SK에너지", ticker: "096770.KS", search: "sk에너지 skenergy 096770" },
+    { name: "GS칼텍스", ticker: "078930.KS", search: "gs칼텍스 gscaltex 078930" },
     
     // === 건설/중공업 ===
     { name: "삼성물산", ticker: "028260.KS", search: "삼성물산 samsungcnt 028260" },
@@ -64,18 +73,23 @@ const koreaStocks = [
     { name: "두산밥캣", ticker: "241560.KS", search: "두산밥캣 doosanbobcat 241560" },
     { name: "HD현대중공업", ticker: "329180.KS", search: "hd현대중공업 329180" },
     { name: "한화에어로스페이스", ticker: "012450.KS", search: "한화에어로스페이스 hanwhaaerospace 012450" },
+    { name: "대우조선해양", ticker: "042660.KS", search: "대우조선해양 dsme 042660" },
+    { name: "현대미포조선", ticker: "010620.KS", search: "현대미포조선 hmd 010620" },
     
     // === 철강/소재 ===
     { name: "포스코퓨처엠", ticker: "003670.KS", search: "포스코퓨처엠 poscofuturem 003670" },
     { name: "고려아연", ticker: "010130.KS", search: "고려아연 koreazinc 010130" },
     { name: "현대제철", ticker: "004020.KS", search: "현대제철 hyundaisteel 004020" },
     { name: "동국제강", ticker: "001230.KS", search: "동국제강 dongkuksteel 001230" },
+    { name: "POSCO", ticker: "005490.KS", search: "포스코 posco 005490" },
+    { name: "세아베스틸", ticker: "001430.KS", search: "세아베스틸 seahbesteel 001430" },
     
     // === 자동차/부품 ===
     { name: "현대모비스", ticker: "012330.KS", search: "현대모비스 mobis 012330" },
     { name: "현대위아", ticker: "011210.KS", search: "현대위아 hyundaiwia 011210" },
     { name: "만도", ticker: "204320.KS", search: "만도 mando 204320" },
     { name: "한온시스템", ticker: "018880.KS", search: "한온시스템 hanon 018880" },
+    { name: "현대트랜시스", ticker: "078350.KS", search: "현대트랜시스 transys 078350" },
     
     // === 유통/식품 ===
     { name: "이마트", ticker: "139480.KS", search: "이마트 emart 139480" },
@@ -87,6 +101,9 @@ const koreaStocks = [
     { name: "SPC삼립", ticker: "005610.KS", search: "spc삼립 spcsamlip 005610" },
     { name: "하이트진로", ticker: "000080.KS", search: "하이트진로 hitejinro 000080" },
     { name: "롯데칠성", ticker: "005300.KS", search: "롯데칠성 lottechilsung 005300" },
+    { name: "롯데제과", ticker: "280360.KS", search: "롯데제과 lotteconf 280360" },
+    { name: "CJ", ticker: "001040.KS", search: "cj 001040" },
+    { name: "CJ대한통운", ticker: "000120.KS", search: "cj대한통운 cjlogistics 000120" },
     
     // === 제약/바이오 ===
     { name: "삼성바이오에피스", ticker: "207940.KS", search: "삼성바이오에피스 biosimilar 207940" },
@@ -98,11 +115,103 @@ const koreaStocks = [
     { name: "한미약품", ticker: "128940.KS", search: "한미약품 hanmipharm 128940" },
     { name: "대웅제약", ticker: "069620.KS", search: "대웅제약 daewoongpharm 069620" },
     { name: "JW중외제약", ticker: "001060.KS", search: "jw중외제약 jwpharm 001060" },
+    { name: "신풍제약", ticker: "019170.KS", search: "신풍제약 shinpoong 019170" },
+    { name: "동아에스티", ticker: "170900.KS", search: "동아에스티 dongast 170900" },
+    { name: "보령제약", ticker: "003850.KS", search: "보령제약 boryung 003850" },
+    { name: "유유제약", ticker: "000220.KS", search: "유유제약 yuyu 000220" },
     
     // === 화장품 ===
     { name: "아모레퍼시픽", ticker: "090430.KS", search: "아모레퍼시픽 amorepacific 090430" },
     { name: "LG생활건강", ticker: "051900.KS", search: "lg생활건강 lghhb 051900" },
     { name: "코스맥스", ticker: "192820.KS", search: "코스맥스 cosmax 192820" },
+    { name: "아모레G", ticker: "002790.KS", search: "아모레g amoreg 002790" },
+    
+    // === SK 계열 ===
+    { name: "SK", ticker: "034730.KS", search: "sk 034730" },
+    { name: "SK케미칼", ticker: "285130.KS", search: "sk케미칼 skchemical 285130" },
+    { name: "SK바이오사이언스", ticker: "302440.KS", search: "sk바이오사이언스 skbioscience 302440" },
+    { name: "SK바이오팜", ticker: "326030.KS", search: "sk바이오팜 skbiopharm 326030" },
+    { name: "SK네트웍스", ticker: "001740.KS", search: "sk네트웍스 sknetworks 001740" },
+    { name: "SK아이이테크놀로지", ticker: "361610.KS", search: "sk아이이테크놀로지 skiet 361610" },
+    { name: "SK실트론", ticker: "222800.KS", search: "sk실트론 sksiltron 222800" },
+    { name: "SK디스커버리", ticker: "006120.KS", search: "sk디스커버리 skdiscovery 006120" },
+    
+    // === LG 계열 ===
+    { name: "LG이노텍", ticker: "011070.KS", search: "lg이노텍 lginnotek 011070" },
+    { name: "LG CNS", ticker: "068870.KS", search: "lg cns lgcns 068870" },
+    { name: "LG하우시스", ticker: "108670.KS", search: "lg하우시스 lghausys 108670" },
+    
+    // === 현대 계열 ===
+    { name: "현대글로비스", ticker: "086280.KS", search: "현대글로비스 hyundaiglovis 086280" },
+    { name: "현대백화점", ticker: "069960.KS", search: "현대백화점 hyundaidept 069960" },
+    { name: "현대홈쇼핑", ticker: "057050.KS", search: "현대홈쇼핑 hyundaihome 057050" },
+    { name: "현대리바트", ticker: "079430.KS", search: "현대리바트 livart 079430" },
+    { name: "현대오일뱅크", ticker: "010620.KS", search: "현대오일뱅크 hob 010620" },
+    
+    // === 신재생에너지 ===
+    { name: "OCI", ticker: "010060.KS", search: "oci 010060" },
+    { name: "한화", ticker: "000880.KS", search: "한화 hanwha 000880" },
+    { name: "LS", ticker: "006260.KS", search: "ls 006260" },
+    { name: "LS전선", ticker: "011070.KS", search: "ls전선 lscable 011070" },
+    
+    // === 증권/자산운용 ===
+    { name: "NH투자증권", ticker: "005940.KS", search: "nh투자증권 nhinvestment 005940" },
+    { name: "한국투자증권", ticker: "030200.KS", search: "한국투자증권 koreainvestment 030200" },
+    { name: "키움증권", ticker: "039490.KQ", search: "키움증권 kiwoom 039490" },
+    
+    // === 보험 ===
+    { name: "DB손해보험", ticker: "005830.KS", search: "db손해보험 dbinsurance 005830" },
+    { name: "한화생명", ticker: "088350.KS", search: "한화생명 hanwhalife 088350" },
+    { name: "교보생명", ticker: "082640.KS", search: "교보생명 kyobolife 082640" },
+    
+    // === 건설 추가 ===
+    { name: "SK에코플랜트", ticker: "028050.KS", search: "sk에코플랜트 skecoplant 028050" },
+    { name: "포스코건설", ticker: "028050.KS", search: "포스코건설 poscoenc 028050" },
+    { name: "HDC현대산업개발", ticker: "294870.KS", search: "hdc현대산업개발 hdc 294870" },
+    
+    // === 통신/미디어 ===
+    { name: "KT&G", ticker: "033780.KS", search: "ktg 케이티지 033780" },
+    { name: "LG헬로비전", ticker: "037560.KS", search: "lg헬로비전 lghello 037560" },
+    { name: "CJ CGV", ticker: "079160.KS", search: "cj cgv 079160" },
+    
+    // === 여행/레저 ===
+    { name: "호텔신라", ticker: "008770.KS", search: "호텔신라 hotelshilla 008770" },
+    { name: "파라다이스", ticker: "034230.KS", search: "파라다이스 paradise 034230" },
+    { name: "GKL", ticker: "114090.KS", search: "gkl 114090" },
+    
+    // === 물류 ===
+    { name: "한진", ticker: "002320.KS", search: "한진 hanjin 002320" },
+    { name: "롯데글로벌로지스", ticker: "086280.KS", search: "롯데글로벌로지스 lottelogistics 086280" },
+    
+    // === 렌탈/서비스 ===
+    { name: "코웨이", ticker: "021240.KS", search: "코웨이 coway 021240" },
+    { name: "SK렌터카", ticker: "068400.KS", search: "sk렌터카 skrentacar 068400" },
+    
+    // === 패션/의류 ===
+    { name: "F&F", ticker: "383220.KS", search: "에프앤에프 fnf mlb 383220" },
+    { name: "한세실업", ticker: "105630.KS", search: "한세실업 hansae 105630" },
+    { name: "영원무역", ticker: "111770.KS", search: "영원무역 youngone 111770" },
+    
+    // === 농업/식품 추가 ===
+    { name: "대상", ticker: "001680.KS", search: "대상 daesang 001680" },
+    { name: "사조대림", ticker: "003960.KS", search: "사조대림 sajodaelim 003960" },
+    { name: "오뚜기", ticker: "007310.KS", search: "오뚜기 ottogi 007310" },
+    { name: "삼양식품", ticker: "003230.KS", search: "삼양식품 samyangfood 003230" },
+    
+    // === 펄프/제지 ===
+    { name: "한솔제지", ticker: "002100.KS", search: "한솔제지 hansolpaper 002100" },
+    { name: "무림P&P", ticker: "009580.KS", search: "무림 moorim 009580" },
+    
+    // === 섬유 ===
+    { name: "효성", ticker: "004800.KS", search: "효성 hyosung 004800" },
+    { name: "코오롱인더", ticker: "120110.KS", search: "코오롱인더 kolonind 120110" },
+    
+    // === 기계 ===
+    { name: "두산퓨얼셀", ticker: "336260.KS", search: "두산퓨얼셀 doosanfuelcell 336260" },
+    
+    // ======================================
+    // === KOSDAQ 종목들 ===
+    // ======================================
     
     // === KOSDAQ 대형주 ===
     { name: "에코프로비엠", ticker: "247540.KQ", search: "에코프로비엠 ecoprobm 247540" },
@@ -189,97 +298,9 @@ const koreaStocks = [
     { name: "유진로봇", ticker: "056080.KQ", search: "유진로봇 yujinrobot 056080" },
     { name: "현대로보틱스", ticker: "090710.KQ", search: "현대로보틱스 hyundairobotics 090710" },
     
-    // === SK 계열 ===
-    { name: "SK", ticker: "034730.KS", search: "sk 034730" },
-    { name: "SK케미칼", ticker: "285130.KS", search: "sk케미칼 skchemical 285130" },
-    { name: "SK바이오사이언스", ticker: "302440.KS", search: "sk바이오사이언스 skbioscience 302440" },
-    { name: "SK바이오팜", ticker: "326030.KS", search: "sk바이오팜 skbiopharm 326030" },
-    { name: "SK네트웍스", ticker: "001740.KS", search: "sk네트웍스 sknetworks 001740" },
-    { name: "SK아이이테크놀로지", ticker: "361610.KS", search: "sk아이이테크놀로지 skiet 361610" },
-    { name: "SK실트론", ticker: "222800.KS", search: "sk실트론 sksiltron 222800" },
-    
-    // === LG 계열 ===
-    { name: "LG이노텍", ticker: "011070.KS", search: "lg이노텍 lginnotek 011070" },
-    { name: "LG CNS", ticker: "068870.KS", search: "lg cns lgcns 068870" },
-    { name: "LG하우시스", ticker: "108670.KS", search: "lg하우시스 lghausys 108670" },
-    
-    // === 현대 계열 ===
-    { name: "현대글로비스", ticker: "086280.KS", search: "현대글로비스 hyundaiglovis 086280" },
-    { name: "현대백화점", ticker: "069960.KS", search: "현대백화점 hyundaidept 069960" },
-    { name: "현대홈쇼핑", ticker: "057050.KS", search: "현대홈쇼핑 hyundaihome 057050" },
-    { name: "현대리바트", ticker: "079430.KS", search: "현대리바트 livart 079430" },
-    
-    // === 신재생에너지 ===
-    { name: "OCI", ticker: "010060.KS", search: "oci 010060" },
-    { name: "한화", ticker: "000880.KS", search: "한화 hanwha 000880" },
-    { name: "LS", ticker: "006260.KS", search: "ls 006260" },
-    { name: "LS전선", ticker: "011070.KS", search: "ls전선 lscable 011070" },
-    
-    // === 증권/자산운용 ===
-    { name: "NH투자증권", ticker: "005940.KS", search: "nh투자증권 nhinvestment 005940" },
-    { name: "한국투자증권", ticker: "030200.KS", search: "한국투자증권 koreainvestment 030200" },
-    { name: "키움증권", ticker: "039490.KQ", search: "키움증권 kiwoom 039490" },
-    
-    // === 보험 ===
-    { name: "DB손해보험", ticker: "005830.KS", search: "db손해보험 dbinsurance 005830" },
-    { name: "한화생명", ticker: "088350.KS", search: "한화생명 hanwhalife 088350" },
-    { name: "교보생명", ticker: "082640.KS", search: "교보생명 kyobolife 082640" },
-    
-    // === 건설 추가 ===
-    { name: "SK에코플랜트", ticker: "028050.KS", search: "sk에코플랜트 skecoplant 028050" },
-    { name: "포스코건설", ticker: "028050.KS", search: "포스코건설 poscoenc 028050" },
-    { name: "HDC현대산업개발", ticker: "294870.KS", search: "hdc현대산업개발 hdc 294870" },
-    
-    // === 통신/미디어 ===
-    { name: "KT&G", ticker: "033780.KS", search: "ktg 케이티지 033780" },
-    { name: "LG헬로비전", ticker: "037560.KS", search: "lg헬로비전 lghello 037560" },
-    { name: "CJ CGV", ticker: "079160.KS", search: "cj cgv 079160" },
-    
-    // === 여행/레저 ===
-    { name: "호텔신라", ticker: "008770.KS", search: "호텔신라 hotelshilla 008770" },
-    { name: "파라다이스", ticker: "034230.KS", search: "파라다이스 paradise 034230" },
-    { name: "GKL", ticker: "114090.KS", search: "gkl 114090" },
-    
     // === 교육 ===
     { name: "메가스터디교육", ticker: "215200.KQ", search: "메가스터디 megastudy 215200" },
     { name: "대교", ticker: "019680.KQ", search: "대교 daekyo 019680" },
-    
-    // === 물류 ===
-    { name: "CJ대한통운", ticker: "000120.KS", search: "cj대한통운 cjlogistics 000120" },
-    { name: "한진", ticker: "002320.KS", search: "한진 hanjin 002320" },
-    { name: "롯데글로벌로지스", ticker: "086280.KS", search: "롯데글로벌로지스 lottelogistics 086280" },
-    
-    // === 렌탈/서비스 ===
-    { name: "코웨이", ticker: "021240.KS", search: "코웨이 coway 021240" },
-    { name: "SK렌터카", ticker: "068400.KS", search: "sk렌터카 skrentacar 068400" },
-    
-    // === 패션/의류 ===
-    { name: "F&F", ticker: "383220.KS", search: "에프앤에프 fnf mlb 383220" },
-    { name: "한세실업", ticker: "105630.KS", search: "한세실업 hansae 105630" },
-    { name: "영원무역", ticker: "111770.KS", search: "영원무역 youngone 111770" },
-    
-    // === 바이오/제약 추가 ===
-    { name: "신풍제약", ticker: "019170.KS", search: "신풍제약 shinpoong 019170" },
-    { name: "동아에스티", ticker: "170900.KS", search: "동아에스티 dongast 170900" },
-    { name: "보령제약", ticker: "003850.KS", search: "보령제약 boryung 003850" },
-    { name: "유유제약", ticker: "000220.KS", search: "유유제약 yuyu 000220" },
-    
-    // === 농업/식품 추가 ===
-    { name: "대상", ticker: "001680.KS", search: "대상 daesang 001680" },
-    { name: "사조대림", ticker: "003960.KS", search: "사조대림 sajodaelim 003960" },
-    { name: "오뚜기", ticker: "007310.KS", search: "오뚜기 ottogi 007310" },
-    { name: "삼양식품", ticker: "003230.KS", search: "삼양식품 samyangfood 003230" },
-    
-    // === 펄프/제지 ===
-    { name: "한솔제지", ticker: "002100.KS", search: "한솔제지 hansolpaper 002100" },
-    { name: "무림P&P", ticker: "009580.KS", search: "무림 moorim 009580" },
-    
-    // === 섬유 ===
-    { name: "효성", ticker: "004800.KS", search: "효성 hyosung 004800" },
-    { name: "코오롱인더", ticker: "120110.KS", search: "코오롱인더 kolonind 120110" },
-    
-    // === 기계 ===
-    { name: "두산퓨얼셀", ticker: "336260.KS", search: "두산퓨얼셀 doosanfuelcell 336260" },
     
     // === KOSDAQ 추가 종목 ===
     { name: "이녹스첨단소재", ticker: "272290.KQ", search: "이녹스첨단소재 inox 272290" },
@@ -312,4 +333,28 @@ const koreaStocks = [
     { name: "제노포커스", ticker: "187420.KQ", search: "제노포커스 genofocus 187420" },
     { name: "레고켐바이오", ticker: "141080.KQ", search: "레고켐바이오 legochembio 141080" },
     { name: "유바이오로직스", ticker: "206650.KQ", search: "유바이오로직스 ybiologics 206650" },
+    
+    // === 추가 KOSPI 기업들 ===
+    { name: "KT&G", ticker: "033780.KS", search: "케이티앤지 ktng 033780" },
+    { name: "BGF리테일", ticker: "282330.KS", search: "bgf리테일 bgfretail cu 282330" },
+    { name: "GS리테일", ticker: "007070.KS", search: "gs리테일 gsretail 007070" },
+    { name: "신세계푸드", ticker: "031440.KS", search: "신세계푸드 shinsegaefood 031440" },
+    { name: "BNK금융지주", ticker: "138930.KS", search: "bnk금융 bnkfg 138930" },
+    { name: "DGB금융지주", ticker: "139130.KS", search: "dgb금융 dgbfg 139130" },
+    { name: "BS금융지주", ticker: "138930.KS", search: "bs금융 bsfg 138930" },
+    { name: "삼성중공업", ticker: "010140.KS", search: "삼성중공업 samsungheavy 010140" },
+    { name: "S&T모티브", ticker: "064960.KS", search: "에스앤티모티브 stmotive 064960" },
+    { name: "현대중공업지주", ticker: "267250.KS", search: "현대중공업지주 hdhihd 267250" },
+    { name: "DB하이텍", ticker: "000990.KS", search: "db하이텍 dbhitek 000990" },
+    { name: "한국타이어", ticker: "161390.KS", search: "한국타이어 hankooktire 161390" },
+    { name: "금호타이어", ticker: "073240.KS", search: "금호타이어 kumhotire 073240" },
+    { name: "넥센타이어", ticker: "002350.KS", search: "넥센타이어 nexentire 002350" },
+    { name: "한국항공우주", ticker: "047810.KS", search: "한국항공우주 kai 047810" },
+    { name: "LIG넥스원", ticker: "079550.KS", search: "lig넥스원 lignex1 079550" },
+    { name: "풍산", ticker: "103140.KS", search: "풍산 poongsan 103140" },
+    { name: "한화시스템", ticker: "272210.KS", search: "한화시스템 hanwhasystems 272210" },
+    { name: "STX조선해양", ticker: "067250.KS", search: "stx조선해양 stxshipbuilding 067250" },
+    { name: "성신양회", ticker: "004980.KS", search: "성신양회 sungshin 004980" },
+    { name: "쌍용C&E", ticker: "003410.KS", search: "쌍용ce ssangyong 003410" },
+    { name: "한일시멘트", ticker: "300720.KS", search: "한일시멘트 hanilcement 300720" },
 ];
