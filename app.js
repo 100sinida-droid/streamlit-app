@@ -3,16 +3,40 @@
 // =========================================================
 
 let currentChart = null;
-let allStocks = koreaStocks;
+let allStocks = [];
+let stockDatabase = null;
 
 // =========================================================
 // 초기화
 // =========================================================
 
-document.addEventListener('DOMContentLoaded', () => {
-    loadStockList(allStocks);
+document.addEventListener('DOMContentLoaded', async () => {
+    // DB 로드 후 종목 리스트 생성
+    await loadStockDatabase();
+    createStockListFromDB();
     setupEventListeners();
 });
+
+// 데이터베이스에서 종목 리스트 생성
+function createStockListFromDB() {
+    if (!stockDatabase) {
+        console.error('데이터베이스가 로드되지 않았습니다.');
+        return;
+    }
+    
+    allStocks = [];
+    
+    for (const [ticker, info] of Object.entries(stockDatabase)) {
+        allStocks.push({
+            name: info.name,
+            ticker: ticker,
+            search: `${info.name} ${ticker.replace('.KS', '').replace('.KQ', '')}`.toLowerCase()
+        });
+    }
+    
+    console.log(`✓ 검색 가능한 종목: ${allStocks.length}개`);
+    loadStockList(allStocks);
+}
 
 function setupEventListeners() {
     document.getElementById('searchBtn').addEventListener('click', handleSearch);
