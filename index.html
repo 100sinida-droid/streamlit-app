@@ -3,9 +3,16 @@
 <head>
 <meta charset="UTF-8">
 <title>KRX AI 매매 전략 분석기</title>
+
 <link rel="stylesheet" href="style.css">
+
+<!-- Plotly -->
 <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+
+<!-- PapaParse (CSV 안전 파싱용) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 </head>
+
 <body>
 
 <h1>📈 KRX AI 매매 전략 분석기</h1>
@@ -13,19 +20,20 @@
 <div class="controls">
     <input type="text" id="searchInput" placeholder="종목 검색 (대소문자 무시)">
     <select id="stockSelect"></select>
-    <button onclick="analyze()">분석하기</button>
+    <button id="analyzeBtn">분석하기</button>
 </div>
 
 <div class="metrics">
-    <div class="box"><h3>현재가</h3><p id="current"></p></div>
-    <div class="box"><h3>매수 추천가</h3><p id="buy"></p></div>
-    <div class="box"><h3>손절가</h3><p id="stop"></p></div>
-    <div class="box"><h3>목표가</h3><p id="target"></p></div>
+    <div class="box"><h3>현재가</h3><p id="current">-</p></div>
+    <div class="box"><h3>매수 추천가</h3><p id="buy">-</p></div>
+    <div class="box"><h3>손절가</h3><p id="stop">-</p></div>
+    <div class="box"><h3>목표가</h3><p id="target">-</p></div>
 </div>
 
 <div id="chart"></div>
 <div id="comment"></div>
 
 <script src="script.js"></script>
+
 </body>
 </html>
