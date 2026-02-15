@@ -170,6 +170,15 @@ h1 {
     min-height: 100px;
 }
 
+.ad-container-footer {
+    margin: 40px 0 20px 0;
+    padding: 20px;
+    background: #f7fafc;
+    border-radius: 10px;
+    text-align: center;
+    min-height: 100px;
+}
+
 .metric-card {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     padding: 25px;
