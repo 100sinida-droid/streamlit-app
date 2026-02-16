@@ -205,30 +205,7 @@ async function fetchStockData(ticker) {
     console.log(`⚠️ ${ticker}는 데이터베이스에 없습니다.`);
     throw new Error(`${ticker} 데이터를 찾을 수 없습니다.`);
 }
-        });
-        
-        if (!response.ok) throw new Error('KRX API 오류');
-        
-        const json = await response.json();
-        
-        if (json.output && Array.isArray(json.output)) {
-            const data = json.output.map(item => ({
-                date: item.TRD_DD,
-                open: parseFloat(item.TDD_OPNPRC),
-                high: parseFloat(item.TDD_HGPRC),
-                low: parseFloat(item.TDD_LWPRC),
-                close: parseFloat(item.TDD_CLSPRC),
-                volume: parseInt(item.ACC_TRDVOL)
-            }));
-            
-            return data;
-        }
-    } catch (error) {
-        throw error;
-    }
-    
-    throw new Error('KRX 데이터 없음');
-}
+
 
 function parseCSV(text) {
     const lines = text.trim().split('\n');
