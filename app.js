@@ -177,7 +177,8 @@ async function loadStockDatabase() {
         return stockDatabase;
     } catch (error) {
         console.error('✗ 데이터베이스 로드 실패:', error);
-        alert('데이터베이스를 로드할 수 없습니다.\n\n다음 파일들이 모두 있는지 확인해주세요:\n- stock_database_part1.json\n- stock_database_part2.json\n- stock_database_part3.json\n- stock_database_part4.json\n- stock_database_part5.json\n- stock_database_part6.json\n- stock_database_part7.json\n- stock_database_part8.json');
+        console.error('다음 파일들을 확인해주세요:');
+        console.error('- stock_database_part1.json ~ part8.json');
         return null;
     }
 }
