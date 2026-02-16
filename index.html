@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <!-- Google Tag Manager -->
+    <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+    new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+    j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+    'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+    })(window,document,'script','dataLayer','GTM-NK2DTPPB');</script>
+    <!-- End Google Tag Manager -->
+    
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="google-adsense-account" content="ca-pub-7938956361770773">
+    <title>📈 KRX AI 매매 전략 분석기</title>
+    
+    <!-- Google AdSense -->
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7938956361770773"
+     crossorigin="anonymous"></script>
+    
+    <link rel="stylesheet" href="style.css">
+    <!-- Realtime API -->
+    <script src="realtime_api.js"></script>
+    <!-- Chart.js for charting -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+    <!-- Date adapter for Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+</head>
+<body>
+    <!-- Google Tag Manager (noscript) -->
+    <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-NK2DTPPB"
+    height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+    <!-- End Google Tag Manager (noscript) -->
+    
+    <div class="container">
+        <header>
+            <h1>📈 KRX AI 매매 전략 분석기</h1>
+            <p class="subtitle">한국 주식시장 AI 기반 매매 전략 분석 도구</p>
+        </header>
+
+        <div class="search-section">
+            <div class="search-box">
+                <input type="text" id="searchInput" placeholder="종목 검색 (예: 삼성전자, 005930)">
+                <button id="searchBtn">🔍 검색</button>
+            </div>
+            
+            <div class="select-box">
+                <label for="stockSelect">종목 선택:</label>
+                <select id="stockSelect">
+                    <option value="">종목을 선택하세요</option>
+                </select>
+            </div>
+
+            <button id="analyzeBtn" class="analyze-btn">📊 분석하기</button>
+        </div>
+
+        <div id="loadingSpinner" class="loading-spinner" style="display: none;">
+            <div class="spinner"></div>
+            <p>데이터를 분석하고 있습니다...</p>
+        </div>
+
+        <div id="errorMessage" class="error-message" style="display: none;"></div>
+
+        <div id="resultsSection" style="display: none;">
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="metric-label">현재가</div>
+                    <div class="metric-value" id="currentPrice">-</div>
+                </div>
+                <div class="metric-card buy">
+                    <div class="metric-label">매수 추천가</div>
+                    <div class="metric-value" id="buyPrice">-</div>
+                </div>
+                <div class="metric-card stop">
+                    <div class="metric-label">손절가</div>
+                    <div class="metric-value" id="stopPrice">-</div>
+                </div>
+                <div class="metric-card target">
+                    <div class="metric-label">목표가</div>
+                    <div class="metric-value" id="targetPrice">-</div>
+                </div>
+            </div>
+
+            <!-- Google AdSense 광고 배너 -->
+            <div class="ad-container">
+                <ins class="adsbygoogle"
+                     style="display:block"
+                     data-ad-client="ca-pub-7938956361770773"
+                     data-ad-slot="1234567890"
+                     data-ad-format="auto"
+                     data-full-width-responsive="true"></ins>
+                <script>
+                     (adsbygoogle = window.adsbygoogle || []).push({});
+                </script>
+            </div>
+
+            <div class="chart-container">
+                <canvas id="priceChart"></canvas>
+            </div>
+
+            <div class="ai-analysis">
+                <h2>🤖 AI 전략 분석</h2>
+                <div id="aiComment"></div>
+            </div>
+        </div>
+
+        <!-- Google AdSense 자동 완화 광고 (하단) -->
+        <div class="ad-container-footer">
+            <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7938956361770773"
+                crossorigin="anonymous"></script>
+            <ins class="adsbygoogle"
+                style="display:block"
+                data-ad-format="autorelaxed"
+                data-ad-client="ca-pub-7938956361770773"
+                data-ad-slot="3808518808"></ins>
+            <script>
+                (adsbygoogle = window.adsbygoogle || []).push({});
+            </script>
+        </div>
+
+        <footer>
+            <p>⚠️ 본 정보는 투자 참고용이며, 투자 판단의 책임은 투자자 본인에게 있습니다.</p>
+        </footer>
+    </div>
+
+    <script src="korea_stocks.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
