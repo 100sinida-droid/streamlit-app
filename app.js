@@ -204,7 +204,6 @@ async function fetchStockData(ticker) {
         let change = stockInfo.change;
         
         if (window.fetchRealtimePrice) {
-            console.log('🔄 실시간 가격 조회 시도...');
             try {
                 const realtimeData = await window.fetchRealtimePrice(ticker);
                 if (realtimeData) {
@@ -218,11 +217,9 @@ async function fetchStockData(ticker) {
                     lastData.open = Math.round(currentPrice * 0.99);
                     lastData.high = Math.round(currentPrice * 1.01);
                     lastData.low = Math.round(currentPrice * 0.98);
-                } else {
-                    console.log('⚠️ 실시간 가격 조회 실패, DB 가격 사용');
                 }
             } catch (error) {
-                console.log('⚠️ 실시간 API 오류:', error.message);
+                // 에러 무시하고 빠르게 진행
             }
         }
         

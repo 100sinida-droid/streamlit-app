@@ -19,11 +19,19 @@ async function fetchNaverFinance(ticker) {
         // 네이버 금융 API (비공식)
         const naverUrl = `https://m.stock.naver.com/api/stock/${stockCode}/price`;
         
-        for (const proxy of CORS_PROXIES) {
-            try {
-                const response = await fetch(proxy + encodeURIComponent(naverUrl));
-                if (!response.ok) continue;
-                
+        // 첫 번째 프록시만 빠르게 시도 (타임아웃 3초)
+        const proxy = CORS_PROXIES[0];
+        
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 3000); // 3초 타임아웃
+        
+        try {
+            const response = await fetch(proxy + encodeURIComponent(naverUrl), {
+                signal: controller.signal
+            });
+            clearTimeout(timeoutId);
+            
+            if (response.ok) {
                 const data = await response.json();
                 
                 if (data && data.closePrice) {
@@ -34,8 +42,11 @@ async function fetchNaverFinance(ticker) {
                         changePercent: parseFloat(data.fluctuationsRatio)
                     };
                 }
-            } catch (e) {
-                continue;
+            }
+        } catch (e) {
+            clearTimeout(timeoutId);
+            if (e.name === 'AbortError') {
+                console.log('⏱️ 타임아웃 (3초 초과)');
             }
         }
     } catch (error) {
@@ -122,23 +133,23 @@ async function fetchKRXData(ticker) {
     return null;
 }
 
-// 메인: 실시간 데이터 가져오기
+// 메인: 실시간 데이터 가져오기 (선택적)
 async function fetchRealtimePrice(ticker) {
+    // 실시간 API 사용 여부 (성능 최적화를 위해 기본 OFF)
+    const USE_REALTIME_API = false;  // true로 변경하면 실시간 가격 조회
+    
+    if (!USE_REALTIME_API) {
+        console.log('⚡ 빠른 분석 모드 (DB 데이터 사용)');
+        return null;
+    }
+    
     console.log(`\n${ticker} 실시간 가격 조회 시작...`);
     
-    // 방법 1: 네이버 금융 (가장 안정적)
+    // 방법 1: 네이버 금융 (3초 타임아웃)
     let result = await fetchNaverFinance(ticker);
     if (result) return result;
     
-    // 방법 2: Alpha Vantage
-    result = await fetchAlphaVantage(ticker);
-    if (result) return result;
-    
-    // 방법 3: KRX 데이터
-    result = await fetchKRXData(ticker);
-    if (result) return result;
-    
-    console.log('⚠️ 모든 실시간 API 실패, DB 데이터 사용');
+    console.log('⚠️ 실시간 API 실패, DB 데이터 사용');
     return null;  // null이면 기존 DB 데이터 사용
 }
 
