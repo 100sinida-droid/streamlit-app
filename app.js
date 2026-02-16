@@ -144,8 +144,6 @@ async function analyzeStock() {
 // 주식 데이터베이스 (4개 분할 JSON DB 사용)
 // =========================================================
 
-let stockDatabase = null;
-
 // 데이터베이스 로드 (Part 1 + Part 2 + Part 3 + Part 4)
 async function loadStockDatabase() {
     if (stockDatabase) return stockDatabase;
