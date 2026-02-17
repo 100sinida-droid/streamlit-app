@@ -199,35 +199,39 @@ async function fetchStockData(ticker) {
         const stockInfo = db[ticker];
         console.log(`✓ ${stockInfo.name} DB 데이터 로드 완료`);
         
-        // 실시간 가격 조회 시도 (fetchRealtimePrice는 realtime_api.js에서 제공)
+        // 실시간 데이터 조회 (Worker 연동)
         let currentPrice = stockInfo.currentPrice;
         let change = stockInfo.change;
-        
-        if (window.fetchRealtimePrice) {
+        let chartData = stockInfo.data; // 기본: DB 데이터
+
+        if (window.fetchRealtimeData) {
             try {
-                const realtimeData = await window.fetchRealtimePrice(ticker);
-                if (realtimeData) {
-                    currentPrice = realtimeData.currentPrice;
-                    change = realtimeData.changePercent;
-                    console.log(`✓ 실시간 가격 적용: ${currentPrice.toLocaleString()}원 (${change > 0 ? '+' : ''}${change}%)`);
-                    
-                    // 데이터의 마지막 날짜 가격을 실시간 가격으로 업데이트
-                    const lastData = stockInfo.data[stockInfo.data.length - 1];
-                    lastData.close = currentPrice;
-                    lastData.open = Math.round(currentPrice * 0.99);
-                    lastData.high = Math.round(currentPrice * 1.01);
-                    lastData.low = Math.round(currentPrice * 0.98);
+                const rt = await window.fetchRealtimeData(ticker);
+                if (rt && rt.currentPrice > 0) {
+                    currentPrice = rt.currentPrice;
+                    change = rt.changePercent;
+
+                    // 실시간 차트 데이터가 있으면 교체
+                    if (rt.chartData && rt.chartData.length > 10) {
+                        chartData = rt.chartData;
+                        console.log(`✓ 실시간 차트 적용: ${rt.chartData.length}일 데이터`);
+                    } else {
+                        // 차트는 DB, 현재가만 마지막 날 업데이트
+                        const last = chartData[chartData.length - 1];
+                        last.close = currentPrice;
+                        last.open  = rt.open  || last.open;
+                        last.high  = rt.high  || last.high;
+                        last.low   = rt.low   || last.low;
+                    }
                 }
-            } catch (error) {
-                // 에러 무시하고 빠르게 진행
-            }
+            } catch (e) { /* 무시 */ }
         }
         
         console.log(`  📊 현재가: ${currentPrice.toLocaleString()}원`);
         console.log(`  📈 변동: ${change > 0 ? '+' : ''}${change}%`);
-        console.log(`  📅 데이터: ${stockInfo.data.length}일`);
+        console.log(`  📅 데이터: ${chartData.length}일`);
         
-        return stockInfo.data;
+        return chartData;
     }
     
     // DB에 없는 종목
