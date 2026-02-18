@@ -1,555 +1,313 @@
 // =========================================================
-// KRX AI 매매 전략 분석기 - 웹 애플리케이션
+// KRX AI 매매 전략 분석기
+// 실시간 모드: Cloudflare Worker 설정 시 실제 데이터 사용
+// 오프라인 모드: JSON DB 사용 (Worker 미설정 시 자동 전환)
 // =========================================================
 
 let currentChart = null;
-let allStocks = [];
+let allStocks    = [];
 let stockDatabase = null;
 
 // =========================================================
 // 초기화
 // =========================================================
-
 document.addEventListener('DOMContentLoaded', async () => {
-    // DB 로드 후 종목 리스트 생성
+    showStatus('데이터 로딩 중...', 'loading');
+
+    // 1. Worker 준비됐으면 실시간 종목 목록 먼저 시도
+    if (window.isWorkerReady && window.isWorkerReady()) {
+        console.log('🌐 실시간 모드 활성화');
+        const rtList = await window.loadRealtimeStockList();
+        if (rtList && rtList.length > 0) {
+            allStocks = rtList.map(s => ({
+                name:   s.name,
+                ticker: s.ticker,
+                search: `${s.name} ${s.code}`.toLowerCase()
+            }));
+            loadStockList(allStocks);
+            showStatus(`실시간: ${allStocks.length}개 종목 로드 완료`, 'done');
+            setupEventListeners();
+            return;
+        }
+    }
+
+    // 2. Worker 없거나 실패 → JSON DB 사용
+    console.log('📂 오프라인 DB 모드');
     await loadStockDatabase();
     createStockListFromDB();
     setupEventListeners();
+    showStatus('', 'done');
 });
 
-// 데이터베이스에서 종목 리스트 생성
+function showStatus(msg, type) {
+    const el = document.getElementById('statusMsg');
+    if (!el) return;
+    el.textContent = msg;
+    el.style.display = msg ? 'block' : 'none';
+}
+
+// =========================================================
+// JSON DB 로드 (오프라인 폴백)
+// =========================================================
+async function loadStockDatabase() {
+    if (stockDatabase) return stockDatabase;
+    try {
+        const parts = await Promise.all(
+            [1,2,3,4,5,6,7,8].map(i =>
+                fetch(`stock_database_part${i}.json`).then(r => r.json()).catch(() => ({}))
+            )
+        );
+        stockDatabase = Object.assign({}, ...parts);
+        console.log(`✓ DB 로드 완료: ${Object.keys(stockDatabase).length}개`);
+    } catch (e) {
+        console.error('DB 로드 실패:', e);
+        stockDatabase = {};
+    }
+    return stockDatabase;
+}
+
 function createStockListFromDB() {
-    if (!stockDatabase) {
-        console.error('데이터베이스가 로드되지 않았습니다.');
-        return;
-    }
-    
-    allStocks = [];
-    
-    for (const [ticker, info] of Object.entries(stockDatabase)) {
-        allStocks.push({
-            name: info.name,
-            ticker: ticker,
-            search: `${info.name} ${ticker.replace('.KS', '').replace('.KQ', '')}`.toLowerCase()
-        });
-    }
-    
-    console.log(`✓ 검색 가능한 종목: ${allStocks.length}개`);
+    allStocks = Object.entries(stockDatabase).map(([ticker, info]) => ({
+        name:   info.name,
+        ticker,
+        search: `${info.name} ${ticker.replace('.KS','').replace('.KQ','')}`.toLowerCase()
+    }));
+    console.log(`✓ 종목 리스트 생성: ${allStocks.length}개`);
     loadStockList(allStocks);
 }
 
+// =========================================================
+// 이벤트
+// =========================================================
 function setupEventListeners() {
     document.getElementById('searchBtn').addEventListener('click', handleSearch);
-    document.getElementById('searchInput').addEventListener('keypress', (e) => {
+    document.getElementById('searchInput').addEventListener('keypress', e => {
         if (e.key === 'Enter') handleSearch();
     });
     document.getElementById('analyzeBtn').addEventListener('click', analyzeStock);
 }
 
 // =========================================================
-// 종목 검색 및 로딩
+// 종목 검색
 // =========================================================
-
 function handleSearch() {
-    const searchTerm = document.getElementById('searchInput').value.trim();
-    
-    if (!searchTerm) {
+    const query = document.getElementById('searchInput').value.trim().toLowerCase();
+    if (!query) {
         loadStockList(allStocks);
         return;
     }
-
-    // 대소문자 구분 없이 검색
-    const filtered = allStocks.filter(stock => 
-        stock.search.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-
+    const filtered = allStocks.filter(s => s.search.includes(query));
     loadStockList(filtered);
-    
-    // 검색 결과 표시
+
     if (filtered.length === 0) {
-        showError(`"${searchTerm}"에 대한 검색 결과가 없습니다.`);
-    } else {
-        hideError();
+        const msgEl = document.getElementById('searchMessage');
+        if (msgEl) msgEl.innerHTML = `<div class="no-result">"${query}"에 대한 검색 결과가 없습니다.</div>`;
     }
 }
 
 function loadStockList(stocks) {
     const select = document.getElementById('stockSelect');
+    const msg    = document.getElementById('searchMessage');
+
+    if (!select) return;
+
     select.innerHTML = '<option value="">종목을 선택하세요</option>';
-    
-    stocks.forEach(stock => {
-        const option = document.createElement('option');
-        option.value = stock.ticker;
-        option.textContent = `${stock.name} (${stock.ticker})`;
-        select.appendChild(option);
+
+    if (stocks.length === 0) {
+        if (msg) msg.style.display = 'block';
+        return;
+    }
+    if (msg) msg.style.display = 'none';
+
+    stocks.slice(0, 300).forEach(s => {
+        const opt = document.createElement('option');
+        opt.value       = s.ticker;
+        opt.textContent = `${s.name} (${s.ticker.replace('.KS','').replace('.KQ','')})`;
+        select.appendChild(opt);
     });
 }
 
 // =========================================================
-// 주식 분석 메인 함수
+// 주식 데이터 가져오기 (실시간 우선 → DB 폴백)
 // =========================================================
+async function fetchStockData(ticker) {
+    console.log(`\n📊 ${ticker} 조회...`);
 
+    // ── 실시간 (Worker 연동) ──────────────────────────────
+    if (window.isWorkerReady && window.isWorkerReady() && window.fetchRealtimeData) {
+        const rt = await window.fetchRealtimeData(ticker);
+        if (rt && rt.price > 0 && rt.chartData && rt.chartData.length > 10) {
+            console.log(`✅ 실시간: ${rt.price.toLocaleString()}원, 차트 ${rt.chartData.length}일`);
+            return {
+                currentPrice:  rt.price,
+                change:        rt.changePercent,
+                data:          rt.chartData
+            };
+        }
+    }
+
+    // ── DB 폴백 ──────────────────────────────────────────
+    const db = await loadStockDatabase();
+    if (db[ticker]) {
+        const info = db[ticker];
+        console.log(`📂 DB: ${info.name} = ${info.currentPrice.toLocaleString()}원`);
+        return {
+            currentPrice: info.currentPrice,
+            change:       info.change,
+            data:         info.data
+        };
+    }
+
+    throw new Error(`${ticker} 데이터 없음`);
+}
+
+// =========================================================
+// 이동평균 계산
+// =========================================================
+function calculateMA(data, period) {
+    return data.map((_, i) => {
+        if (i < period - 1) return null;
+        const sum = data.slice(i - period + 1, i + 1).reduce((a, b) => a + b.close, 0);
+        return sum / period;
+    });
+}
+
+// =========================================================
+// 매매 전략 계산 (AI)
+// =========================================================
+function calculateStrategy(data, currentPrice) {
+    if (!data || data.length < 60) return null;
+
+    const ma20 = calculateMA(data, 20);
+    const ma60 = calculateMA(data, 60);
+    const lastMA20 = ma20[ma20.length - 1];
+    const lastMA60 = ma60[ma60.length - 1];
+
+    const closes = data.map(d => d.close);
+    const recent = closes.slice(-20);
+    const volatility = Math.sqrt(
+        recent.reduce((sum, v) => sum + Math.pow(v - lastMA20, 2), 0) / recent.length
+    ) / lastMA20;
+
+    const buyPrice   = Math.round(lastMA20 * 0.98);
+    const stopLoss   = Math.round(buyPrice  * (1 - volatility * 3));
+    const targetPrice = Math.round(buyPrice * (1 + volatility * 6));
+
+    return { buyPrice, stopLoss, targetPrice, ma20: lastMA20, ma60: lastMA60, volatility };
+}
+
+// =========================================================
+// 분석 실행
+// =========================================================
 async function analyzeStock() {
     const ticker = document.getElementById('stockSelect').value;
-    
-    if (!ticker) {
-        showError('종목을 선택해주세요.');
-        return;
-    }
+    if (!ticker) { alert('종목을 선택해주세요.'); return; }
 
-    showLoading(true);
-    hideError();
-    hideResults();
+    const btn = document.getElementById('analyzeBtn');
+    btn.disabled = true;
+    btn.innerHTML = '⏳ 분석 중...';
 
     try {
-        // 실제 데이터만 가져오기 (샘플 데이터 사용 금지)
-        const data = await fetchStockData(ticker);
-        
-        if (!data || data.length < 60) {
-            showError('❌ 충분한 데이터를 가져올 수 없습니다.\n\n현재 시스템의 한계로 인해 일부 종목의 실시간 데이터를 제공할 수 없습니다.\n\n다른 종목을 선택하시거나, 잠시 후 다시 시도해주세요.');
-            return;
-        }
+        const { currentPrice, change, data } = await fetchStockData(ticker);
 
-        console.log(`✓ ${data.length}일 실제 데이터 로드 성공`);
+        displayPrices(currentPrice, change, data);
+        displayChart(data, ticker);
 
-        // 전략 계산
-        const strategy = calculateStrategy(data);
-        
-        // 결과 표시
-        displayResults(strategy, data);
-        
-    } catch (error) {
-        console.error('분석 오류:', error);
-        
-        let errorMessage = '❌ 실제 주식 데이터를 가져올 수 없습니다.\n\n';
-        errorMessage += '현재 외부 금융 API 접근에 제한이 있습니다.\n\n';
-        errorMessage += '💡 해결 방법:\n';
-        errorMessage += '• 다른 종목을 선택해보세요\n';
-        errorMessage += '• 페이지를 새로고침 해보세요\n';
-        errorMessage += '• 잠시 후 다시 시도해주세요\n\n';
-        errorMessage += '⚠️ 이 서비스는 현재 베타 버전입니다.\n';
-        errorMessage += '정확한 실시간 데이터가 필요하시면 증권사 앱을 이용해주세요.';
-        
-        showError(errorMessage);
+    } catch (err) {
+        console.error(err);
+        alert(`데이터 조회 실패: ${err.message}`);
     } finally {
-        showLoading(false);
+        btn.disabled = false;
+        btn.innerHTML = '📊 분석하기';
     }
 }
 
 // =========================================================
-// 실제 한국 주식 데이터 가져오기
+// 가격 + 전략 표시
 // =========================================================
+function displayPrices(currentPrice, change, data) {
+    const strategy = calculateStrategy(data, currentPrice);
+    if (!strategy) return;
 
-// =========================================================
-// 주식 데이터베이스 (4개 분할 JSON DB 사용)
-// =========================================================
+    document.getElementById('currentPrice').textContent  = currentPrice.toLocaleString() + '원';
+    document.getElementById('buyPrice').textContent      = strategy.buyPrice.toLocaleString() + '원';
+    document.getElementById('stopLoss').textContent      = strategy.stopLoss.toLocaleString() + '원';
+    document.getElementById('targetPrice').textContent   = strategy.targetPrice.toLocaleString() + '원';
 
-// 데이터베이스 로드 (Part 1~8)
-async function loadStockDatabase() {
-    if (stockDatabase) return stockDatabase;
-    
-    try {
-        console.log('📂 데이터베이스 로드 중...');
-        
-        // 8개 파트를 병렬로 로드
-        const loadPromises = [
-            fetch('stock_database_part1.json').then(r => r.json()),
-            fetch('stock_database_part2.json').then(r => r.json()),
-            fetch('stock_database_part3.json').then(r => r.json()),
-            fetch('stock_database_part4.json').then(r => r.json()),
-            fetch('stock_database_part5.json').then(r => r.json()),
-            fetch('stock_database_part6.json').then(r => r.json()),
-            fetch('stock_database_part7.json').then(r => r.json()),
-            fetch('stock_database_part8.json').then(r => r.json())
-        ];
-        
-        console.log('  8개 파일 동시 로드 중...');
-        const parts = await Promise.all(loadPromises);
-        
-        for (let i = 0; i < parts.length; i++) {
-            console.log(`  ✓ Part ${i+1}: ${Object.keys(parts[i]).length}개 종목`);
-        }
-        
-        // 8개 병합
-        stockDatabase = Object.assign({}, ...parts);
-        console.log(`✓ 데이터베이스 로드 완료: 총 ${Object.keys(stockDatabase).length}개 종목`);
-        
-        return stockDatabase;
-    } catch (error) {
-        console.error('✗ 데이터베이스 로드 실패:', error);
-        console.error('다음 파일들을 확인해주세요:');
-        console.error('- stock_database_part1.json ~ part8.json');
-        return null;
+    // 변동률 색상
+    const changeEl = document.getElementById('changePercent');
+    if (changeEl) {
+        changeEl.textContent = `${change > 0 ? '+' : ''}${change}%`;
+        changeEl.style.color = change > 0 ? '#e74c3c' : change < 0 ? '#3498db' : '#fff';
     }
 }
 
-// 주식 데이터 가져오기
-async function fetchStockData(ticker) {
-    console.log(`\n${ticker} 데이터 조회...`);
-    
-    // DB 로드
-    const db = await loadStockDatabase();
-    
-    if (!db) {
-        throw new Error('❌ 데이터베이스를 로드할 수 없습니다.');
-    }
-    
-    // DB에서 데이터 찾기
-    if (db[ticker]) {
-        const stockInfo = db[ticker];
-        console.log(`✓ ${stockInfo.name} DB 데이터 로드 완료`);
-        
-        // 실시간 데이터 조회 (Worker 연동)
-        let currentPrice = stockInfo.currentPrice;
-        let change = stockInfo.change;
-        let chartData = stockInfo.data; // 기본: DB 데이터
-
-        if (window.fetchRealtimeData) {
-            try {
-                const rt = await window.fetchRealtimeData(ticker);
-                if (rt && rt.currentPrice > 0) {
-                    currentPrice = rt.currentPrice;
-                    change = rt.changePercent;
-
-                    // 실시간 차트 데이터가 있으면 교체
-                    if (rt.chartData && rt.chartData.length > 10) {
-                        chartData = rt.chartData;
-                        console.log(`✓ 실시간 차트 적용: ${rt.chartData.length}일 데이터`);
-                    } else {
-                        // 차트는 DB, 현재가만 마지막 날 업데이트
-                        const last = chartData[chartData.length - 1];
-                        last.close = currentPrice;
-                        last.open  = rt.open  || last.open;
-                        last.high  = rt.high  || last.high;
-                        last.low   = rt.low   || last.low;
-                    }
-                }
-            } catch (e) { /* 무시 */ }
-        }
-        
-        console.log(`  📊 현재가: ${currentPrice.toLocaleString()}원`);
-        console.log(`  📈 변동: ${change > 0 ? '+' : ''}${change}%`);
-        console.log(`  📅 데이터: ${chartData.length}일`);
-        
-        return chartData;
-    }
-    
-    // DB에 없는 종목
-    console.log(`⚠️ ${ticker}는 데이터베이스에 없습니다.`);
-    throw new Error(`${ticker} 데이터를 찾을 수 없습니다.`);
-}
-
-
-function parseCSV(text) {
-    const lines = text.trim().split('\n');
-    const headers = lines[0].split(',');
-    
-    const data = [];
-    
-    for (let i = 1; i < lines.length; i++) {
-        const values = lines[i].split(',');
-        
-        if (values.length >= 6) {
-            const close = parseFloat(values[4]); // Adj Close
-            const volume = parseFloat(values[5]);
-            
-            if (!isNaN(close) && close > 0) {
-                data.push({
-                    date: values[0],
-                    open: parseFloat(values[1]),
-                    high: parseFloat(values[2]),
-                    low: parseFloat(values[3]),
-                    close: close,
-                    volume: volume
-                });
-            }
-        }
-    }
-    
-    return data;
-}
-
 // =========================================================
-// 전략 계산 (AI 로직)
+// 차트 렌더링
 // =========================================================
+function displayChart(data, ticker) {
+    const ctx = document.getElementById('stockChart');
+    if (!ctx) return;
 
-function calculateStrategy(data) {
-    const closePrices = data.map(d => d.close);
-    const current = closePrices[closePrices.length - 1];
-    
-    // 이동평균 계산
-    const ma20 = calculateMA(closePrices, 20);
-    const ma60 = calculateMA(closePrices, 60);
-    
-    // 변동성 계산
-    const returns = [];
-    for (let i = 1; i < closePrices.length; i++) {
-        returns.push((closePrices[i] - closePrices[i-1]) / closePrices[i-1]);
-    }
-    const volatility = calculateStdDev(returns);
-    
-    // 전략 가격 계산
-    const buy = ma20 * 0.98;
-    const stop = buy * (1 - volatility * 3);
-    const target = buy * 1.20;
-    const future = ma60 * 1.10;
-    
-    return {
-        current,
-        buy,
-        stop,
-        target,
-        future,
-        ma20,
-        ma60,
-        volatility
-    };
-}
+    const labels  = data.map(d => d.date);
+    const closes  = data.map(d => d.close);
+    const ma20    = calculateMA(data, 20);
+    const ma60    = calculateMA(data, 60);
 
-function calculateMA(prices, period) {
-    if (prices.length < period) return prices[prices.length - 1];
-    
-    const slice = prices.slice(-period);
-    const sum = slice.reduce((a, b) => a + b, 0);
-    return sum / period;
-}
+    if (currentChart) currentChart.destroy();
 
-function calculateStdDev(values) {
-    const mean = values.reduce((a, b) => a + b, 0) / values.length;
-    const squaredDiffs = values.map(v => Math.pow(v - mean, 2));
-    const avgSquaredDiff = squaredDiffs.reduce((a, b) => a + b, 0) / values.length;
-    return Math.sqrt(avgSquaredDiff);
-}
-
-// =========================================================
-// 결과 표시
-// =========================================================
-
-function displayResults(strategy, data) {
-    // 메트릭 표시
-    document.getElementById('currentPrice').textContent = formatPrice(strategy.current);
-    document.getElementById('buyPrice').textContent = formatPrice(strategy.buy);
-    document.getElementById('stopPrice').textContent = formatPrice(strategy.stop);
-    document.getElementById('targetPrice').textContent = formatPrice(strategy.target);
-    
-    // 차트 그리기
-    drawChart(data, strategy);
-    
-    // AI 분석 표시
-    displayAIAnalysis(strategy);
-    
-    // 결과 섹션 표시
-    document.getElementById('resultsSection').style.display = 'block';
-    
-    // 스크롤
-    document.getElementById('resultsSection').scrollIntoView({ behavior: 'smooth' });
-}
-
-function formatPrice(price) {
-    return new Intl.NumberFormat('ko-KR', {
-        style: 'decimal',
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0
-    }).format(price) + '원';
-}
-
-// =========================================================
-// 차트 그리기
-// =========================================================
-
-function drawChart(data, strategy) {
-    const ctx = document.getElementById('priceChart').getContext('2d');
-    
-    // 기존 차트 제거
-    if (currentChart) {
-        currentChart.destroy();
-    }
-    
-    // MA 계산
-    const ma20Data = calculateMAArray(data.map(d => d.close), 20);
-    const ma60Data = calculateMAArray(data.map(d => d.close), 60);
-    
     currentChart = new Chart(ctx, {
         type: 'line',
         data: {
-            labels: data.map(d => d.date),
+            labels,
             datasets: [
                 {
                     label: '종가',
-                    data: data.map(d => d.close),
-                    borderColor: 'rgb(102, 126, 234)',
-                    backgroundColor: 'rgba(102, 126, 234, 0.1)',
-                    borderWidth: 2,
+                    data: closes,
+                    borderColor: '#4a9eff',
+                    borderWidth: 1.5,
+                    pointRadius: 0,
                     tension: 0.1
                 },
                 {
                     label: 'MA20',
-                    data: ma20Data,
-                    borderColor: 'rgb(72, 187, 120)',
-                    borderWidth: 1.5,
-                    borderDash: [5, 5],
-                    tension: 0.1,
-                    fill: false
+                    data: ma20,
+                    borderColor: '#f39c12',
+                    borderWidth: 1.2,
+                    pointRadius: 0,
+                    borderDash: [3, 3]
                 },
                 {
                     label: 'MA60',
-                    data: ma60Data,
-                    borderColor: 'rgb(237, 137, 54)',
-                    borderWidth: 1.5,
-                    borderDash: [5, 5],
-                    tension: 0.1,
-                    fill: false
+                    data: ma60,
+                    borderColor: '#e74c3c',
+                    borderWidth: 1.2,
+                    pointRadius: 0,
+                    borderDash: [3, 3]
                 }
             ]
         },
         options: {
             responsive: true,
-            maintainAspectRatio: false,
-            interaction: {
-                intersect: false,
-                mode: 'index'
-            },
+            interaction: { intersect: false, mode: 'index' },
             plugins: {
-                legend: {
-                    display: true,
-                    position: 'top'
-                },
+                legend: { labels: { color: '#ccc', boxWidth: 20 } },
                 tooltip: {
                     callbacks: {
-                        label: function(context) {
-                            let label = context.dataset.label || '';
-                            if (label) {
-                                label += ': ';
-                            }
-                            label += formatPrice(context.parsed.y);
-                            return label;
-                        }
-                    }
-                },
-                annotation: {
-                    annotations: {
-                        buyLine: {
-                            type: 'line',
-                            yMin: strategy.buy,
-                            yMax: strategy.buy,
-                            borderColor: 'rgb(72, 187, 120)',
-                            borderWidth: 2,
-                            borderDash: [10, 5],
-                            label: {
-                                content: 'BUY',
-                                enabled: true,
-                                position: 'end'
-                            }
-                        },
-                        stopLine: {
-                            type: 'line',
-                            yMin: strategy.stop,
-                            yMax: strategy.stop,
-                            borderColor: 'rgb(245, 101, 101)',
-                            borderWidth: 2,
-                            borderDash: [2, 2],
-                            label: {
-                                content: 'STOP',
-                                enabled: true,
-                                position: 'end'
-                            }
-                        },
-                        targetLine: {
-                            type: 'line',
-                            yMin: strategy.target,
-                            yMax: strategy.target,
-                            borderColor: 'rgb(237, 137, 54)',
-                            borderWidth: 2,
-                            borderDash: [10, 5],
-                            label: {
-                                content: 'TARGET',
-                                enabled: true,
-                                position: 'end'
-                            }
-                        }
+                        label: ctx => `${ctx.dataset.label}: ${ctx.parsed.y?.toLocaleString()}원`
                     }
                 }
             },
             scales: {
+                x: {
+                    ticks: { color: '#aaa', maxTicksLimit: 8 },
+                    grid:  { color: '#333' }
+                },
                 y: {
-                    ticks: {
-                        callback: function(value) {
-                            return formatPrice(value);
-                        }
-                    }
+                    ticks: { color: '#aaa', callback: v => v.toLocaleString() },
+                    grid:  { color: '#333' }
                 }
             }
         }
     });
-    
-    ctx.canvas.style.height = '500px';
-}
-
-function calculateMAArray(prices, period) {
-    const result = [];
-    
-    for (let i = 0; i < prices.length; i++) {
-        if (i < period - 1) {
-            result.push(null);
-        } else {
-            const slice = prices.slice(i - period + 1, i + 1);
-            const avg = slice.reduce((a, b) => a + b, 0) / period;
-            result.push(avg);
-        }
-    }
-    
-    return result;
-}
-
-// =========================================================
-// AI 분석 텍스트 생성
-// =========================================================
-
-function displayAIAnalysis(strategy) {
-    const html = `
-        <h3>📉 매수 추천가 (${formatPrice(strategy.buy)})</h3>
-        <p>→ 20일 이동평균선 근처 지지구간.</p>
-        <p>→ 단기 과매도 반등 확률 높은 위치.</p>
-        
-        <h3>🛑 손절가 (${formatPrice(strategy.stop)})</h3>
-        <p>→ 변동성(${(strategy.volatility * 100).toFixed(2)}%) 기반 리스크 관리 가격.</p>
-        <p>→ 추세 붕괴 시 자동 방어 구간.</p>
-        
-        <h3>🎯 목표가 (${formatPrice(strategy.target)})</h3>
-        <p>→ 평균 회귀 + 기술적 저항선 예상 구간.</p>
-        <p>→ 약 +20% 수익 실현 전략.</p>
-        
-        <h3>📊 현재 상태</h3>
-        <p><strong>현재가:</strong> ${formatPrice(strategy.current)}</p>
-        <p><strong>MA20:</strong> ${formatPrice(strategy.ma20)}</p>
-        <p><strong>MA60:</strong> ${formatPrice(strategy.ma60)}</p>
-        
-        <p style="margin-top: 20px;">👉 단기 눌림목 매수 전략</p>
-        <p>👉 스윙 트레이딩 적합</p>
-    `;
-    
-    document.getElementById('aiComment').innerHTML = html;
-}
-
-// =========================================================
-// UI 헬퍼 함수
-// =========================================================
-
-function showLoading(show) {
-    document.getElementById('loadingSpinner').style.display = show ? 'block' : 'none';
-    document.getElementById('analyzeBtn').disabled = show;
-}
-
-function showError(message) {
-    const errorDiv = document.getElementById('errorMessage');
-    errorDiv.textContent = message;
-    errorDiv.style.display = 'block';
-}
-
-function hideError() {
-    document.getElementById('errorMessage').style.display = 'none';
-}
-
-function hideResults() {
-    document.getElementById('resultsSection').style.display = 'none';
 }
