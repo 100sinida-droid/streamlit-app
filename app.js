@@ -229,16 +229,24 @@ function displayPrices(currentPrice, change, data) {
     const strategy = calculateStrategy(data, currentPrice);
     if (!strategy) return;
 
-    document.getElementById('currentPrice').textContent  = currentPrice.toLocaleString() + '원';
-    document.getElementById('buyPrice').textContent      = strategy.buyPrice.toLocaleString() + '원';
-    document.getElementById('stopLoss').textContent      = strategy.stopLoss.toLocaleString() + '원';
-    document.getElementById('targetPrice').textContent   = strategy.targetPrice.toLocaleString() + '원';
+    const el = (id) => document.getElementById(id);
+    
+    if (el('currentPrice'))  el('currentPrice').textContent  = currentPrice.toLocaleString() + '원';
+    if (el('buyPrice'))      el('buyPrice').textContent      = strategy.buyPrice.toLocaleString() + '원';
+    if (el('stopPrice'))     el('stopPrice').textContent     = strategy.stopLoss.toLocaleString() + '원';
+    if (el('targetPrice'))   el('targetPrice').textContent   = strategy.targetPrice.toLocaleString() + '원';
 
     // 변동률 색상
-    const changeEl = document.getElementById('changePercent');
+    const changeEl = el('changePercent');
     if (changeEl) {
         changeEl.textContent = `${change > 0 ? '+' : ''}${change}%`;
         changeEl.style.color = change > 0 ? '#e74c3c' : change < 0 ? '#3498db' : '#fff';
+    }
+    
+    // 결과 섹션 표시
+    const resultsSection = el('resultsSection');
+    if (resultsSection) {
+        resultsSection.style.display = 'block';
     }
 }
 
