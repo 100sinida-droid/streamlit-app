@@ -1,66 +1,93 @@
-# 🚀 StockMind AI — 배포 가이드
+# 🚀 StockMind AI v3.0 — 완전 작동 가이드
 
-실시간 주식 데이터 + Claude AI 분석 웹사이트
+## ❗ 왜 v3인가?
+- v1, v2: `allorigins.win` CORS 프록시 → Cloudflare Pages에서 차단
+- v3: **Financial Modeling Prep (FMP) API** 사용 → CORS 완전 허용, 브라우저 직접 호출
 
-## 파일 구조
+---
 
+## 📋 파일 구조
 ```
 stockai/
-├── index.html          — 메인 페이지
-├── style.css           — 스타일시트
-├── app.js              — 프론트엔드 로직 (Yahoo Finance API)
+├── index.html
+├── style.css
+├── app.js                  ← FMP API (브라우저 직접 호출)
 └── functions/
     └── api/
-        └── analyze.js  — Cloudflare Function (Claude AI 호출)
+        └── analyze.js      ← Claude AI (Cloudflare Function)
 ```
 
-## 배포 방법 (Cloudflare Pages)
+---
 
-### 1단계: GitHub 레포 생성
+## ⚡ 1단계: FMP API 키 발급 (필수 — 5분)
+
+1. https://site.financialmodelingprep.com/register 접속
+2. 무료 회원가입
+3. 대시보드 → **API Key** 복사
+4. `app.js` 파일 3번째 줄 수정:
+   ```js
+   const FMP_KEY = 'YOUR_KEY_HERE'; // ← 여기에 붙여넣기
+   ```
+
+> **무료 플랜**: 250 API콜/일, 실시간 미국+한국 주식 지원  
+> **유료 플랜**: 제한 없음 (월 $19~)
+
+---
+
+## ⚡ 2단계: GitHub 배포
+
 ```bash
 git init
 git add .
-git commit -m "initial commit"
-git remote add origin https://github.com/YOUR_USERNAME/stockmind-ai.git
+git commit -m "StockMind AI v3 - FMP API"
+git remote add origin https://github.com/YOUR_ID/stockmind.git
 git push -u origin main
 ```
 
-### 2단계: Cloudflare Pages 연결
-1. [Cloudflare Dashboard](https://dash.cloudflare.com) 접속
-2. **Pages** → **Create a project** → **Connect to Git**
-3. GitHub 레포 선택
-4. Build settings: 모두 비워두기 (정적 사이트)
-5. **Save and Deploy**
+---
 
-### 3단계: API 키 설정
+## ⚡ 3단계: Cloudflare Pages 설정
+
+1. https://dash.cloudflare.com → **Pages** → Create a project
+2. Connect to Git → 레포 선택
+3. Build settings: **모두 비워두기**
+4. Save and Deploy
+
+---
+
+## ⚡ 4단계: AI 기능 활성화 (선택)
+
 1. Pages 프로젝트 → **Settings** → **Environment variables**
 2. **Add variable**:
-   - Variable name: `ANTHROPIC_API_KEY`
-   - Value: `sk-ant-xxxxx...` (Anthropic Console에서 발급)
-3. **Save** 후 **Redeploy**
+   - Name: `ANTHROPIC_API_KEY`
+   - Value: `sk-ant-...` (https://console.anthropic.com 에서 발급)
+3. Save → **Redeploy**
 
-## 사용하는 API
+> AI 없이도 실시간 주식 데이터 조회는 정상 작동
 
-| API | 용도 | 비용 |
-|-----|------|------|
-| Yahoo Finance | 실시간 주가, 차트 | 무료 |
-| allorigins.win | CORS 프록시 | 무료 |
-| Anthropic Claude | AI 분석 | 유료 (사용량 기반) |
+---
 
-## 검색 방법
+## 🔍 검색 방법
 
-- **한국어**: 삼성전자, 카카오, 현대차, SK하이닉스...
-- **영문**: Samsung, Kakao, Apple, Tesla...
-- **티커**: 005930.KS, 035420.KS, AAPL, TSLA, NVDA...
-- **숫자**: 005930, 035420 (자동으로 .KS 추가)
+| 입력 | 결과 |
+|------|------|
+| 삼성전자 | 005930.KS |
+| 삼성 | 005930.KS |
+| 하이닉스 | 000660.KS |
+| 카카오 | 035720.KS |
+| 005930 | 005930.KS |
+| AAPL | Apple Inc |
+| Tesla | TSLA |
+| 엔비디아 | NVDA |
+| 이건홀딩스 | 015360.KS |
 
-## 지원 시장
+---
 
-- 🇰🇷 **KOSPI** (코스피) — .KS 티커
-- 🇰🇷 **KOSDAQ** (코스닥) — .KQ 티커
-- 🇺🇸 **NASDAQ / NYSE** (미국 주식)
+## ✅ 지원 시장
+- 🇰🇷 KOSPI (코스피) — .KS 티커
+- 🇰🇷 KOSDAQ (코스닥) — .KQ 티커  
+- 🇺🇸 NYSE, NASDAQ (미국 전체)
 
-## 주의사항
-
-> 본 서비스는 정보 제공 목적이며, 투자 권유가 아닙니다.
-> 모든 투자 결정은 본인의 판단과 책임 하에 이루어져야 합니다.
+## ⚠️ 투자 주의사항
+본 서비스는 정보 제공 목적이며, 투자 권유가 아닙니다.
+모든 투자 결정은 본인의 판단과 책임 하에 이루어져야 합니다.

@@ -1,6 +1,6 @@
 // functions/api/analyze.js
 // Claude AI 분석 엔드포인트
-// 환경변수: ANTHROPIC_API_KEY (Cloudflare Pages > Settings > Environment Variables)
+// 필요 환경변수: ANTHROPIC_API_KEY
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -15,11 +15,7 @@ export async function onRequestPost({ env, request }) {
     if (!prompt) return json({ error: 'prompt required' }, 400);
 
     const apiKey = env.ANTHROPIC_API_KEY;
-
-    // API 키 미설정 시 안내 메시지 반환 (에러 대신)
-    if (!apiKey) {
-      return json(makeErrorAnalysis('ANTHROPIC_API_KEY 환경변수를 Cloudflare Pages > Settings > Environment Variables에 추가해주세요.'));
-    }
+    if (!apiKey) return json(noKeyResponse());
 
     const claudeRes = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -31,36 +27,32 @@ export async function onRequestPost({ env, request }) {
       body: JSON.stringify({
         model: 'claude-opus-4-6',
         max_tokens: 2000,
-        system: '당신은 전문 주식 애널리스트입니다. 반드시 순수 JSON만 응답하세요. 마크다운 블록(```), 설명 텍스트, 줄바꿈 없이 JSON 객체만 출력하세요.',
+        system: '당신은 전문 주식 애널리스트입니다. 반드시 순수 JSON만 응답하세요. 마크다운 코드블록(```), 설명 텍스트 없이 JSON 객체만 출력하세요.',
         messages: [{ role: 'user', content: prompt }],
       }),
     });
 
     if (!claudeRes.ok) {
-      const errText = await claudeRes.text();
-      return json(makeErrorAnalysis('Claude API 오류: ' + errText));
+      const e = await claudeRes.text();
+      return json(errorResponse('Claude API 오류: ' + e));
     }
 
-    const claudeData = await claudeRes.json();
-    const rawText = claudeData.content?.[0]?.text || '{}';
-    const cleaned = rawText.replace(/```json\s*/gi, '').replace(/```\s*/gi, '').trim();
+    const cd = await claudeRes.json();
+    const raw = cd.content?.[0]?.text || '{}';
 
+    // JSON 추출
+    const cleaned = raw.replace(/```json\s*/gi,'').replace(/```\s*/gi,'').trim();
     let result;
     try {
       result = JSON.parse(cleaned);
-    } catch (e) {
-      // JSON 파싱 실패 시 텍스트에서 JSON 추출 시도
-      const match = cleaned.match(/\{[\s\S]*\}/);
-      if (match) {
-        result = JSON.parse(match[0]);
-      } else {
-        return json(makeErrorAnalysis('AI 응답 파싱 오류. 다시 시도해주세요.'));
-      }
+    } catch {
+      const m = cleaned.match(/\{[\s\S]*\}/);
+      result = m ? JSON.parse(m[0]) : errorResponse('응답 파싱 실패');
     }
 
     return json(result);
   } catch (err) {
-    return json(makeErrorAnalysis(err.message));
+    return json(errorResponse(err.message));
   }
 }
 
@@ -68,21 +60,36 @@ export async function onRequestOptions() {
   return new Response(null, { headers: CORS });
 }
 
-function makeErrorAnalysis(msg) {
+function noKeyResponse() {
   return {
     verdict: '관망',
-    verdictReason: msg,
-    buyStrategy: { zone: '분석 불가', timing: '재시도 필요', split: [] },
+    verdictReason: 'ANTHROPIC_API_KEY가 설정되지 않았습니다. Cloudflare Pages › Settings › Environment variables에 키를 추가하면 AI 분석이 활성화됩니다.',
+    buyStrategy: { zone: 'API 키 설정 필요', timing: '-', split: [] },
     sellStrategy: { shortTarget: '-', midTarget: '-', stopLoss: '-', exitSignal: '-' },
-    risks: [msg],
-    riskLevel: '중간',
-    riskScore: 50,
+    risks: ['ANTHROPIC_API_KEY 환경변수 미설정'],
+    riskLevel: '중간', riskScore: 50,
+    scenarios: {
+      bull: { price: '-', desc: 'API 키 설정 후 이용 가능' },
+      base: { price: '-', desc: 'API 키 설정 후 이용 가능' },
+      bear: { price: '-', desc: 'API 키 설정 후 이용 가능' },
+    },
+    watchPoints: ['Cloudflare Pages 환경변수 설정', 'ANTHROPIC_API_KEY 추가', '재배포 후 AI 분석 활성화'],
+    summary: 'AI 분석은 API 키 설정 후 사용 가능합니다.',
+  };
+}
+
+function errorResponse(msg) {
+  return {
+    verdict: '관망', verdictReason: msg,
+    buyStrategy: { zone: '-', timing: '-', split: [] },
+    sellStrategy: { shortTarget: '-', midTarget: '-', stopLoss: '-', exitSignal: '-' },
+    risks: [msg], riskLevel: '중간', riskScore: 50,
     scenarios: {
       bull: { price: '-', desc: '분석 불가' },
       base: { price: '-', desc: '분석 불가' },
       bear: { price: '-', desc: '분석 불가' },
     },
-    watchPoints: ['잠시 후 재시도', '종목명 정확히 입력', 'API 설정 확인'],
+    watchPoints: ['잠시 후 재시도', '종목명 다시 확인', '네트워크 연결 확인'],
     summary: msg,
   };
 }
