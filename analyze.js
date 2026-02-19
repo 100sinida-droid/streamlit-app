@@ -1,48 +1,26 @@
 // functions/api/analyze.js
-// Cloudflare Pages Function — Claude AI 분석 엔드포인트
-// API 키는 Cloudflare Dashboard > Pages > Settings > Environment Variables에 저장
+// Claude AI 분석 엔드포인트
+// 환경변수: ANTHROPIC_API_KEY (Cloudflare Pages > Settings > Environment Variables)
 
-export async function onRequestPost(context) {
-  const { env, request } = context;
+const CORS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type',
+  'Content-Type': 'application/json; charset=utf-8',
+};
 
-  // CORS 헤더
-  const corsHeaders = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type',
-    'Content-Type': 'application/json',
-  };
-
+export async function onRequestPost({ env, request }) {
   try {
     const { prompt } = await request.json();
-
-    if (!prompt) {
-      return new Response(JSON.stringify({ error: 'prompt required' }), {
-        status: 400, headers: corsHeaders
-      });
-    }
+    if (!prompt) return json({ error: 'prompt required' }, 400);
 
     const apiKey = env.ANTHROPIC_API_KEY;
+
+    // API 키 미설정 시 안내 메시지 반환 (에러 대신)
     if (!apiKey) {
-      return new Response(JSON.stringify({
-        verdict: '관망',
-        verdictReason: 'AI API 키가 설정되지 않았습니다. Cloudflare Pages 환경 변수에 ANTHROPIC_API_KEY를 추가하세요.',
-        buyStrategy: { zone: 'N/A', timing: 'API 키 설정 필요', split: [] },
-        sellStrategy: { shortTarget: 'N/A', midTarget: 'N/A', stopLoss: 'N/A', exitSignal: 'N/A' },
-        risks: ['ANTHROPIC_API_KEY 환경 변수 미설정'],
-        riskLevel: '중간',
-        riskScore: 50,
-        scenarios: {
-          bull: { price: 'N/A', desc: 'API 키 설정 후 이용 가능' },
-          base: { price: 'N/A', desc: 'API 키 설정 후 이용 가능' },
-          bear: { price: 'N/A', desc: 'API 키 설정 후 이용 가능' },
-        },
-        watchPoints: ['Cloudflare Pages 설정 확인', 'ANTHROPIC_API_KEY 환경변수 추가', 'Pages 재배포'],
-        summary: 'Cloudflare Pages > Settings > Environment Variables에 ANTHROPIC_API_KEY를 추가하면 AI 분석이 활성화됩니다.'
-      }), { status: 200, headers: corsHeaders });
+      return json(makeErrorAnalysis('ANTHROPIC_API_KEY 환경변수를 Cloudflare Pages > Settings > Environment Variables에 추가해주세요.'));
     }
 
-    // Claude API 호출
     const claudeRes = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
@@ -52,56 +30,63 @@ export async function onRequestPost(context) {
       },
       body: JSON.stringify({
         model: 'claude-opus-4-6',
-        max_tokens: 1500,
+        max_tokens: 2000,
+        system: '당신은 전문 주식 애널리스트입니다. 반드시 순수 JSON만 응답하세요. 마크다운 블록(```), 설명 텍스트, 줄바꿈 없이 JSON 객체만 출력하세요.',
         messages: [{ role: 'user', content: prompt }],
-        system: '당신은 전문 주식 애널리스트입니다. 요청된 JSON 형식으로만 응답하고, 다른 텍스트는 포함하지 마세요.',
       }),
     });
 
     if (!claudeRes.ok) {
       const errText = await claudeRes.text();
-      throw new Error('Claude API error: ' + errText);
+      return json(makeErrorAnalysis('Claude API 오류: ' + errText));
     }
 
     const claudeData = await claudeRes.json();
     const rawText = claudeData.content?.[0]?.text || '{}';
+    const cleaned = rawText.replace(/```json\s*/gi, '').replace(/```\s*/gi, '').trim();
 
-    // JSON 파싱 (```json 블록 제거)
-    const cleaned = rawText.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
-    const result = JSON.parse(cleaned);
+    let result;
+    try {
+      result = JSON.parse(cleaned);
+    } catch (e) {
+      // JSON 파싱 실패 시 텍스트에서 JSON 추출 시도
+      const match = cleaned.match(/\{[\s\S]*\}/);
+      if (match) {
+        result = JSON.parse(match[0]);
+      } else {
+        return json(makeErrorAnalysis('AI 응답 파싱 오류. 다시 시도해주세요.'));
+      }
+    }
 
-    return new Response(JSON.stringify(result), {
-      status: 200,
-      headers: corsHeaders,
-    });
-
+    return json(result);
   } catch (err) {
-    return new Response(JSON.stringify({
-      verdict: '관망',
-      verdictReason: '분석 중 오류가 발생했습니다: ' + err.message,
-      buyStrategy: { zone: 'N/A', timing: '재시도 필요', split: [] },
-      sellStrategy: { shortTarget: 'N/A', midTarget: 'N/A', stopLoss: 'N/A', exitSignal: 'N/A' },
-      risks: [err.message],
-      riskLevel: '중간',
-      riskScore: 50,
-      scenarios: {
-        bull: { price: 'N/A', desc: '오류로 분석 불가' },
-        base: { price: 'N/A', desc: '오류로 분석 불가' },
-        bear: { price: 'N/A', desc: '오류로 분석 불가' },
-      },
-      watchPoints: ['오류 로그 확인', '네트워크 연결 확인', '잠시 후 재시도'],
-      summary: '일시적 오류입니다. 잠시 후 다시 시도해주세요.',
-    }), { status: 200, headers: corsHeaders });
+    return json(makeErrorAnalysis(err.message));
   }
 }
 
-// OPTIONS preflight
 export async function onRequestOptions() {
-  return new Response(null, {
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type',
-    }
-  });
+  return new Response(null, { headers: CORS });
+}
+
+function makeErrorAnalysis(msg) {
+  return {
+    verdict: '관망',
+    verdictReason: msg,
+    buyStrategy: { zone: '분석 불가', timing: '재시도 필요', split: [] },
+    sellStrategy: { shortTarget: '-', midTarget: '-', stopLoss: '-', exitSignal: '-' },
+    risks: [msg],
+    riskLevel: '중간',
+    riskScore: 50,
+    scenarios: {
+      bull: { price: '-', desc: '분석 불가' },
+      base: { price: '-', desc: '분석 불가' },
+      bear: { price: '-', desc: '분석 불가' },
+    },
+    watchPoints: ['잠시 후 재시도', '종목명 정확히 입력', 'API 설정 확인'],
+    summary: msg,
+  };
+}
+
+function json(data, status = 200) {
+  return new Response(JSON.stringify(data), { status, headers: CORS });
 }
