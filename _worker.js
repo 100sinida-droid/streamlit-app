@@ -1,9 +1,5 @@
 // _worker.js — StockMind AI
 // GitHub 루트에 이 파일만 올리면 됩니다
-// GET  /api/health
-// GET  /api/stock?action=quote&symbol=005930.KS
-// GET  /api/stock?action=chart&symbol=AAPL&days=30
-// POST /api/analyze
 
 var CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -28,6 +24,7 @@ function krCode(sym) {
   return sym.slice(0, -3);
 }
 
+// 외부 fetch — User-Agent 필수
 async function extFetch(url) {
   var r = await fetch(url, {
     headers: {
@@ -37,10 +34,11 @@ async function extFetch(url) {
       "Referer": "https://finance.naver.com/"
     }
   });
-  if (!r.ok) { throw new Error("API error: " + r.status); }
+  if (!r.ok) { throw new Error("HTTP " + r.status + " " + url); }
   return r;
 }
 
+// ── 네이버 Quote ──────────────────────────────────────────────
 async function naverQuote(code, sym) {
   var r = await extFetch("https://m.stock.naver.com/api/stock/" + code + "/basic");
   var d = await r.json();
@@ -60,27 +58,59 @@ async function naverQuote(code, sym) {
   });
 }
 
+// ── 네이버 Chart — 여러 엔드포인트 시도, 실패시 Yahoo 폴백 ────
 async function naverChart(code, days) {
-  var r = await extFetch("https://m.stock.naver.com/api/stock/" + code + "/candle/day?count=" + (days + 10));
-  var raw = await r.json();
-  var arr = Array.isArray(raw) ? raw : (raw.candles || raw.candleList || []);
+  var count = days + 10;
+  var urls = [
+    "https://m.stock.naver.com/api/stock/" + code + "/candle/day?count=" + count,
+    "https://m.stock.naver.com/api/stock/" + code + "/day/price?count=" + count,
+    "https://api.stock.naver.com/stock/" + code + "/day?count=" + count
+  ];
+  var raw = null;
+  for (var ui = 0; ui < urls.length; ui++) {
+    try {
+      var resp = await fetch(urls[ui], {
+        headers: {
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120 Safari/537.36",
+          "Accept": "application/json, */*",
+          "Accept-Language": "ko-KR,ko;q=0.9",
+          "Referer": "https://m.stock.naver.com/"
+        }
+      });
+      if (resp.ok) { raw = await resp.json(); break; }
+    } catch(e) { /* try next */ }
+  }
+
+  // 네이버 모두 실패 → Yahoo Finance KRX 폴백
+  if (!raw) {
+    return yahooChart(code + ".KS", days);
+  }
+
+  var arr = Array.isArray(raw) ? raw : (raw.candles || raw.candleList || raw.priceList || []);
   var history = [];
   for (var i = 0; i < arr.length; i++) {
     var c = arr[i];
-    var s = String(c.localDate || c.date || "");
+    var s = String(c.localDate || c.date || c.bizDate || "");
     var date = s.length === 8 ? s.slice(0,4) + "-" + s.slice(4,6) + "-" + s.slice(6,8) : s;
-    var close = toN(c.closePrice || c.close);
-    if (close > 0) { history.push({ date: date, close: close }); }
+    var close = toN(c.closePrice || c.close || c.endPrice);
+    if (close > 0 && date.length >= 8) { history.push({ date: date, close: close }); }
   }
   history.sort(function(a, b) { return a.date < b.date ? -1 : 1; });
+  if (!history.length) { return yahooChart(code + ".KS", days); }
   return jsonRes({ ok: true, history: history.slice(-days) });
 }
 
+// ── Yahoo Quote ───────────────────────────────────────────────
 async function yahooQuote(symbol) {
-  var url = "https://query1.finance.yahoo.com/v8/finance/chart/" + encodeURIComponent(symbol) + "?interval=1d&range=1d&includePrePost=false";
-  var r = await extFetch(url);
-  var d = await r.json();
-  var result = d.chart && d.chart.result && d.chart.result[0];
+  var urls = [
+    "https://query1.finance.yahoo.com/v8/finance/chart/" + encodeURIComponent(symbol) + "?interval=1d&range=1d&includePrePost=false",
+    "https://query2.finance.yahoo.com/v8/finance/chart/" + encodeURIComponent(symbol) + "?interval=1d&range=1d&includePrePost=false"
+  ];
+  var d = null;
+  for (var ui = 0; ui < urls.length; ui++) {
+    try { var r = await extFetch(urls[ui]); d = await r.json(); break; } catch(e) { if (ui === urls.length - 1) throw e; }
+  }
+  var result = d && d.chart && d.chart.result && d.chart.result[0];
   if (!result) { throw new Error(symbol + " 데이터 없음"); }
   var meta = result.meta || {};
   var price = meta.regularMarketPrice || 0;
@@ -100,15 +130,23 @@ async function yahooQuote(symbol) {
   });
 }
 
+// ── Yahoo Chart ───────────────────────────────────────────────
 async function yahooChart(symbol, days) {
   var range = days <= 30 ? "1mo" : days <= 90 ? "3mo" : "6mo";
-  var url = "https://query1.finance.yahoo.com/v8/finance/chart/" + encodeURIComponent(symbol) + "?interval=1d&range=" + range + "&includePrePost=false";
-  var r = await extFetch(url);
-  var d = await r.json();
-  var result = d.chart && d.chart.result && d.chart.result[0];
+  var suffix = "?interval=1d&range=" + range + "&includePrePost=false";
+  var base = "/v8/finance/chart/" + encodeURIComponent(symbol) + suffix;
+  var urls = [
+    "https://query1.finance.yahoo.com" + base,
+    "https://query2.finance.yahoo.com" + base
+  ];
+  var d = null;
+  for (var ui = 0; ui < urls.length; ui++) {
+    try { var r = await extFetch(urls[ui]); d = await r.json(); break; } catch(e) { if (ui === urls.length - 1) throw e; }
+  }
+  var result = d && d.chart && d.chart.result && d.chart.result[0];
   if (!result) { throw new Error(symbol + " 차트 없음"); }
   var ts = result.timestamp || [];
-  var q = result.indicators && result.indicators.quote && result.indicators.quote[0] || {};
+  var q = (result.indicators && result.indicators.quote && result.indicators.quote[0]) || {};
   var closes = q.close || [];
   var history = [];
   for (var i = 0; i < ts.length; i++) {
@@ -119,6 +157,7 @@ async function yahooChart(symbol, days) {
   return jsonRes({ ok: true, history: history.slice(-days) });
 }
 
+// ── Claude AI ─────────────────────────────────────────────────
 async function doAnalyze(prompt, env) {
   var key = env.ANTHROPIC_API_KEY;
   if (!key) {
@@ -129,7 +168,7 @@ async function doAnalyze(prompt, env) {
       sellStrategy: { shortTarget: "-", midTarget: "-", stopLoss: "-", exitSignal: "-" },
       risks: ["API 키 미설정"], riskLevel: "중간", riskScore: 50,
       scenarios: { bull: { price: "-", desc: "-" }, base: { price: "-", desc: "-" }, bear: { price: "-", desc: "-" } },
-      watchPoints: ["환경변수 설정 후 재시도"],
+      watchPoints: ["Cloudflare Pages 환경변수에 ANTHROPIC_API_KEY 추가 후 재배포"],
       summary: "ANTHROPIC_API_KEY 환경변수를 설정해주세요."
     });
   }
@@ -148,19 +187,28 @@ async function doAnalyze(prompt, env) {
     })
   });
   if (!r.ok) {
-    return jsonRes({ ok: true, verdict: "관망", verdictReason: "Claude API 오류 " + r.status, risks: [], riskLevel: "중간", riskScore: 50, buyStrategy: { zone: "-", timing: "-", split: [] }, sellStrategy: { shortTarget: "-", midTarget: "-", stopLoss: "-", exitSignal: "-" }, scenarios: { bull: { price: "-", desc: "-" }, base: { price: "-", desc: "-" }, bear: { price: "-", desc: "-" } }, watchPoints: [], summary: "오류" });
+    return jsonRes({ ok: true, verdict: "관망", verdictReason: "Claude API 오류 " + r.status,
+      buyStrategy: { zone: "-", timing: "-", split: [] }, sellStrategy: { shortTarget: "-", midTarget: "-", stopLoss: "-", exitSignal: "-" },
+      risks: ["API 오류"], riskLevel: "중간", riskScore: 50,
+      scenarios: { bull: { price: "-", desc: "-" }, base: { price: "-", desc: "-" }, bear: { price: "-", desc: "-" } },
+      watchPoints: [], summary: "오류" });
   }
   var cd = await r.json();
-  var text = cd.content && cd.content[0] && cd.content[0].text || "{}";
+  var text = (cd.content && cd.content[0] && cd.content[0].text) || "{}";
   text = text.replace(/```json/gi, "").replace(/```/gi, "").trim();
   try { return jsonRes(JSON.parse(text)); }
   catch(e) {
     var m = text.match(/\{[\s\S]*\}/);
-    if (m) { return jsonRes(JSON.parse(m[0])); }
-    return jsonRes({ ok: true, verdict: "관망", verdictReason: "파싱 오류", risks: [], riskLevel: "중간", riskScore: 50, buyStrategy: { zone: "-", timing: "-", split: [] }, sellStrategy: { shortTarget: "-", midTarget: "-", stopLoss: "-", exitSignal: "-" }, scenarios: { bull: { price: "-", desc: "-" }, base: { price: "-", desc: "-" }, bear: { price: "-", desc: "-" } }, watchPoints: [], summary: "파싱 오류" });
+    if (m) { try { return jsonRes(JSON.parse(m[0])); } catch(e2) {} }
+    return jsonRes({ ok: true, verdict: "관망", verdictReason: "파싱 오류",
+      buyStrategy: { zone: "-", timing: "-", split: [] }, sellStrategy: { shortTarget: "-", midTarget: "-", stopLoss: "-", exitSignal: "-" },
+      risks: ["파싱 오류"], riskLevel: "중간", riskScore: 50,
+      scenarios: { bull: { price: "-", desc: "-" }, base: { price: "-", desc: "-" }, bear: { price: "-", desc: "-" } },
+      watchPoints: [], summary: "파싱 오류" });
   }
 }
 
+// ── 라우터 ────────────────────────────────────────────────────
 export default {
   async fetch(request, env) {
     var url = new URL(request.url);
@@ -189,7 +237,7 @@ export default {
           if (isKR(symbol)) { return await naverChart(krCode(symbol), days); }
           return await yahooChart(symbol, days);
         }
-        return jsonRes({ ok: false, error: "action은 quote 또는 chart" }, 400);
+        return jsonRes({ ok: false, error: "action 오류" }, 400);
       } catch(e) {
         return jsonRes({ ok: false, error: e.message }, 500);
       }
