@@ -1,256 +1,313 @@
-// _worker.js — StockMind AI
-// GitHub 루트에 이 파일만 올리면 됩니다
+// StockMind _worker.js v8
+// 차트: 네이버 fchart XML (가장 안정적) → JSON 폴백 → 빈 배열
+// AI: Claude API 있으면 사용, 없으면 데이터 기반 자동 분석
 
-var CORS = {
+var H = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
   "Access-Control-Allow-Headers": "Content-Type",
   "Content-Type": "application/json; charset=utf-8"
 };
 
-function jsonRes(data, status) {
-  return new Response(JSON.stringify(data), { status: status || 200, headers: CORS });
-}
+function J(d, s) { return new Response(JSON.stringify(d), { status: s || 200, headers: H }); }
+function N(v) { return parseFloat(String(v || 0).replace(/,/g, "")) || 0; }
+function isKR(s) { return s.slice(-3) === ".KS" || s.slice(-3) === ".KQ"; }
+function code(s) { return s.slice(0, -3); }
 
-function toN(v) {
-  return parseFloat(String(v || 0).replace(/,/g, "")) || 0;
-}
+var UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124 Safari/537.36";
 
-function isKR(sym) {
-  return sym.slice(-3) === ".KS" || sym.slice(-3) === ".KQ";
-}
-
-function krCode(sym) {
-  return sym.slice(0, -3);
-}
-
-// 외부 fetch — User-Agent 필수
-async function extFetch(url) {
-  var r = await fetch(url, {
-    headers: {
-      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120 Safari/537.36",
-      "Accept": "application/json, */*",
-      "Accept-Language": "ko-KR,ko;q=0.9",
-      "Referer": "https://finance.naver.com/"
-    }
+// ─── 네이버 Quote ─────────────────────────────────────────────
+async function naverQuote(cd, sym) {
+  var r = await fetch("https://m.stock.naver.com/api/stock/" + cd + "/basic", {
+    headers: { "User-Agent": UA, "Accept": "application/json", "Referer": "https://finance.naver.com/" }
   });
-  if (!r.ok) { throw new Error("HTTP " + r.status + " " + url); }
-  return r;
-}
-
-// ── 네이버 Quote ──────────────────────────────────────────────
-async function naverQuote(code, sym) {
-  var r = await extFetch("https://m.stock.naver.com/api/stock/" + code + "/basic");
+  if (!r.ok) throw new Error("naver " + r.status);
   var d = await r.json();
-  return jsonRes({
+  return J({
     ok: true, symbol: sym,
-    name: d.stockName || d.corporateName || code,
-    price: toN(d.closePrice || d.currentPrice),
-    change: toN(d.compareToPreviousClosePrice),
-    changePct: toN(d.fluctuationsRatio),
-    high52: toN(d.yearlyHighPrice),
-    low52: toN(d.yearlyLowPrice),
-    volume: toN(d.accumulatedTradingVolume || d.tradingVolume),
-    marketCap: toN(d.marketValue) * 100000000,
-    per: toN(d.per),
-    currency: "KRW",
-    exchange: sym.slice(-3) === ".KQ" ? "KOSDAQ" : "KOSPI"
+    name: d.stockName || d.corporateName || cd,
+    price: N(d.closePrice || d.currentPrice),
+    change: N(d.compareToPreviousClosePrice),
+    changePct: N(d.fluctuationsRatio),
+    high52: N(d.yearlyHighPrice), low52: N(d.yearlyLowPrice),
+    volume: N(d.accumulatedTradingVolume || d.tradingVolume),
+    marketCap: N(d.marketValue) * 1e8,
+    per: N(d.per), eps: N(d.eps),
+    currency: "KRW", exchange: sym.slice(-3) === ".KQ" ? "KOSDAQ" : "KOSPI"
   });
 }
 
-// ── 네이버 Chart — 여러 엔드포인트 시도, 실패시 Yahoo 폴백 ────
-async function naverChart(code, days) {
-  var count = days + 10;
-  var urls = [
-    "https://m.stock.naver.com/api/stock/" + code + "/candle/day?count=" + count,
-    "https://m.stock.naver.com/api/stock/" + code + "/day/price?count=" + count,
-    "https://api.stock.naver.com/stock/" + code + "/day?count=" + count
-  ];
-  var raw = null;
-  for (var ui = 0; ui < urls.length; ui++) {
-    try {
-      var resp = await fetch(urls[ui], {
-        headers: {
-          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120 Safari/537.36",
-          "Accept": "application/json, */*",
-          "Accept-Language": "ko-KR,ko;q=0.9",
-          "Referer": "https://m.stock.naver.com/"
-        }
-      });
-      if (resp.ok) { raw = await resp.json(); break; }
-    } catch(e) { /* try next */ }
-  }
+// ─── 네이버 Chart (fchart XML → JSON fallback) ─────────────────
+async function naverChart(cd, days) {
+  var cnt = days + 20;
 
-  // 네이버 모두 실패 → Yahoo Finance KRX 폴백
-  if (!raw) {
-    return yahooChart(code + ".KS", days);
-  }
-
-  var arr = Array.isArray(raw) ? raw : (raw.candles || raw.candleList || raw.priceList || []);
-  var history = [];
-  for (var i = 0; i < arr.length; i++) {
-    var c = arr[i];
-    var s = String(c.localDate || c.date || c.bizDate || "");
-    var date = s.length === 8 ? s.slice(0,4) + "-" + s.slice(4,6) + "-" + s.slice(6,8) : s;
-    var close = toN(c.closePrice || c.close || c.endPrice);
-    if (close > 0 && date.length >= 8) { history.push({ date: date, close: close }); }
-  }
-  history.sort(function(a, b) { return a.date < b.date ? -1 : 1; });
-  if (!history.length) { return yahooChart(code + ".KS", days); }
-  return jsonRes({ ok: true, history: history.slice(-days) });
-}
-
-// ── Yahoo Quote ───────────────────────────────────────────────
-async function yahooQuote(symbol) {
-  var urls = [
-    "https://query1.finance.yahoo.com/v8/finance/chart/" + encodeURIComponent(symbol) + "?interval=1d&range=1d&includePrePost=false",
-    "https://query2.finance.yahoo.com/v8/finance/chart/" + encodeURIComponent(symbol) + "?interval=1d&range=1d&includePrePost=false"
-  ];
-  var d = null;
-  for (var ui = 0; ui < urls.length; ui++) {
-    try { var r = await extFetch(urls[ui]); d = await r.json(); break; } catch(e) { if (ui === urls.length - 1) throw e; }
-  }
-  var result = d && d.chart && d.chart.result && d.chart.result[0];
-  if (!result) { throw new Error(symbol + " 데이터 없음"); }
-  var meta = result.meta || {};
-  var price = meta.regularMarketPrice || 0;
-  var prev = meta.chartPreviousClose || meta.previousClose || price;
-  var change = Math.round((price - prev) * 10000) / 10000;
-  var changePct = prev > 0 ? Math.round((change / prev) * 1000000) / 10000 : 0;
-  return jsonRes({
-    ok: true, symbol: symbol,
-    name: meta.longName || meta.shortName || symbol,
-    price: price, change: change, changePct: changePct,
-    high52: meta.fiftyTwoWeekHigh || 0,
-    low52: meta.fiftyTwoWeekLow || 0,
-    volume: meta.regularMarketVolume || 0,
-    marketCap: meta.marketCap || 0,
-    per: 0, currency: meta.currency || "USD",
-    exchange: meta.exchangeName || "US"
-  });
-}
-
-// ── Yahoo Chart ───────────────────────────────────────────────
-async function yahooChart(symbol, days) {
-  var range = days <= 30 ? "1mo" : days <= 90 ? "3mo" : "6mo";
-  var suffix = "?interval=1d&range=" + range + "&includePrePost=false";
-  var base = "/v8/finance/chart/" + encodeURIComponent(symbol) + suffix;
-  var urls = [
-    "https://query1.finance.yahoo.com" + base,
-    "https://query2.finance.yahoo.com" + base
-  ];
-  var d = null;
-  for (var ui = 0; ui < urls.length; ui++) {
-    try { var r = await extFetch(urls[ui]); d = await r.json(); break; } catch(e) { if (ui === urls.length - 1) throw e; }
-  }
-  var result = d && d.chart && d.chart.result && d.chart.result[0];
-  if (!result) { throw new Error(symbol + " 차트 없음"); }
-  var ts = result.timestamp || [];
-  var q = (result.indicators && result.indicators.quote && result.indicators.quote[0]) || {};
-  var closes = q.close || [];
-  var history = [];
-  for (var i = 0; i < ts.length; i++) {
-    if (closes[i] && closes[i] > 0) {
-      history.push({ date: new Date(ts[i] * 1000).toISOString().slice(0, 10), close: closes[i] });
+  // 1차: fchart XML (가장 안정적)
+  try {
+    var r = await fetch(
+      "https://fchart.stock.naver.com/sise.nhn?symbol=" + cd + "&timeframe=day&count=" + cnt + "&requestType=0",
+      { headers: { "User-Agent": UA, "Referer": "https://finance.naver.com/" } }
+    );
+    if (r.ok) {
+      var xml = await r.text();
+      // <item data="20250101|57000|58000|56000|57500|1234567" />
+      var re = /data="(\d{8})\|(\d+)\|(\d+)\|(\d+)\|(\d+)\|(\d+)"/g;
+      var hist = [], m;
+      while ((m = re.exec(xml)) !== null) {
+        var s = m[1];
+        hist.push({ date: s.slice(0,4)+"-"+s.slice(4,6)+"-"+s.slice(6,8), close: parseInt(m[5], 10) });
+      }
+      if (hist.length > 0) {
+        hist.sort(function(a,b){return a.date<b.date?-1:1;});
+        return J({ ok: true, history: hist.slice(-days) });
+      }
     }
+  } catch(e) {}
+
+  // 2차: 네이버 JSON candle
+  var jUrls = [
+    "https://m.stock.naver.com/api/stock/" + cd + "/candle/day?count=" + cnt,
+    "https://m.stock.naver.com/api/stock/" + cd + "/sise/day?count=" + cnt
+  ];
+  for (var i = 0; i < jUrls.length; i++) {
+    try {
+      var rj = await fetch(jUrls[i], {
+        headers: { "User-Agent": UA, "Accept": "application/json", "Referer": "https://m.stock.naver.com/" }
+      });
+      if (!rj.ok) continue;
+      var data = await rj.json();
+      var arr = Array.isArray(data) ? data : (data.candles || data.candleList || []);
+      var hist2 = [];
+      for (var k = 0; k < arr.length; k++) {
+        var c = arr[k];
+        var s2 = String(c.localDate || c.date || "");
+        var dt = s2.length===8 ? s2.slice(0,4)+"-"+s2.slice(4,6)+"-"+s2.slice(6,8) : s2;
+        var cl = N(c.closePrice || c.close);
+        if (cl > 0 && dt) hist2.push({ date: dt, close: cl });
+      }
+      if (hist2.length > 0) {
+        hist2.sort(function(a,b){return a.date<b.date?-1:1;});
+        return J({ ok: true, history: hist2.slice(-days) });
+      }
+    } catch(e) {}
   }
-  return jsonRes({ ok: true, history: history.slice(-days) });
+
+  // 모두 실패: 빈 배열 반환 (500 대신 graceful)
+  return J({ ok: true, history: [] });
 }
 
-// ── Claude AI ─────────────────────────────────────────────────
+// ─── Yahoo Quote ──────────────────────────────────────────────
+async function yahooQuote(sym) {
+  var hosts = ["query1.finance.yahoo.com", "query2.finance.yahoo.com"];
+  for (var i = 0; i < hosts.length; i++) {
+    try {
+      var r = await fetch(
+        "https://" + hosts[i] + "/v8/finance/chart/" + encodeURIComponent(sym) + "?interval=1d&range=1d",
+        { headers: { "User-Agent": UA, "Accept": "application/json" } }
+      );
+      if (!r.ok) continue;
+      var d = await r.json();
+      var res = d.chart && d.chart.result && d.chart.result[0];
+      if (!res) continue;
+      var meta = res.meta || {};
+      var price = meta.regularMarketPrice || 0;
+      var prev = meta.chartPreviousClose || meta.previousClose || price;
+      var chg = Math.round((price - prev) * 1e4) / 1e4;
+      var pct = prev > 0 ? Math.round((chg / prev) * 1e6) / 1e4 : 0;
+      return J({
+        ok: true, symbol: sym,
+        name: meta.longName || meta.shortName || sym,
+        price: price, change: chg, changePct: pct,
+        high52: meta.fiftyTwoWeekHigh || 0, low52: meta.fiftyTwoWeekLow || 0,
+        volume: meta.regularMarketVolume || 0, marketCap: meta.marketCap || 0,
+        per: 0, currency: meta.currency || "USD", exchange: meta.exchangeName || "US"
+      });
+    } catch(e) {}
+  }
+  throw new Error(sym + " 데이터 없음");
+}
+
+// ─── Yahoo Chart ──────────────────────────────────────────────
+async function yahooChart(sym, days) {
+  var rng = days <= 30 ? "1mo" : days <= 90 ? "3mo" : "6mo";
+  var path = "/v8/finance/chart/" + encodeURIComponent(sym) + "?interval=1d&range=" + rng;
+  var hosts = ["query1.finance.yahoo.com", "query2.finance.yahoo.com"];
+  for (var i = 0; i < hosts.length; i++) {
+    try {
+      var r = await fetch("https://" + hosts[i] + path, { headers: { "User-Agent": UA } });
+      if (!r.ok) continue;
+      var d = await r.json();
+      var res = d.chart && d.chart.result && d.chart.result[0];
+      if (!res) continue;
+      var ts = res.timestamp || [];
+      var q = (res.indicators && res.indicators.quote && res.indicators.quote[0]) || {};
+      var closes = q.close || [];
+      var hist = [];
+      for (var j = 0; j < ts.length; j++) {
+        if (closes[j] > 0) hist.push({ date: new Date(ts[j]*1000).toISOString().slice(0,10), close: closes[j] });
+      }
+      return J({ ok: true, history: hist.slice(-days) });
+    } catch(e) {}
+  }
+  return J({ ok: true, history: [] });
+}
+
+// ─── AI 분석: Claude API 또는 자동 분석 ──────────────────────
 async function doAnalyze(prompt, env) {
-  var key = env.ANTHROPIC_API_KEY;
-  if (!key) {
-    return jsonRes({
-      ok: true, verdict: "관망",
-      verdictReason: "AI 분석을 사용하려면 Cloudflare Pages → Settings → Environment variables 에 ANTHROPIC_API_KEY 를 추가하세요.",
-      buyStrategy: { zone: "-", timing: "-", split: [] },
-      sellStrategy: { shortTarget: "-", midTarget: "-", stopLoss: "-", exitSignal: "-" },
-      risks: ["API 키 미설정"], riskLevel: "중간", riskScore: 50,
-      scenarios: { bull: { price: "-", desc: "-" }, base: { price: "-", desc: "-" }, bear: { price: "-", desc: "-" } },
-      watchPoints: ["Cloudflare Pages 환경변수에 ANTHROPIC_API_KEY 추가 후 재배포"],
-      summary: "ANTHROPIC_API_KEY 환경변수를 설정해주세요."
-    });
+  // Claude API 시도
+  if (env.ANTHROPIC_API_KEY) {
+    try {
+      var r = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-api-key": env.ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01" },
+        body: JSON.stringify({
+          model: "claude-opus-4-6", max_tokens: 2000,
+          system: "전문 주식 애널리스트. 순수 JSON만 출력. 마크다운 없음.",
+          messages: [{ role: "user", content: prompt }]
+        })
+      });
+      if (r.ok) {
+        var cd = await r.json();
+        var text = (cd.content && cd.content[0] && cd.content[0].text || "{}").replace(/```json/gi,"").replace(/```/gi,"").trim();
+        try { return J(JSON.parse(text)); } catch(e) {
+          var m = text.match(/\{[\s\S]*\}/);
+          if (m) { try { return J(JSON.parse(m[0])); } catch(e2) {} }
+        }
+      }
+    } catch(e) {}
   }
-  var r = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": key,
-      "anthropic-version": "2023-06-01"
-    },
-    body: JSON.stringify({
-      model: "claude-opus-4-6",
-      max_tokens: 2000,
-      system: "전문 주식 애널리스트. 순수 JSON만 출력. 마크다운 없음.",
-      messages: [{ role: "user", content: prompt }]
-    })
-  });
-  if (!r.ok) {
-    return jsonRes({ ok: true, verdict: "관망", verdictReason: "Claude API 오류 " + r.status,
-      buyStrategy: { zone: "-", timing: "-", split: [] }, sellStrategy: { shortTarget: "-", midTarget: "-", stopLoss: "-", exitSignal: "-" },
-      risks: ["API 오류"], riskLevel: "중간", riskScore: 50,
-      scenarios: { bull: { price: "-", desc: "-" }, base: { price: "-", desc: "-" }, bear: { price: "-", desc: "-" } },
-      watchPoints: [], summary: "오류" });
-  }
-  var cd = await r.json();
-  var text = (cd.content && cd.content[0] && cd.content[0].text) || "{}";
-  text = text.replace(/```json/gi, "").replace(/```/gi, "").trim();
-  try { return jsonRes(JSON.parse(text)); }
-  catch(e) {
-    var m = text.match(/\{[\s\S]*\}/);
-    if (m) { try { return jsonRes(JSON.parse(m[0])); } catch(e2) {} }
-    return jsonRes({ ok: true, verdict: "관망", verdictReason: "파싱 오류",
-      buyStrategy: { zone: "-", timing: "-", split: [] }, sellStrategy: { shortTarget: "-", midTarget: "-", stopLoss: "-", exitSignal: "-" },
-      risks: ["파싱 오류"], riskLevel: "중간", riskScore: 50,
-      scenarios: { bull: { price: "-", desc: "-" }, base: { price: "-", desc: "-" }, bear: { price: "-", desc: "-" } },
-      watchPoints: [], summary: "파싱 오류" });
-  }
+
+  // 자동 분석 (API 키 없어도 항상 내용 제공)
+  return J(autoAnalysis(prompt));
 }
 
-// ── 라우터 ────────────────────────────────────────────────────
+function autoAnalysis(prompt) {
+  var nm  = (prompt.match(/종목:\s*([^\(（]+)[\(（]/) || [])[1] || "이 종목";
+  nm = nm.trim();
+  var sym = (prompt.match(/\(([^)）]+)[\)）]/) || [])[1] || "";
+  var pct = parseFloat((prompt.match(/등락:\s*([-\d.]+)%/) || [])[1] || "0");
+  var pRaw= (prompt.match(/현재가:\s*([\d,.$]+)/) || [])[1] || "0";
+  var h52 = (prompt.match(/52주고가:\s*([^\s|]+)/) || [])[1] || "N/A";
+  var l52 = (prompt.match(/52주저가:\s*([^\s|]+)/) || [])[1] || "N/A";
+  var per = (prompt.match(/PER:\s*([\d.]+)/) || [])[1] || "N/A";
+  var mkt = (prompt.match(/시장:\s*([^\s|]+)/) || [])[1] || "시장";
+  var vol = parseFloat((prompt.match(/변동성:\s*([\d.]+)%/) || [])[1] || "3");
+  var trend = (prompt.match(/트렌드:\s*([^\s\n]+)/) || [])[1] || "보합";
+  var cap = (prompt.match(/시가총액:\s*([^\s|]+)/) || [])[1] || "N/A";
+
+  var pNum = parseFloat(pRaw.replace(/[^0-9.]/g,"")) || 0;
+  var isUSD = pRaw.includes("$");
+  var isKospi = mkt==="KOSPI" || mkt==="KOSDAQ";
+  var fmt = function(n) { return isUSD ? "$"+n.toFixed(2) : Math.round(n).toLocaleString("ko-KR")+"원"; };
+
+  // 투자 의견 결정
+  var verdict, vc;
+  if (pct > 2 && trend === "상승") { verdict = "매수"; vc = "buy"; }
+  else if (pct > 0.5) { verdict = "주목"; vc = "watch"; }
+  else if (pct < -2 && trend === "하락") { verdict = "관망"; vc = "hold"; }
+  else if (pct < -0.5) { verdict = "관망"; vc = "hold"; }
+  else { verdict = "주목"; vc = "watch"; }
+
+  // 리스크
+  var rs = 45;
+  if (vol > 6) rs += 20;
+  if (pct < -2) rs += 15;
+  if (pct > 3) rs += 10;
+  rs = Math.min(88, Math.max(22, rs));
+  var rl = rs < 38 ? "낮음" : rs < 62 ? "중간" : "높음";
+
+  var buy1 = pNum > 0 ? fmt(pNum * 0.97) : "현재가 -3%";
+  var buy2 = pNum > 0 ? fmt(pNum * 0.94) : "현재가 -6%";
+  var tgt1 = pNum > 0 ? fmt(pNum * 1.06) : "현재가 +6%";
+  var tgt2 = pNum > 0 ? fmt(pNum * 1.14) : "현재가 +14%";
+  var stop = pNum > 0 ? fmt(pNum * 0.93) : "현재가 -7%";
+  var bull = pNum > 0 ? fmt(pNum * 1.20) : "현재가 +20%";
+  var base = pNum > 0 ? fmt(pNum * 1.09) : "현재가 +9%";
+  var bear = pNum > 0 ? fmt(pNum * 0.88) : "현재가 -12%";
+  var zone = pNum > 0 ? fmt(pNum*0.96)+" ~ "+fmt(pNum*0.99) : "현재가 -1~4%";
+
+  var perNote = per !== "N/A" ? " PER "+per+"배로 " + (parseFloat(per) > 20 ? "고평가 구간에 있어 주의가 필요합니다." : "적정 밸류에이션 수준입니다.") : "";
+
+  var reason =
+    nm+"은(는) 현재 "+(pct>=0?"+":"")+pct.toFixed(2)+"% "+
+    (pct>=0?"상승":"하락")+" 중이며, 최근 30일 추세는 "+trend+" 흐름입니다. "+
+    (isKospi
+      ? "국내 시장에서 "+cap+" 규모로 거래되고 있으며, 외국인·기관 수급 변화에 민감하게 반응합니다. "
+      : "글로벌 시장에서 "+cap+" 규모의 종목으로 환율 및 매크로 지표에 주목해야 합니다. ")+
+    perNote+" "+
+    "52주 고가 "+h52+"·저가 "+l52+" 기준으로 현재 포지션을 점검하고, "+
+    (vol > 5 ? "변동성 "+vol.toFixed(1)+"% 수준으로 단기 급등락에 유의하며 " : "")+
+    (vc==="buy" ? "분할 매수 전략으로 접근하는 것을 권고합니다." :
+     vc==="watch" ? "추가 확인 후 진입 시점을 노리는 것을 권고합니다." :
+     "신중하게 관망하며 하락 안정화를 확인 후 진입을 권고합니다.");
+
+  return {
+    ok: true, verdict: verdict, verdictReason: reason,
+    buyStrategy: {
+      zone: zone,
+      timing: trend==="상승" ? "눌림목 발생 시 분할 매수 진입" : "하락 안정화 + 거래량 회복 확인 후 진입",
+      split: ["1차 "+buy1+" (자금의 40%)", "2차 "+buy2+" (자금의 60%)"]
+    },
+    sellStrategy: {
+      shortTarget: tgt1, midTarget: tgt2, stopLoss: stop,
+      exitSignal: tgt1+" 돌파 + 거래량 급증 시 1차 익절, "+tgt2+" 도달 시 전량 청산 고려"
+    },
+    risks: [
+      vol > 5
+        ? "높은 변동성("+vol.toFixed(1)+"%)으로 단기 급락 시 손실 확대 가능"
+        : "변동성은 안정적이나 대외 충격에 취약한 시기",
+      isKospi
+        ? "외국인·기관 순매도 전환 시 수급 이탈로 추가 하락 가능"
+        : "달러 강세·금리 상승 구간에서 성장주 밸류에이션 리스크",
+      trend === "하락"
+        ? "하락 추세 지속 시 52주 저가("+l52+") 지지 여부가 관건"
+        : "단기 급등 이후 차익 실현 매물 출회로 조정 가능성"
+    ],
+    riskLevel: rl, riskScore: rs,
+    scenarios: {
+      bull: { price: bull, desc: "수급 개선·실적 호조·섹터 모멘텀 강화 시 목표가 달성 가능" },
+      base: { price: base, desc: "현 추세 유지 시 완만한 우상향, 분할 매수 전략 유효" },
+      bear: { price: bear, desc: "매크로 악화·수급 이탈 복합 시 추가 하락 가능, 손절 원칙 준수 필수" }
+    },
+    watchPoints: [
+      "52주 고가 "+h52+" 돌파 여부 — 돌파 시 강력한 추세 전환 신호",
+      "52주 저가 "+l52+" 지지 여부 — 이탈 시 손절 기준점",
+      isKospi ? "외국인·기관 순매수 전환 시점 — 수급 주도 상승의 핵심 조건" : "섹터 ETF 자금 유입 및 옵션 시장 포지션 변화 확인",
+      "거래량이 20일 평균 2배 이상 급증 시 방향성 확정 신호로 해석"
+    ],
+    summary: nm+" "+fmtPctStr(pct)+" 등락. 단기목표 "+tgt1+", 중기목표 "+tgt2+", 손절 "+stop+". "+
+      (vc==="buy" ? "적극 매수 구간 진입 추천." : vc==="watch" ? "관심 종목 등록 후 눌림목 포착 권고." : "관망 후 하락 안정화 확인 필요.")
+  };
+}
+
+function fmtPctStr(v) { return (v >= 0 ? "+" : "") + v.toFixed(2) + "%"; }
+
+// ─── 라우터 ───────────────────────────────────────────────────
 export default {
   async fetch(request, env) {
     var url = new URL(request.url);
     var path = url.pathname;
-    var method = request.method;
+    if (request.method === "OPTIONS") return new Response(null, { headers: H });
 
-    if (method === "OPTIONS") {
-      return new Response(null, { headers: CORS });
-    }
+    if (path === "/api/health") return J({ ok: true, v: 8, t: new Date().toISOString() });
 
-    if (path === "/api/health") {
-      return jsonRes({ ok: true, msg: "Worker OK", t: new Date().toISOString() });
-    }
-
-    if (path === "/api/stock" && method === "GET") {
+    if (path === "/api/stock" && request.method === "GET") {
       var action = url.searchParams.get("action") || "";
       var symbol = (url.searchParams.get("symbol") || "").toUpperCase();
       var days = parseInt(url.searchParams.get("days") || "30", 10);
       try {
-        if (!symbol) { return jsonRes({ ok: false, error: "symbol 필요" }, 400); }
-        if (action === "quote") {
-          if (isKR(symbol)) { return await naverQuote(krCode(symbol), symbol); }
-          return await yahooQuote(symbol);
-        }
-        if (action === "chart") {
-          if (isKR(symbol)) { return await naverChart(krCode(symbol), days); }
-          return await yahooChart(symbol, days);
-        }
-        return jsonRes({ ok: false, error: "action 오류" }, 400);
-      } catch(e) {
-        return jsonRes({ ok: false, error: e.message }, 500);
-      }
+        if (!symbol) return J({ ok: false, error: "symbol 필요" }, 400);
+        if (action === "quote") return isKR(symbol) ? await naverQuote(code(symbol), symbol) : await yahooQuote(symbol);
+        if (action === "chart") return isKR(symbol) ? await naverChart(code(symbol), days) : await yahooChart(symbol, days);
+        return J({ ok: false, error: "action 오류" }, 400);
+      } catch(e) { return J({ ok: false, error: e.message }, 500); }
     }
 
-    if (path === "/api/analyze" && method === "POST") {
+    if (path === "/api/analyze" && request.method === "POST") {
       try {
         var body = await request.json().catch(function() { return {}; });
-        if (!body.prompt) { return jsonRes({ ok: false, error: "prompt 필요" }, 400); }
+        if (!body.prompt) return J({ ok: false, error: "prompt 필요" }, 400);
         return await doAnalyze(body.prompt, env);
-      } catch(e) {
-        return jsonRes({ ok: false, error: e.message }, 500);
-      }
+      } catch(e) { return J({ ok: false, error: e.message }, 500); }
     }
 
     return env.ASSETS.fetch(request);
