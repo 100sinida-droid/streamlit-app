@@ -1,16 +1,11 @@
 <!DOCTYPE html>
 <html lang="ko">
-<head>  
+<head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>StockMind AI — 실시간 주식 분석</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Noto+Sans+KR:wght@400;500;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  
-  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7938956361770773"
-     crossorigin="anonymous"></script>
-  <meta name="google-adsense-account" content="ca-pub-7938956361770773">
-    
 <style>
 :root{--bg:#07090d;--bg2:#0d1117;--bg3:#161b22;--brd:#21262d;--acc:#00d4aa;--ac3:#7c3aed;--tx:#e6edf3;--tx2:#8b949e;--tx3:#484f58;--up:#3fb950;--dn:#f85149;--r:12px}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -145,7 +140,7 @@ footer .mn{font-family:'JetBrains Mono',monospace;font-size:.65rem}
 @media(max-width:560px){header{padding:0 12px}main{padding:0 12px 56px}.hero{padding:38px 0 30px}.rh,.ap{padding:14px}.pm{font-size:1.9rem}#btn{padding:12px 14px;font-size:.84rem}}
 </style>
 </head>
-<body> 
+<body>
 <header>
   <div class="logo">STOCK<span>MIND</span></div>
   <div class="tb"><div class="tb-track" id="tbTrack"><span style="color:#484f58;font-family:'JetBrains Mono',monospace;font-size:.75rem">데이터 로딩 중...</span></div></div>
@@ -170,9 +165,6 @@ footer .mn{font-family:'JetBrains Mono',monospace;font-size:.65rem}
       <button class="chip">미국</button>
     </div>
   </section>
-
-  
-  
   <div id="banner"></div>
   <section id="rs" style="display:none">
     <div class="rh">
@@ -419,7 +411,7 @@ function buildPrompt(sd){
   var rec=vals.slice(-10).map(function(v,i){return 'D'+(i+1)+':'+Number(v).toFixed(2);}).join(', ');
   return '당신은 세계 최고의 주식 애널리스트입니다. 아래 데이터를 분석해 반드시 순수 JSON만 출력하세요.\n\n'+
     '종목: '+sd.name+' ('+sd.sym+') | 시장: '+sd.mkt+' | 현재가: '+sd.priceRaw+' | 등락: '+sd.chgPct+'%\n'+
-    '52주고가: '+sd.h52+' | 52주저가: '+sd.l52+' | 거래량: '+sd.vol+' | 시가총액: '+sd.mktcap+' | PER: '+sd.per+'\n'+
+    '52주고가: '+sd.h52+' | 52주저가: '+sd.l52+' | 거래량: '+sd.vol+' | 시가총액: '+sd.mktcap+' | PER: '+sd.per+' | PBR: '+sd.pbr+'\n'+
     '최근10일: '+rec+' | 트렌드: '+trend+' | 변동성: '+vol+'%\n\n'+
     'JSON:{"verdict":"매수|매도|관망|주목","verdictReason":"3~4문장","buyStrategy":{"zone":"구간","timing":"타이밍","split":["1차","2차"]},"sellStrategy":{"shortTarget":"단기","midTarget":"중기","stopLoss":"손절","exitSignal":"신호"},"risks":["리1","리2","리3"],"riskLevel":"낮음|중간|높음","riskScore":45,"scenarios":{"bull":{"price":"낙관가","desc":"설명"},"base":{"price":"기본가","desc":"설명"},"bear":{"price":"비관가","desc":"설명"}},"watchPoints":["포1","포2","포3","포4"],"summary":"2문장"}';
 }
@@ -497,17 +489,18 @@ function doSearch(sym){
     var cs=(up?'+':'')+(kr?fN(chg,0)+'원':(chg>=0?'+$':'-$')+fN(Math.abs(chg),2))+' ('+fPct(pct)+')';
     var sd={sym:symbol,mkt:qd.exchange||mkt,name:displayName,priceRaw:p,chgPct:pct,
             h52:fP(qd.high52,kr),l52:fP(qd.low52,kr),vol:fN(qd.volume,0),
-            mktcap:fCap(qd.marketCap,kr),per:fN(qd.per,1),prices:prices};
+            mktcap:fCap(qd.marketCap,kr),per:fN(qd.per,1),pbr:fN(qd.pbr,2),prices:prices};
     G('rMkt').textContent=qd.exchange||mkt;
     G('rTime').textContent='실시간 · '+new Date().toLocaleTimeString('ko-KR');
     G('rName').textContent=displayName;G('rTick').textContent=symbol;
     G('rPr').textContent=ps;G('rCh').textContent=cs;
     G('rCh').className='pc '+(up?'up':'dn');
     G('statsGrid').innerHTML=[
+      {l:'현재가',v:fP(p,kr)},{l:'등락률',v:fPct(pct)},
       {l:'52주 고가',v:sd.h52},{l:'52주 저가',v:sd.l52},
       {l:'거래량',v:sd.vol},{l:'시가총액',v:sd.mktcap},
-      {l:'PER',v:sd.per},{l:'등락률',v:fPct(pct)}
-    ].map(function(x){return '<div class="si2"><div class="sl">'+x.l+'</div><div class="sv">'+x.v+'</div></div>';}).join('');
+      {l:'PER',v:sd.per},{l:'PBR',v:sd.pbr}
+    ].map(function(x){return '<div class="si2"><div class="sl">'+x.l+'</div><div class="sv">'+(x.v&&x.v!=='N/A'?x.v:'—')+'</div></div>';}).join('');
     if(hist.length)drawChart(hist,kr);
     G('rs').style.display='block';G('rs').scrollIntoView({behavior:'smooth',block:'start'});
     G('aiLoad').style.display='flex';G('aiCont').style.display='none';G('btn').textContent='AI 분석 중...';
