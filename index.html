@@ -98,12 +98,18 @@ main{max-width:1100px;margin:0 auto;padding:0 24px 80px}
 .verdict-row{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}
 .vbadge{padding:6px 16px;border-radius:100px;font-weight:700;font-size:.83rem;font-family:'JetBrains Mono',monospace}
 .vbadge.buy{background:rgba(63,185,80,.13);color:var(--up);border:1px solid rgba(63,185,80,.3)}
+.vbadge.strongbuy{background:rgba(0,212,170,.2);color:#00d4aa;border:1px solid rgba(0,212,170,.5);font-size:.9rem}
 .vbadge.sell{background:rgba(248,81,73,.13);color:var(--dn);border:1px solid rgba(248,81,73,.3)}
+.vbadge.strongsell{background:rgba(200,0,0,.2);color:#ff2d2d;border:1px solid rgba(200,0,0,.5);font-size:.9rem}
 .vbadge.hold{background:rgba(255,179,0,.13);color:#ffb300;border:1px solid rgba(255,179,0,.3)}
 .vbadge.watch{background:rgba(124,58,237,.13);color:#a78bfa;border:1px solid rgba(124,58,237,.3)}
+.vbadge.neutral{background:rgba(139,148,158,.13);color:#8b949e;border:1px solid rgba(139,148,158,.3)}
 .vbadge.low{background:rgba(63,185,80,.1);color:var(--up);border:1px solid rgba(63,185,80,.2)}
 .vbadge.mid{background:rgba(255,179,0,.1);color:#ffb300;border:1px solid rgba(255,179,0,.2)}
 .vbadge.high{background:rgba(248,81,73,.1);color:var(--dn);border:1px solid rgba(248,81,73,.2)}
+.vbadge.veryhigh{background:rgba(200,0,0,.15);color:#ff2d2d;border:1px solid rgba(200,0,0,.4);animation:pulse .8s infinite alternate}
+@keyframes pulse{from{opacity:.8}to{opacity:1}}
+.score-chip{display:inline-flex;align-items:center;gap:5px;font-family:'JetBrains Mono',monospace;font-size:.72rem;color:var(--tx3);padding:3px 10px;border:1px solid var(--brd);border-radius:100px;margin-left:4px}
 .ai-reason{color:#c9d1d9;line-height:1.9;margin-top:10px;font-size:.9rem}
 .strat-row{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
 .strat-box{flex:1;min-width:90px;background:var(--bg3);border-radius:9px;padding:12px;text-align:center}
@@ -390,11 +396,12 @@ function buildPrompt(sd) {
   // ★ 현재가는 포맷된 문자열(priceStr)로 전달 → "264.58" 아닌 "$264.58" 또는 "190,100원"
   return '당신은 세계 최고의 주식 애널리스트입니다. 아래 데이터를 분석해 반드시 순수 JSON만 출력하세요.\n\n' +
     '종목: ' + sd.name + ' (' + sd.sym + ') | 시장: ' + sd.mkt + ' | 통화: ' + sd.currency + '\n' +
-    '현재가: ' + sd.priceStr + ' | 등락: ' + sd.chgPct + '%\n' +
-    '52주고가: ' + sd.h52s + ' | 52주저가: ' + sd.l52s + '\n' +
+    '현재가: ' + sd.priceStr + ' | 현재가raw: ' + sd.priceRaw + ' | 등락: ' + sd.chgPct + '%\n' +
+    '52주고가: ' + sd.h52s + ' | 52주고가raw: ' + sd.h52raw + '\n' +
+    '52주저가: ' + sd.l52s + ' | 52주저가raw: ' + sd.l52raw + '\n' +
     '거래량: ' + sd.vols + ' | 시가총액: ' + sd.caps + ' | PER: ' + sd.pers + ' | PBR: ' + sd.pbrs + '\n' +
     '최근10일: ' + recent + ' | 트렌드: ' + trend + ' | 변동성: ' + volPct + '%\n\n' +
-    'JSON:{"verdict":"매수|매도|관망|주목","verdictReason":"3~4문장","buyStrategy":{"zone":"구간","timing":"타이밍","split":["1차","2차"]},"sellStrategy":{"shortTarget":"단기","midTarget":"중기","stopLoss":"손절","exitSignal":"신호"},"risks":["리1","리2","리3"],"riskLevel":"낮음|중간|높음","riskScore":45,"scenarios":{"bull":{"price":"낙관가","desc":"설명"},"base":{"price":"기본가","desc":"설명"},"bear":{"price":"비관가","desc":"설명"}},"watchPoints":["포1","포2","포3","포4"],"summary":"2문장"}';
+    'JSON:{"verdict":"적극매수|매수|주목|중립|관망|매도|강력매도","verdictReason":"3~4문장","buyStrategy":{"zone":"구간","timing":"타이밍","split":["1차","2차"]},"sellStrategy":{"shortTarget":"단기","midTarget":"중기","stopLoss":"손절","exitSignal":"신호"},"risks":["리1","리2","리3"],"riskLevel":"낮음|보통|높음|매우높음","riskScore":45,"scenarios":{"bull":{"price":"낙관가","desc":"설명"},"base":{"price":"기본가","desc":"설명"},"bear":{"price":"비관가","desc":"설명"}},"watchPoints":["포1","포2","포3","포4"],"summary":"2문장"}';
 }
 
 function callAI(sd) {
@@ -411,10 +418,14 @@ function callAI(sd) {
 
 function renderAI(r) {
   if (!r || !r.verdict) return;
-  var vcMap = { '매수': 'buy', '매도': 'sell', '관망': 'hold', '주목': 'watch' };
+  var vcMap = {
+    '적극매수': 'strongbuy', '매수': 'buy', '주목': 'watch',
+    '중립': 'neutral', '관망': 'hold', '매도': 'sell', '강력매도': 'strongsell'
+  };
   var vc = vcMap[r.verdict] || 'hold';
   var sc = Math.min(100, Math.max(0, r.riskScore || 50));
-  var rc = sc < 38 ? 'low' : sc < 63 ? 'mid' : 'high';
+  var rcMap = { '낮음': 'low', '보통': 'mid', '높음': 'high', '매우높음': 'veryhigh' };
+  var rc = rcMap[r.riskLevel] || (sc < 30 ? 'low' : sc < 55 ? 'mid' : sc < 75 ? 'high' : 'veryhigh');
   var bs = r.buyStrategy  || {};
   var ss = r.sellStrategy || {};
   var sc2 = r.scenarios   || {};
@@ -429,13 +440,14 @@ function renderAI(r) {
     '<div class="ai-sec"><div class="ai-stitle">종합 투자 의견</div>' +
       '<div class="verdict-row">' +
         '<span class="vbadge ' + vc + '">' + (r.verdict || '관망') + '</span>' +
-        '<span class="vbadge ' + rc + '">리스크 ' + (r.riskLevel || '중간') + '</span>' +
+        '<span class="vbadge ' + rc + '">리스크 ' + (r.riskLevel || '보통') + '</span>' +
+        (r.score !== undefined ? '<span class="score-chip">점수 ' + (r.score > 0 ? '+' : '') + r.score + '</span>' : '') +
       '</div>' +
       '<p class="ai-reason">' + (r.verdictReason || r.summary || '') + '</p>' +
     '</div>' +
     '<div class="ai-sec"><div class="ai-stitle">매수 · 매도 전략</div>' +
       '<div class="strat-row">' +
-        '<div class="strat-box s-buy"><div class="strat-l">매수 구간</div><div class="strat-v">' + (bs.zone || '—') + '</div></div>' +
+        '<div class="strat-box ' + (vc==='sell'||vc==='strongsell'?'s-stop':'s-buy') + '"><div class="strat-l">' + (vc==='sell'||vc==='strongsell'?'매도 구간':'매수 구간') + '</div><div class="strat-v">' + (bs.zone || '—') + '</div></div>' +
         '<div class="strat-box s-sell"><div class="strat-l">단기 목표가</div><div class="strat-v">' + (ss.shortTarget || '—') + '</div></div>' +
         '<div class="strat-box s-mid"><div class="strat-l">중기 목표가</div><div class="strat-v">' + (ss.midTarget || '—') + '</div></div>' +
         '<div class="strat-box s-stop"><div class="strat-l">손절가</div><div class="strat-v">' + (ss.stopLoss || '—') + '</div></div>' +
@@ -555,10 +567,13 @@ function doSearch(sym) {
     var sd = {
       sym: symbol, mkt: qd.exchange || (kr ? 'KOSPI' : 'US'),
       name: qd.name || symbol,
-      currency: currency,        // ★ KRW 또는 USD
-      priceStr: priceStr,        // ★ 포맷된 문자열 "$264.58" / "190,100원"
+      currency: currency,
+      priceStr: priceStr,        // 포맷된 문자열 "$264.58" / "190,100원"
+      priceRaw: price,           // 순수 숫자 (52주 위치 계산용)
       chgPct: changePct,
       h52s: h52s, l52s: l52s,
+      h52raw: qd.high52 || 0,   // 순수 숫자
+      l52raw: qd.low52  || 0,   // 순수 숫자
       vols: vols, caps: caps,
       pers: pers, pbrs: pbrs,
       prices: prices,
