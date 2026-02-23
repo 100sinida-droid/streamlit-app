@@ -3,7 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>StockMind AI — 실시간 주식 분석</title>
+<title>StockMind AI — 코스피 코스닥 미국 주식 AI 실시간 분석</title>
+<meta name="description" content="StockMind AI는 삼성전자, SK하이닉스 등 국내 코스피·코스닥 주식과 애플, 엔비디아 등 미국 주식을 실시간으로 AI가 분석해드립니다. PER, PBR, 시가총액, 외국인비율을 바탕으로 매수·매도 타이밍을 제안합니다.">
+<meta name="keywords" content="주식분석, AI주식, 코스피, 코스닥, 미국주식, 삼성전자, 주식투자, PER, PBR, 시가총액, 외국인비율, 52주고가">
+<meta property="og:title" content="StockMind AI — 실시간 주식 AI 분석">
+<meta property="og:description" content="AI가 주식 매수·매도 타이밍을 분석해드립니다. 코스피·코스닥·미국 주식 실시간 지원.">
+<meta property="og:type" content="website">
+<link rel="canonical" href="https://stockmind.pages.dev/">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Noto+Sans+KR:wght@400;500;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
@@ -49,6 +55,7 @@ main{max-width:1100px;margin:0 auto;padding:0 24px 80px}
 .sgr-bdg{font-size:.64rem;padding:2px 8px;border-radius:100px;font-weight:700;flex-shrink:0}
 .bk{background:rgba(124,58,237,.18);color:#a78bfa}.bq{background:rgba(0,212,170,.14);color:var(--acc)}.bu{background:rgba(255,107,53,.14);color:#ff6b35}
 .sgl{padding:14px 16px;color:var(--tx3);font-size:.84rem;display:flex;align-items:center;gap:8px}
+.sgl strong{color:var(--tx)}
 .sgl-spin{width:14px;height:14px;border:2px solid transparent;border-top-color:var(--acc);border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
 /* 검색 결과 없음 */
 .sg-empty{padding:18px 16px;text-align:center}
@@ -160,7 +167,23 @@ main{max-width:1100px;margin:0 auto;padding:0 24px 80px}
 .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#0d1117;border:1px solid var(--brd);color:var(--tx2);padding:10px 22px;border-radius:11px;font-size:.84rem;z-index:9999;box-shadow:0 8px 28px rgba(0,0,0,.6);max-width:88vw;text-align:center;line-height:1.5;animation:fu .3s ease}
 .toast.err{border-color:var(--dn);color:var(--dn)}
 .toast.ok{border-color:var(--up);color:var(--up)}
-footer{text-align:center;padding:24px;border-top:1px solid var(--brd);color:var(--tx3);font-size:.74rem;line-height:2}
+footer{text-align:center;padding:32px 24px;border-top:1px solid var(--brd);color:var(--tx3);font-size:.74rem;line-height:2}
+/* 광고 슬롯 */
+.ad-slot{width:100%;min-height:90px;margin:24px 0;background:rgba(255,255,255,.02);border:1px dashed rgba(255,255,255,.06);border-radius:var(--r);display:flex;align-items:center;justify-content:center;color:var(--tx3);font-size:.75rem;font-family:'JetBrains Mono',monospace}
+.ad-slot:empty::after{content:'광고 영역'}
+/* 투자 가이드 섹션 */
+.guide-sec{margin-top:52px}
+.guide-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+.guide-lbl{font-family:'JetBrains Mono',monospace;font-size:.68rem;letter-spacing:3px;text-transform:uppercase;color:var(--tx3)}
+.guide-more{font-size:.78rem;color:var(--acc);text-decoration:none;transition:opacity .2s}.guide-more:hover{opacity:.7}
+.guide-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px}
+.guide-card{background:var(--bg2);border:1px solid var(--brd);border-radius:var(--r);padding:20px;transition:border-color .2s,transform .2s}
+.guide-card:hover{border-color:rgba(0,212,170,.35);transform:translateY(-2px)}
+.gc-icon{font-size:1.5rem;margin-bottom:10px}
+.gc-title{font-size:.9rem;font-weight:700;margin-bottom:8px;line-height:1.45;color:var(--tx)}
+.gc-desc{font-size:.82rem;color:var(--tx2);line-height:1.75;margin-bottom:12px}
+.gc-tag{display:inline-block;font-family:'JetBrains Mono',monospace;font-size:.62rem;color:var(--acc);background:rgba(0,212,170,.1);border:1px solid rgba(0,212,170,.2);padding:2px 10px;border-radius:100px}
+
 ::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--brd);border-radius:2px}
 @media(max-width:560px){header{padding:0 12px}main{padding:0 12px 56px}.hero{padding:38px 0 30px}.rh,.ap{padding:14px}.rprice{font-size:1.9rem}#btn{padding:12px 14px;font-size:.84rem}}
 </style>
@@ -169,6 +192,10 @@ footer{text-align:center;padding:24px;border-top:1px solid var(--brd);color:var(
 <header>
   <div class="logo">STOCK<span>MIND</span></div>
   <div class="tb"><div class="tb-track" id="tbTrack"><span style="color:#484f58;font-size:.75rem;font-family:'JetBrains Mono',monospace">로딩 중...</span></div></div>
+  <nav style="display:flex;gap:16px;flex-shrink:0;align-items:center">
+    <a href="/guide.html" style="color:#8b949e;font-size:.75rem;text-decoration:none;white-space:nowrap;transition:color .2s" onmouseover="this.style.color='#e6edf3'" onmouseout="this.style.color='#8b949e'">투자가이드</a>
+    <a href="/about.html" style="color:#8b949e;font-size:.75rem;text-decoration:none;white-space:nowrap;transition:color .2s" onmouseover="this.style.color='#e6edf3'" onmouseout="this.style.color='#8b949e'">소개</a>
+  </nav>
 </header>
 <main>
   <section class="hero">
@@ -196,7 +223,6 @@ footer{text-align:center;padding:24px;border-top:1px solid var(--brd);color:var(
     </div>
   </section>
 
- 
   <section id="rs" style="display:none">
     <div class="rh">
       <div class="rmeta"><span class="rmkt" id="rMkt"></span><span class="rtime" id="rTime"></span></div>
@@ -220,6 +246,53 @@ footer{text-align:center;padding:24px;border-top:1px solid var(--brd);color:var(
     </div>
   </section>
 
+
+  <!-- ★ 애드센스 광고 슬롯 1 (메인 콘텐츠 사이) -->
+  <div class="ad-slot" id="adSlot1">
+    <!-- 아래 코드를 구글 애드센스 코드로 교체하세요 -->
+    <!-- <ins class="adsbygoogle" ... ></ins> -->
+  </div>
+
+  <!-- 투자 핵심 원칙 (정적 콘텐츠 - SEO + 애드센스 가치) -->
+  <section class="guide-sec" id="investGuide">
+    <div class="guide-hdr">
+      <div class="guide-lbl">투자 핵심 원칙</div>
+      <a href="/guide.html" class="guide-more">전체 가이드 →</a>
+    </div>
+    <div class="guide-grid">
+      <article class="guide-card">
+        <div class="gc-icon">📊</div>
+        <h3 class="gc-title">PER로 주식 가치 판단하기</h3>
+        <p class="gc-desc">PER(주가수익비율)은 주가를 주당순이익으로 나눈 값입니다. 동일 업종 평균 대비 낮으면 저평가, 높으면 고평가를 의미합니다. 단, 성장주는 높은 PER이 정상일 수 있습니다.</p>
+        <div class="gc-tag">기초 지식</div>
+      </article>
+      <article class="guide-card">
+        <div class="gc-icon">📉</div>
+        <h3 class="gc-title">52주 고저가로 매매 타이밍 잡기</h3>
+        <p class="gc-desc">52주 고가 대비 현재가 위치는 중요한 매매 신호입니다. 고가 근접(90% 이상)은 과열 경고, 저가 근접(20% 이하)은 저점 매수 기회를 시사합니다. StockMind AI가 자동으로 계산해 드립니다.</p>
+        <div class="gc-tag">기술적 분석</div>
+      </article>
+      <article class="guide-card">
+        <div class="gc-icon">🏦</div>
+        <h3 class="gc-title">외국인 순매수가 중요한 이유</h3>
+        <p class="gc-desc">외국인 지분율 변화는 대형주의 방향성을 예측하는 핵심 지표입니다. 외국인이 지속적으로 순매수하는 종목은 글로벌 기관들의 신뢰를 받고 있다는 증거입니다.</p>
+        <div class="gc-tag">수급 분석</div>
+      </article>
+      <article class="guide-card">
+        <div class="gc-icon">⚖️</div>
+        <h3 class="gc-title">분산 투자로 리스크 관리하기</h3>
+        <p class="gc-desc">한 종목에 전액 투자는 매우 위험합니다. 서로 상관관계가 낮은 5~10개 종목에 분산하면 개별 종목 리스크를 크게 줄일 수 있습니다. 섹터도 다양하게 분산하세요.</p>
+        <div class="gc-tag">리스크 관리</div>
+      </article>
+    </div>
+  </section>
+
+  <!-- ★ 애드센스 광고 슬롯 2 (콘텐츠 하단) -->
+  <div class="ad-slot" id="adSlot2">
+    <!-- 아래 코드를 구글 애드센스 코드로 교체하세요 -->
+    <!-- <ins class="adsbygoogle" ... ></ins> -->
+  </div>
+
   <section class="ps">
     <div class="ps-l">인기 종목</div>
     <div class="pop-grid" id="popGrid">
@@ -231,6 +304,13 @@ footer{text-align:center;padding:24px;border-top:1px solid var(--brd);color:var(
 <footer>
   <p>StockMind AI · 투자는 본인 책임입니다 · 정보 제공 목적이며 투자 권유가 아닙니다</p>
   <p style="font-family:'JetBrains Mono',monospace;font-size:.65rem;margin-top:4px">Naver Finance · Yahoo Finance · Claude AI · Cloudflare Pages</p>
+  <nav style="margin-top:12px;display:flex;gap:20px;justify-content:center;flex-wrap:wrap">
+    <a href="/about.html" style="color:#484f58;font-size:.75rem;text-decoration:none;transition:color .2s" onmouseover="this.style.color='#00d4aa'" onmouseout="this.style.color='#484f58'">서비스 소개</a>
+    <a href="/guide.html" style="color:#484f58;font-size:.75rem;text-decoration:none;transition:color .2s" onmouseover="this.style.color='#00d4aa'" onmouseout="this.style.color='#484f58'">투자 가이드</a>
+    <a href="/privacy.html" style="color:#484f58;font-size:.75rem;text-decoration:none;transition:color .2s" onmouseover="this.style.color='#00d4aa'" onmouseout="this.style.color='#484f58'">개인정보처리방침</a>
+    <a href="/terms.html" style="color:#484f58;font-size:.75rem;text-decoration:none;transition:color .2s" onmouseover="this.style.color='#00d4aa'" onmouseout="this.style.color='#484f58'">이용약관</a>
+  </nav>
+  <p style="margin-top:10px;font-size:.7rem;color:#30363d">© 2025 StockMind AI. All rights reserved.</p>
 </footer>
 
 <script>
@@ -265,21 +345,60 @@ var US_DB = [
 
 // 한국어 별칭 → 종목코드
 var KR_AL = {
-  '삼성':'005930','삼성전자':'005930','하이닉스':'000660','sk하이닉스':'000660',
-  '네이버':'035420','카카오':'035720','현대차':'005380','현대자동차':'005380',
-  '기아':'000270','기아차':'000270','셀트리온':'068270','카카오뱅크':'323410',
-  '크래프톤':'259960','하이브':'352820','엔씨':'036570','엔씨소프트':'036570',
-  '넷마블':'251270','kt':'030200','skt':'017670','sk텔레콤':'017670',
-  'lg전자':'066570','lg':'003550','삼성sdi':'006400','sdi':'006400',
-  '신한':'055550','신한금융':'055550','kb':'105560','kb금융':'105560',
-  '한전':'015760','한국전력':'015760','이건홀딩스':'039020','이건산업':'008250',
-  '에코프로비엠':'247540','에코프로':'086520','포스코':'005490','posco':'005490',
-  '에스엠':'041510','jyp':'035900','두산에너빌리티':'034020',
-  '카카오페이':'377300','우리금융':'316140','우리은행':'000030',
-  '하나금융':'086790','기업은행':'024110','대우조선':'042660',
-  'hy':'001840','농심':'004370','cj':'001040','오리온':'271560',
-  '롯데케미칼':'011170','코오롱':'002020','한화':'000880',
-  '현대건설':'000720','대림':'000210','gs건설':'006360',
+  // 대형주
+  '삼성':'005930','삼성전자':'005930','삼성전자우':'005935',
+  '하이닉스':'000660','sk하이닉스':'000660','skhynix':'000660',
+  '네이버':'035420','naver':'035420','카카오':'035720',
+  '현대차':'005380','현대자동차':'005380','기아':'000270','기아차':'000270',
+  '셀트리온':'068270','카카오뱅크':'323410','크래프톤':'259960',
+  '하이브':'352820','엔씨':'036570','엔씨소프트':'036570',
+  '넷마블':'251270','펄어비스':'263750','카카오게임즈':'293490',
+  // 통신/IT
+  'kt':'030200','기가':'030200','skt':'017670','sk텔레콤':'017670',
+  'lg유플러스':'032640','lgu':'032640',
+  // LG 계열
+  'lg전자':'066570','lgelectronics':'066570',
+  'lg':'003550','lgcorp':'003550',
+  'lg화학':'051910','lgchem':'051910',
+  'lg이노텍':'011070','lginnotek':'011070',
+  // SK 계열
+  'sk':'034730','skcorp':'034730',  // SK㈜
+  'sk이노베이션':'096770','skinnovation':'096770',
+  'sk바이오팜':'326030','skbiopharmaceuticals':'326030',
+  'sk아이이테크놀로지':'361610',
+  // 삼성 계열
+  'sdi':'006400','삼성sdi':'006400',
+  '삼성물산':'028260','삼성c&t':'028260',
+  '삼성바이오로직스':'207940','삼성바이오':'207940',
+  '삼성생명':'032830','삼성화재':'000810',
+  // 금융
+  '신한':'055550','신한금융':'055550',
+  'kb':'105560','kb금융':'105560',
+  '하나금융':'086790','하나은행':'086790',
+  '우리금융':'316140','우리은행':'000030',
+  '기업은행':'024110','ibk':'024110',
+  // 에너지/화학
+  '한전':'015760','한국전력':'015760',
+  '포스코':'005490','posco':'005490','포스코홀딩스':'005490',
+  '롯데케미칼':'011170','롯데화학':'011170',
+  'sk이노':'096770',
+  // 바이오/제약
+  '에코프로비엠':'247540','에코프로bm':'247540',
+  '에코프로':'086520','셀트리온헬스케어':'091990',
+  '종근당':'185750','한미약품':'128940','유한양행':'000100',
+  // 건설/중공업
+  '현대건설':'000720','gs건설':'006360',
+  '한화오션':'042660','대우조선':'042660',
+  '두산에너빌리티':'034020','두산밥캣':'241560',
+  // 엔터/게임
+  '에스엠':'041510','sm':'041510','jyp':'035900','yg':'122870',
+  '하이브':'352820','빅히트':'352820',
+  // 기타
+  '이건홀딩스':'039020','이건산업':'008250',
+  'hy':'001840','하이트진로':'000080',
+  '농심':'004370','cj':'001040','오리온':'271560',
+  '코오롱':'002020','한화':'000880','대림':'000210',
+  '카카오페이':'377300','토스':'비상장',
 };
 var US_AL = {
   'nvidia':'NVDA','엔비디아':'NVDA','tesla':'TSLA','테슬라':'TSLA',
@@ -534,16 +653,17 @@ function resolveInput(v) {
   // 4. xxx.KS / xxx.KQ / xxx.KO
   if (/^\d{6}\.(KS|KQ|KO)$/i.test(v)) return { sym: v.toUpperCase().replace('.KO', '.KS'), name: v };
 
-  // 5. 미국 티커 (1~5 알파벳)
+  // 5. 미국 티커: US_DB에 정확히 있는 것만 직접 처리
+  //    3글자 이하 알파벳은 한국 종목 약칭일 수 있으므로 DB 확인 필수
   var up = v.toUpperCase();
-  if (/^[A-Z]{1,5}$/.test(up)) {
+  if (/^[A-Z]{1,6}$/.test(up)) {
     var found = US_DB.find(function(d) { return d.c === up; });
     if (found) return { sym: up, name: found.n };
-    // 모르는 티커도 시도
-    return { sym: up, name: up };
+    // US_DB에 없는 알파벳 입력 → API 검색으로 처리 (직접 시도 안 함)
+    return null;
   }
 
-  // 6. 해결 불가 → null
+  // 6. 해결 불가 → null (API 검색으로 넘어감)
   return null;
 }
 
@@ -663,10 +783,14 @@ function doSearch(sym, displayName) {
   });
 }
 
-// 종목명(한글/영문)으로 검색 후 첫 결과로 자동 진행
+// 종목명(한글/영문)으로 API 검색 → 자동완성 목록 표시
+// 결과가 1개면 바로 분석, 여러 개면 목록 표시해서 사용자가 선택
 function showSugAndSearch(nameQuery) {
   G('btn').disabled = true;
   G('btn').textContent = '검색 중...';
+  // 로딩 표시
+  G('sug').innerHTML = '<div class="sgl"><div class="sgl-spin"></div><span>검색 중: <strong>' + nameQuery + '</strong></span></div>';
+  G('sug').classList.add('open');
 
   fetch('/api/search?q=' + encodeURIComponent(nameQuery))
     .then(function(r) {
@@ -677,29 +801,35 @@ function showSugAndSearch(nameQuery) {
     .then(function(d) {
       markWorkerOK();
       var results = d.results || [];
+      G('btn').disabled = false;
+      G('btn').textContent = '분석하기';
+
       if (results.length === 0) {
-        // 검색 결과 없음 → 자동완성에 "결과 없음" 표시
         G('sug').innerHTML = '<div class="sg-empty">' +
           '<div class="sg-empty-icon">🔍</div>' +
           '<div class="sg-empty-txt"><strong>' + nameQuery + '</strong>에 대한 검색 결과가 없습니다</div>' +
-          '<div class="sg-empty-hint">종목 코드로 직접 입력해 보세요 (예: 005930)</div>' +
+          '<div class="sg-empty-hint">다른 키워드나 종목 코드로 검색해보세요 (예: 005930, AAPL)</div>' +
           '</div>';
         G('sug').classList.add('open');
-        G('btn').disabled = false;
-        G('btn').textContent = '분석하기';
         return;
       }
-      // 첫 번째 결과로 자동 검색
-      var first = results[0];
-      G('q').value = first.name;
-      hideSug();
-      G('btn').disabled = false;
-      G('btn').textContent = '분석하기';
-      doSearch(first.symbol, first.name);
+
+      if (results.length === 1) {
+        // 결과 1개 → 바로 분석
+        var only = results[0];
+        G('q').value = only.name;
+        hideSug();
+        doSearch(only.symbol, only.name);
+        return;
+      }
+
+      // 여러 개 → 목록 표시해서 선택하게
+      renderSugItems(results, []);
     })
     .catch(function(e) {
       G('btn').disabled = false;
       G('btn').textContent = '분석하기';
+      hideSug();
       if (e.message !== 'WORKER_MISSING') {
         showToast('⚠ 검색 실패: ' + e.message, 'err');
       }
@@ -731,7 +861,7 @@ function showSug(query) {
   }
   // 한국 별칭 → 코드로 검색
   if (KR_AL[lq]) {
-    G('sug').innerHTML = '<div class="sgl"><div class="sgl-spin"></div>검색 중...</div>';
+    G('sug').innerHTML = '<div class="sgl"><div class="sgl-spin"></div><span>검색 중...</span></div>';
     G('sug').classList.add('open');
     fetch('/api/search?q=' + encodeURIComponent(KR_AL[lq]))
       .then(function(r) { var ct = r.headers.get('content-type') || ''; return ct.includes('json') ? r.json() : { results: [] }; })
@@ -744,7 +874,7 @@ function showSug(query) {
   if (uExact) { renderSugItems([], [uExact]); return; }
   // 2글자 이상: API 검색
   if (q.length >= 2) {
-    G('sug').innerHTML = '<div class="sgl"><div class="sgl-spin"></div>검색 중...</div>';
+    G('sug').innerHTML = '<div class="sgl"><div class="sgl-spin"></div><span>검색 중...</span></div>';
     G('sug').classList.add('open');
     fetch('/api/search?q=' + encodeURIComponent(q))
       .then(function(r) {
@@ -805,14 +935,27 @@ function hideSug() { G('sug').classList.remove('open'); sugIdx = -1; }
 function searchFromInput() {
   var v = G('q').value.trim();
   if (!v) return;
+
+  // 자동완성이 열려있고 선택된 항목이 있으면 그것 사용
+  var items = G('sug').querySelectorAll('.sgr');
+  if (sugIdx >= 0 && items[sugIdx]) {
+    items[sugIdx].click();
+    return;
+  }
+  // 자동완성 첫 번째 항목이 있으면 자동 선택
+  if (items.length > 0 && G('sug').classList.contains('open')) {
+    items[0].click();
+    return;
+  }
+
   hideSug();
 
-  // 해석 시도
+  // 명확하게 해석 가능한 입력만 직접 처리
   var resolved = resolveInput(v);
   if (resolved && isValidSym(resolved.sym)) {
     doSearch(resolved.sym, v);
   } else {
-    // 해석 불가 → API 검색
+    // 해석 불가 또는 불분명한 입력 → API 검색
     showSugAndSearch(v);
   }
 }

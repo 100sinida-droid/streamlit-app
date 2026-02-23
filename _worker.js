@@ -115,6 +115,18 @@ async function fetchFchart(cd, count) {
   } catch { return []; }
 }
 
+
+// ── 네이버 polling API (PER/PBR/시총/외국인비율 핵심 소스) ────
+async function fetchPolling(cd) {
+  const d = await safeFetch(
+    'https://polling.finance.naver.com/api/realtime/domestic/stock/' + cd,
+    { headers: KR_HDR, _timeout: 6000 }
+  );
+  if (!d) return {};
+  const raw = Array.isArray(d.datas) ? (d.datas[0] ?? {}) : (d.datas ?? d.data ?? d);
+  return raw;
+}
+
 // ── 네이버 /finance/summary 보완 데이터 ───────────────────────
 // 실패해도 기본값 반환 → 절대 500 안 냄
 async function fetchNaverExtra(cd) {
@@ -165,31 +177,33 @@ async function fetchNaverExtra(cd) {
 
 // ── 네이버 Quote ─────────────────────────────────────────────
 async function naverQuote(cd, sym) {
-  // 3개 소스 병렬 (모두 실패해도 ok:true 반환)
-  const [rB, rC, rX] = await Promise.allSettled([
+  // 4개 소스 병렬 (모두 실패해도 ok:true 반환)
+  const [rB, rC, rP, rX] = await Promise.allSettled([
     safeFetch(`https://m.stock.naver.com/api/stock/${cd}/basic`, { headers: KR_HDR }),
     fetchFchart(cd, 280),
+    fetchPolling(cd),          // polling: PER/PBR/시총/외국인비율 핵심
     fetchNaverExtra(cd),
   ]);
 
   const b    = (rB.status === "fulfilled" && rB.value) ? rB.value : {};
   const rows = (rC.status === "fulfilled" && Array.isArray(rC.value)) ? rC.value : [];
+  const p    = (rP.status === "fulfilled" && rP.value) ? rP.value : {};  // polling
   const ex   = (rX.status === "fulfilled" && rX.value) ? rX.value : {};
   const last = rows.at(-1) ?? null;
 
-  // 현재가 / 등락
-  const price     = F(b, "closePrice", "stockEndPrice", "currentPrice") || (last?.close ?? 0);
-  const change    = F(b, "compareToPreviousClosePrice");
-  const changePct = F(b, "fluctuationsRatio");
-  const name      = (b.stockName ?? b.itemName ?? b.corporateName ?? cd).trim() || cd;
+  // 현재가 / 등락 (basic 우선, polling 보완)
+  const price     = F(b, "closePrice", "stockEndPrice", "currentPrice") || N(p.closePrice) || (last?.close ?? 0);
+  const change    = F(b, "compareToPreviousClosePrice") || N(p.compareToPreviousPrice) || 0;
+  const changePct = F(b, "fluctuationsRatio")           || N(p.fluctuationsRatio)       || 0;
+  const name      = (b.stockName ?? b.itemName ?? b.corporateName ?? p.stockName ?? cd).trim() || cd;
 
   // 당일 시가/고가/저가
-  const open  = F(b, "openPrice")  || (last?.open  ?? 0);
-  const high  = F(b, "highPrice")  || (last?.high  ?? 0);
-  const low   = F(b, "lowPrice")   || (last?.low   ?? 0);
+  const open  = F(b, "openPrice")  || N(p.openPrice)  || (last?.open  ?? 0);
+  const high  = F(b, "highPrice")  || N(p.highPrice)  || (last?.high  ?? 0);
+  const low   = F(b, "lowPrice")   || N(p.lowPrice)   || (last?.low   ?? 0);
 
   // 거래량
-  const volume = F(b, "accumulatedTradingVolume", "tradingVolume") || (last?.volume ?? 0);
+  const volume = F(b, "accumulatedTradingVolume", "tradingVolume") || N(p.accumulatedTradingVolume) || (last?.volume ?? 0);
 
   // 52주 고저: fchart 1년치에서 max/min 계산 (항상 값 있음)
   let h52 = 0, l52 = 0;
@@ -205,18 +219,27 @@ async function naverQuote(cd, sym) {
   if (bh > 0) h52 = bh;
   if (bl > 0) l52 = bl;
 
-  // 시가총액: marketValue = 억원 단위
+  // 시가총액: basic.marketValue(억원) → polling → extra 순서
   let marketCap = 0;
   const mcRaw = F(b, "marketValue", "totalMarketValue");
-  if (mcRaw > 0) marketCap = mcRaw * 1e8;
+  if (mcRaw > 0) marketCap = mcRaw * 1e8;  // 억원 → 원
+
+  if (!marketCap) {
+    // polling에서 marketCap 시도 (단위 불명확 → 크기로 판단)
+    const mcPraw = p.marketCap ?? p.marketValue ?? "";
+    if (mcPraw) {
+      const mcP = N(String(mcPraw));
+      if (mcP > 0) marketCap = mcP > 1e10 ? mcP : mcP * 1e8;
+    }
+  }
   if (!marketCap && ex.marketCap > 0) marketCap = ex.marketCap;
 
   // PER / PBR / 외국인비율
-  const per          = F(b, "per", "PER")          || ex.per          || 0;
-  const pbr          = F(b, "pbr", "PBR")          || ex.pbr          || 0;
+  const per          = F(b, "per", "PER")          || N(p.per)  || ex.per  || 0;
+  const pbr          = F(b, "pbr", "PBR")          || N(p.pbr)  || ex.pbr  || 0;
   const eps          = F(b, "eps", "EPS")           || 0;
   const bps          = F(b, "bps", "BPS")           || 0;
-  const foreignRatio = F(b, "foreignRatio")         || ex.foreignRatio || 0;
+  const foreignRatio = F(b, "foreignRatio") || N(p.frgn ?? p.foreignRatio ?? p.frgnRatio ?? 0) || ex.foreignRatio || 0;
 
   return J({
     ok: true, symbol: sym, name,

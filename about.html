@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>서비스 소개 — StockMind AI</title>
+<meta name="description" content="StockMind AI는 인공지능 기술을 활용한 실시간 주식 분석 서비스입니다. 코스피, 코스닥, 미국 주식을 분석하고 AI 기반 투자 의견을 제공합니다.">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Noto+Sans+KR:wght@400;500;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#07090d;--bg2:#0d1117;--bg3:#161b22;--brd:#21262d;--acc:#00d4aa;--tx:#e6edf3;--tx2:#8b949e;--tx3:#484f58;--r:12px}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--tx);font-family:'Noto Sans KR',sans-serif;min-height:100vh;line-height:1.8}
+header{position:sticky;top:0;z-index:100;background:rgba(7,9,13,.96);backdrop-filter:blur(16px);border-bottom:1px solid var(--brd);display:flex;align-items:center;padding:0 28px;height:56px;gap:16px}
+.logo{font-family:'Bebas Neue',sans-serif;font-size:1.55rem;letter-spacing:2px;text-decoration:none;color:var(--tx)}.logo span{color:var(--acc)}
+nav a{color:var(--tx2);font-size:.8rem;text-decoration:none;padding:4px 10px;border-radius:6px;transition:color .2s}.nav a:hover{color:var(--tx)}
+.back{margin-left:auto;color:var(--acc);font-size:.8rem;text-decoration:none;display:flex;align-items:center;gap:5px}
+main{max-width:860px;margin:0 auto;padding:56px 24px 80px}
+h1{font-family:'Bebas Neue',sans-serif;font-size:2.8rem;letter-spacing:1px;margin-bottom:8px}
+h1 em{font-style:normal;color:var(--acc)}
+.sub{color:var(--tx2);font-size:.95rem;margin-bottom:48px}
+.section{margin-bottom:52px}
+.section h2{font-size:1.15rem;font-weight:700;margin-bottom:16px;padding-bottom:8px;border-bottom:1px solid var(--brd);color:var(--acc)}
+.section p{color:var(--tx2);font-size:.93rem;line-height:2;margin-bottom:14px}
+.section p strong{color:var(--tx)}
+.feat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px;margin-top:16px}
+.feat-card{background:var(--bg2);border:1px solid var(--brd);border-radius:var(--r);padding:20px}
+.feat-icon{font-size:1.6rem;margin-bottom:10px}
+.feat-card h3{font-size:.9rem;font-weight:700;margin-bottom:8px}
+.feat-card p{color:var(--tx2);font-size:.82rem;line-height:1.75}
+/* 광고 슬롯 */
+.ad-slot{width:100%;min-height:90px;margin:32px 0;background:rgba(255,255,255,.02);border:1px dashed rgba(255,255,255,.06);border-radius:var(--r);display:flex;align-items:center;justify-content:center;color:var(--tx3);font-size:.75rem;font-family:'JetBrains Mono',monospace}
+.disclaimer{background:var(--bg2);border:1px solid rgba(255,179,0,.2);border-radius:var(--r);padding:18px 20px;margin-top:32px}
+.disclaimer p{color:#ffb300;font-size:.84rem;line-height:1.8;margin:0}
+footer{text-align:center;padding:28px;border-top:1px solid var(--brd);color:var(--tx3);font-size:.74rem;line-height:2}
+footer nav{display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin-top:8px}
+footer nav a{color:var(--tx3);text-decoration:none;font-size:.73rem;transition:color .2s}
+footer nav a:hover{color:var(--acc)}
+</style>
+</head>
+<body>
+<header>
+  <a href="/" class="logo">STOCK<span>MIND</span></a>
+  <a href="/" class="back">← 홈으로</a>
+</header>
+<main>
+  <h1>서비스 <em>소개</em></h1>
+  <p class="sub">StockMind AI — 인공지능이 분석하는 실시간 주식 투자 가이드</p>
+
+  <!-- 광고 슬롯 1 -->
+  <div class="ad-slot"><!-- AdSense 코드 삽입 --></div>
+
+  <section class="section">
+    <h2>StockMind AI란?</h2>
+    <p>StockMind AI는 <strong>국내외 주식 시장 데이터를 실시간으로 수집하고, 인공지능(AI)이 종합 투자 의견을 제공하는 무료 주식 분석 서비스</strong>입니다.</p>
+    <p>삼성전자, SK하이닉스, NAVER 등 <strong>코스피·코스닥 전 종목</strong>과 Apple, NVIDIA, Tesla 등 <strong>미국 주요 주식</strong>에 대해 실시간 데이터를 분석합니다.</p>
+    <p>단순한 시세 제공을 넘어, <strong>PER(주가수익비율), PBR(주가순자산비율), 52주 고저가 대비 위치, 외국인 보유 비율, 시가총액, 변동성</strong> 등 5가지 핵심 지표를 종합해 AI가 투자 의견을 제시합니다.</p>
+  </section>
+
+  <section class="section">
+    <h2>주요 기능</h2>
+    <div class="feat-grid">
+      <div class="feat-card">
+        <div class="feat-icon">🔍</div>
+        <h3>실시간 주식 검색</h3>
+        <p>종목명, 코드, 영문명으로 검색. 자동완성으로 빠르게 원하는 종목을 찾을 수 있습니다.</p>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon">📊</div>
+        <h3>핵심 지표 10가지</h3>
+        <p>현재가, 등락률, 52주 고저가, 거래량, 시가총액, PER, PBR, 시가, 외국인비율을 한눈에 확인.</p>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon">🤖</div>
+        <h3>AI 종합 투자 의견</h3>
+        <p>적극매수·매수·주목·중립·관망·매도·강력매도 7단계로 세분화된 투자 의견을 제공합니다.</p>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon">📈</div>
+        <h3>30일 가격 차트</h3>
+        <p>최근 30일 주가 흐름을 시각적으로 확인. 상승/하락 추세를 직관적으로 파악할 수 있습니다.</p>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon">💰</div>
+        <h3>매수·매도 전략 제시</h3>
+        <p>AI가 분할매수 구간, 단기·중기 목표가, 손절가를 구체적인 가격으로 제시합니다.</p>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon">⚠️</div>
+        <h3>리스크 분석</h3>
+        <p>낮음·보통·높음·매우높음 4단계로 리스크를 분류하고 구체적인 위험 요인을 설명합니다.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 광고 슬롯 2 -->
+  <div class="ad-slot"><!-- AdSense 코드 삽입 --></div>
+
+  <section class="section">
+    <h2>데이터 출처</h2>
+    <p>StockMind AI는 다음의 공개 데이터를 활용합니다:</p>
+    <p>• <strong>국내 주식 (코스피·코스닥)</strong>: 네이버 금융 (Naver Finance) 실시간 API</p>
+    <p>• <strong>미국 주식</strong>: 야후 파이낸스 (Yahoo Finance) 공개 API</p>
+    <p>• <strong>AI 분석</strong>: Anthropic Claude AI 모델</p>
+    <p>모든 데이터는 참고용이며, 실제 매매 체결 데이터와 약간의 시차가 있을 수 있습니다.</p>
+  </section>
+
+  <section class="section">
+    <h2>서비스 운영 방식</h2>
+    <p>StockMind AI는 Cloudflare Pages를 통해 운영되는 무료 서비스입니다. 별도의 회원가입이나 로그인 없이 누구나 무료로 이용할 수 있습니다.</p>
+    <p>광고 수익을 통해 서버 운영 비용을 충당하며, 사용자의 개인정보를 수집하거나 판매하지 않습니다.</p>
+  </section>
+
+  <div class="disclaimer">
+    <p>⚠️ <strong>투자 위험 고지</strong>: StockMind AI가 제공하는 모든 분석 결과는 참고용 정보이며, 투자 권유가 아닙니다. 주식 투자는 원금 손실 가능성이 있으며, 최종 투자 판단과 책임은 투자자 본인에게 있습니다.</p>
+  </div>
+</main>
+<footer>
+  <p>© 2025 StockMind AI. All rights reserved.</p>
+  <nav>
+    <a href="/">홈</a>
+    <a href="/guide.html">투자 가이드</a>
+    <a href="/privacy.html">개인정보처리방침</a>
+    <a href="/terms.html">이용약관</a>
+  </nav>
+</footer>
+</body>
+</html>
