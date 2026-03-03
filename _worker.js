@@ -404,188 +404,243 @@ async function naverChart(cd, days) {
 // [소스 2] v11/quoteSummary  : PBR, ROE, 상세 배당 등 보완
 // 병렬 호출 → 통합 → marketState 기준으로 표시 가격 선택
 async function yahooQuote(sym) {
-  const HDR = { "User-Agent": UA, "Accept": "application/json" };
+  // ── 헤더: 브라우저 완전 모방 (datacenter IP 차단 우회 시도) ──
+  const YHD = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+    "Accept": "application/json, text/plain, */*",
+    "Accept-Language": "en-US,en;q=0.9",
+    "Accept-Encoding": "gzip, deflate, br",
+    "Referer": "https://finance.yahoo.com/quote/" + sym,
+    "Origin": "https://finance.yahoo.com",
+    "Sec-Fetch-Dest": "empty",
+    "Sec-Fetch-Mode": "cors",
+    "Sec-Fetch-Site": "same-site",
+    "Cache-Control": "no-cache",
+  };
 
-  // ── [소스 1] v7/finance/quote ──────────────────────────────
-  // 단일 호출로 실시간 가격(프리/정규/애프터) + 핵심 지표 모두 반환
-  async function fetchV7() {
+  // ── [소스 1] Yahoo v8/chart (가장 안정적, PER 없음) ──────
+  async function tryYahooChart() {
+    for (const host of ["query1", "query2"]) {
+      const d = await safeFetch(
+        `https://${host}.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}` +
+        `?interval=1d&range=1d&includePrePost=true`,
+        { headers: YHD, _timeout: 8000 }
+      );
+      const res = d?.chart?.result?.[0];
+      if (res?.meta?.regularMarketPrice) return res;
+    }
+    return null;
+  }
+
+  // ── [소스 2] Yahoo v7/quote (프리/정규/애프터 + PER) ─────
+  async function tryYahooV7() {
     const fields = [
       "regularMarketPrice","regularMarketChange","regularMarketChangePercent",
-      "regularMarketPreviousClose","regularMarketOpen",
-      "regularMarketDayHigh","regularMarketDayLow","regularMarketVolume",
-      "preMarketPrice","preMarketChange","preMarketChangePercent","preMarketTime",
-      "postMarketPrice","postMarketChange","postMarketChangePercent","postMarketTime",
-      "marketState",
-      "fiftyTwoWeekHigh","fiftyTwoWeekLow",
-      "marketCap","trailingPE","forwardPE","epsTrailingTwelveMonths",
-      "priceToBook","trailingAnnualDividendYield","bookValue",
-      "longName","shortName","exchangeName","currency",
+      "regularMarketPreviousClose","regularMarketOpen","regularMarketDayHigh",
+      "regularMarketDayLow","regularMarketVolume","preMarketPrice","preMarketChange",
+      "preMarketChangePercent","postMarketPrice","postMarketChange","postMarketChangePercent",
+      "marketState","fiftyTwoWeekHigh","fiftyTwoWeekLow","marketCap",
+      "trailingPE","forwardPE","epsTrailingTwelveMonths","priceToBook",
+      "trailingAnnualDividendYield","longName","shortName","exchangeName","currency",
     ].join(",");
     for (const host of ["query1", "query2"]) {
       const d = await safeFetch(
         `https://${host}.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(sym)}&fields=${fields}`,
-        { headers: HDR, _timeout: 8000 }
+        { headers: YHD, _timeout: 8000 }
       );
       const qt = d?.quoteResponse?.result?.[0];
-      if (qt && qt.regularMarketPrice) return qt;
+      if (qt?.regularMarketPrice) return qt;
     }
     return null;
   }
 
-  // ── [소스 2] v11/quoteSummary (PBR·ROE·배당 보완) ────────
-  async function fetchV11() {
-    const mods = "defaultKeyStatistics,financialData,summaryDetail";
-    for (const host of ["query1", "query2"]) {
-      const d = await safeFetch(
-        `https://${host}.finance.yahoo.com/v11/finance/quoteSummary/${encodeURIComponent(sym)}?modules=${mods}`,
-        { headers: HDR, _timeout: 9000 }
-      );
-      const res = d?.quoteSummary?.result?.[0];
-      if (res) return res;
-    }
-    return null;
+  // ── [소스 3] stooq.com (Yahoo 완전 차단 시 폴백) ─────────
+  // stooq는 미국 주식을 SYM.US 형식으로 조회
+  // 응답: {"symbols":[{"Symbol":"IBM","Date":"...","Open":...,"High":...,"Low":...,"Close":...,"Volume":...}]}
+  async function tryStooq() {
+    const stooqSym = sym.includes(".") ? sym : sym + ".US";
+    const d = await safeFetch(
+      `https://stooq.com/q/l/?s=${encodeURIComponent(stooqSym)}&f=sd2t2ohlcv&h&e=json`,
+      { headers: { "User-Agent": "Mozilla/5.0", "Accept": "application/json" }, _timeout: 8000 }
+    );
+    const row = d?.symbols?.[0];
+    if (!row || !row.Close || row.Close === 0) return null;
+    return row;
   }
 
-  // ── 병렬 호출 ────────────────────────────────────────────
-  const [v7Res, v11Res] = await Promise.allSettled([fetchV7(), fetchV11()]);
-  const qt  = v7Res.status  === "fulfilled" ? v7Res.value  : null;
-  const v11 = v11Res.status === "fulfilled" ? v11Res.value : null;
+  // ── 병렬 호출: v8 chart + v7 quote ──────────────────────
+  const [chartRes, v7Res] = await Promise.allSettled([tryYahooChart(), tryYahooV7()]);
+  const chart = chartRes.status === "fulfilled" ? chartRes.value : null;
+  const v7    = v7Res.status   === "fulfilled" ? v7Res.value   : null;
 
-  // v7 실패 시 완전 실패
-  if (!qt) return J({ ok: false, error: `${sym} 데이터를 가져올 수 없습니다` });
+  // ── Yahoo 완전 차단 시 stooq 폴백 ────────────────────────
+  if (!chart && !v7) {
+    const stooq = await tryStooq();
+    if (!stooq) return J({ ok: false, error: `${sym} 데이터를 가져올 수 없습니다. 티커를 확인해 주세요.` });
 
-  // ── v11 raw/fmt 헬퍼 ─────────────────────────────────────
+    const prev  = stooq.Open || stooq.Close;
+    const price = stooq.Close;
+    const chg   = price - prev;
+    const pct   = prev > 0 ? chg / prev * 100 : 0;
+    return J({
+      ok: true, symbol: sym,
+      name: stooq.Symbol ?? sym,
+      price, change: Math.round(chg * 1e4)/1e4, changePct: Math.round(pct * 1e4)/1e4,
+      open: stooq.Open ?? 0, high: stooq.High ?? 0, low: stooq.Low ?? 0,
+      high52: 0, low52: 0, volume: stooq.Volume ?? 0, marketCap: 0,
+      per: 0, fwdPer: 0, pbr: 0, eps: 0, roe: 0, divYield: 0,
+      bps: 0, foreignRatio: 0,
+      currency: "USD", exchange: "US",
+      marketState: "CLOSED", prevClose: prev,
+      regularPrice: price, regularChange: chg, regularChangePct: pct,
+      preMarketPrice: 0, postMarketPrice: 0,
+      _src: "stooq",
+    });
+  }
+
+  // ── nz 헬퍼 ─────────────────────────────────────────────
+  const nz = v => (typeof v === "number" && Number.isFinite(v) && v !== 0) ? v : 0;
   const yv = obj => {
     if (!obj) return 0;
     if (typeof obj === "number") return Number.isFinite(obj) ? obj : 0;
     const r = obj?.raw;
-    if (r !== undefined && r !== null && r !== "") {
-      const n = parseFloat(r);
-      return Number.isFinite(n) ? n : 0;
-    }
+    if (r !== undefined && r !== null) { const n = parseFloat(r); return Number.isFinite(n) ? n : 0; }
     return 0;
   };
-  const nz = v => (typeof v === "number" && Number.isFinite(v) && v !== 0) ? v : 0;
 
-  // ── 장 상태 판단 ─────────────────────────────────────────
-  // PRE      : 프리마켓 (미국 기준 04:00~09:30)
-  // REGULAR  : 정규장   (09:30~16:00)
-  // POST     : 애프터마켓 (16:00~20:00)
-  // CLOSED   : 장 마감
-  // PREPRE / POSTPOST : 극초반/극후반
-  const marketState = String(qt.marketState ?? "CLOSED").toUpperCase();
+  // ── 가격 데이터: v7 우선 → v8 meta 보완 ──────────────────
+  const meta = chart?.meta ?? {};
+  const q0   = chart?.indicators?.quote?.[0] ?? {};
+  const last  = n => (Array.isArray(n) ? n : []).filter(x => x != null && x > 0).at(-1) ?? 0;
+
+  // v7가 있으면 v7 우선 (프리/정규/애프터 정확)
+  // v7 없으면 v8 chart meta 사용
+  const qt = v7 ?? {};
+
+  // ── 장 상태 ─────────────────────────────────────────────
+  const marketState = String(qt.marketState ?? meta.marketState ?? "CLOSED").toUpperCase();
   const isPre  = marketState === "PRE"  || marketState === "PREPRE";
   const isPost = marketState === "POST" || marketState === "POSTPOST";
-  const isRegular = marketState === "REGULAR";
 
-  // ── 기준가: 항상 정규장 전일 종가 ───────────────────────
-  const prevClose = nz(qt.regularMarketPreviousClose);
+  // ── 현재가 (장 상태 기반 선택) ───────────────────────────
+  const regularPrice  = nz(qt.regularMarketPrice)  || nz(meta.regularMarketPrice) || 0;
+  const prevClose     = nz(qt.regularMarketPreviousClose) || nz(meta.chartPreviousClose) || regularPrice;
+  const regularChg    = nz(qt.regularMarketChange)  || (regularPrice - prevClose);
+  const regularChgPct = nz(qt.regularMarketChangePercent) ||
+                        (prevClose > 0 ? regularChg / prevClose * 100 : 0);
 
-  // ── 표시 가격 선택 ───────────────────────────────────────
-  // 프리마켓: preMarketPrice (없으면 regularMarketPrice)
-  // 정규장  : regularMarketPrice
-  // 애프터  : postMarketPrice (없으면 regularMarketPrice)
-  // 마감    : regularMarketPrice (최종 종가)
   let displayPrice, displayChg, displayChgPct, displayLabel;
-
   if (isPre && nz(qt.preMarketPrice)) {
     displayPrice  = qt.preMarketPrice;
-    displayChg    = nz(qt.preMarketChange)        || (displayPrice - prevClose);
-    displayChgPct = nz(qt.preMarketChangePercent) || (prevClose > 0 ? (displayPrice - prevClose) / prevClose * 100 : 0);
+    displayChg    = nz(qt.preMarketChange) || (displayPrice - prevClose);
+    displayChgPct = nz(qt.preMarketChangePercent) || (prevClose > 0 ? (displayPrice-prevClose)/prevClose*100 : 0);
     displayLabel  = "PRE";
   } else if (isPost && nz(qt.postMarketPrice)) {
     displayPrice  = qt.postMarketPrice;
-    displayChg    = nz(qt.postMarketChange)        || (displayPrice - prevClose);
-    displayChgPct = nz(qt.postMarketChangePercent) || (prevClose > 0 ? (displayPrice - prevClose) / prevClose * 100 : 0);
+    displayChg    = nz(qt.postMarketChange) || (displayPrice - prevClose);
+    displayChgPct = nz(qt.postMarketChangePercent) || (prevClose > 0 ? (displayPrice-prevClose)/prevClose*100 : 0);
     displayLabel  = "POST";
   } else {
-    displayPrice  = nz(qt.regularMarketPrice);
-    displayChg    = nz(qt.regularMarketChange)        || (displayPrice - prevClose);
-    displayChgPct = nz(qt.regularMarketChangePercent) || (prevClose > 0 ? (displayPrice - prevClose) / prevClose * 100 : 0);
-    displayLabel  = isRegular ? "LIVE" : "CLOSED";
+    displayPrice  = regularPrice;
+    displayChg    = regularChg;
+    displayChgPct = regularChgPct;
+    displayLabel  = marketState === "REGULAR" ? "LIVE" : "CLOSED";
   }
 
-  // ── 정규장 OHLCV (프리/애프터 중에도 정규장 데이터 표시) ─
-  const regularPrice = nz(qt.regularMarketPrice);
-  const regularChg   = nz(qt.regularMarketChange);
-  const regularChgPct = nz(qt.regularMarketChangePercent);
-  const openV  = nz(qt.regularMarketOpen);
-  const highV  = nz(qt.regularMarketDayHigh);
-  const lowV   = nz(qt.regularMarketDayLow);
-  const volV   = nz(qt.regularMarketVolume);
+  // ── OHLCV ────────────────────────────────────────────────
+  const openV = nz(qt.regularMarketOpen)    || nz(meta.regularMarketOpen)    || last(q0.open);
+  const highV = nz(qt.regularMarketDayHigh) || nz(meta.regularMarketDayHigh) || last(q0.high);
+  const lowV  = nz(qt.regularMarketDayLow)  || nz(meta.regularMarketDayLow)  || last(q0.low);
+  const volV  = nz(qt.regularMarketVolume)  || nz(meta.regularMarketVolume)  || last(q0.volume);
 
-  // ── 펀더멘털 ─────────────────────────────────────────────
-  // v7에서 직접 제공하는 필드들
-  const per    = nz(qt.trailingPE)                  || 0;
-  const fwdPer = nz(qt.forwardPE)                   || 0;
-  const eps    = nz(qt.epsTrailingTwelveMonths)      || 0;
-  const mcap   = nz(qt.marketCap)                   || 0;
-  const h52    = nz(qt.fiftyTwoWeekHigh)             || 0;
-  const l52    = nz(qt.fiftyTwoWeekLow)              || 0;
-  const divRawV7 = nz(qt.trailingAnnualDividendYield) || 0;
+  // ── 52주 고저 ────────────────────────────────────────────
+  const h52 = nz(qt.fiftyTwoWeekHigh) || nz(meta.fiftyTwoWeekHigh) || 0;
+  const l52 = nz(qt.fiftyTwoWeekLow)  || nz(meta.fiftyTwoWeekLow)  || 0;
 
-  // v11에서 보완하는 필드들 (PBR, ROE, 상세 배당)
-  const ks = v11?.defaultKeyStatistics ?? {};
-  const fd = v11?.financialData ?? {};
-  const sd = v11?.summaryDetail ?? {};
-
-  const pbr    = yv(ks.priceToBook)     || 0;
-  const roeRaw = yv(fd.returnOnEquity)  || 0;
-  const roe    = roeRaw !== 0 ? Math.round(roeRaw * 1000) / 10 : 0;
-
-  // 배당: v7 trailingAnnualDividendYield → v11 summaryDetail.dividendYield
-  const divRaw   = divRawV7 || yv(sd.dividendYield) || yv(sd.trailingAnnualDividendYield) || 0;
+  // ── 펀더멘털 (v7 있을 때만) ───────────────────────────────
+  const per    = nz(qt.trailingPE)                   || 0;
+  const fwdPer = nz(qt.forwardPE)                    || 0;
+  const pbr    = nz(qt.priceToBook)                  || 0;
+  const eps    = nz(qt.epsTrailingTwelveMonths)       || 0;
+  const mcap   = nz(qt.marketCap)   || nz(meta.marketCap) || 0;
+  const divRaw = nz(qt.trailingAnnualDividendYield)   || 0;
   const divYield = divRaw > 0 ? Math.round(divRaw * 10000) / 100 : 0;
 
-  // ── 기업명 / 거래소 ──────────────────────────────────────
-  const name = String(qt.longName ?? qt.shortName ?? sym);
-  const exch = String(qt.exchangeName ?? "US");
-  const currency = String(qt.currency ?? "USD");
+  const name = String(qt.longName ?? qt.shortName ?? meta.longName ?? meta.shortName ?? sym);
+  const exch = String(qt.exchangeName ?? meta.exchangeName ?? "US");
+  const currency = String(qt.currency ?? meta.currency ?? "USD");
 
   return J({
     ok: true, symbol: sym, name,
-    // 표시 가격 (프리/정규/애프터 상태에 따라 선택)
-    price:     Math.round(displayPrice   * 1e4) / 1e4,
-    change:    Math.round(displayChg     * 1e4) / 1e4,
-    changePct: Math.round(displayChgPct  * 1e4) / 1e4,
-    marketState: displayLabel,   // "PRE" | "LIVE" | "POST" | "CLOSED"
-    // 정규장 데이터 (차트·OHLCV는 정규장 기준)
-    regularPrice:    Math.round(regularPrice   * 1e4) / 1e4,
-    regularChange:   Math.round(regularChg     * 1e4) / 1e4,
-    regularChangePct:Math.round(regularChgPct  * 1e4) / 1e4,
+    price:      Math.round(displayPrice  * 1e4) / 1e4,
+    change:     Math.round(displayChg    * 1e4) / 1e4,
+    changePct:  Math.round(displayChgPct * 1e4) / 1e4,
+    marketState: displayLabel,
+    regularPrice:     Math.round(regularPrice   * 1e4) / 1e4,
+    regularChange:    Math.round(regularChg     * 1e4) / 1e4,
+    regularChangePct: Math.round(regularChgPct  * 1e4) / 1e4,
     prevClose,
-    // 프리/애프터 원시값 (프론트에서 추가 표시용)
     preMarketPrice:  nz(qt.preMarketPrice)  || 0,
     postMarketPrice: nz(qt.postMarketPrice) || 0,
-    // OHLCV
     open: openV, high: highV, low: lowV, volume: volV,
     high52: h52, low52: l52,
     marketCap: mcap,
-    // 펀더멘털
-    per, fwdPer, pbr, eps, roe, divYield,
+    per, fwdPer, pbr, eps, roe: 0, divYield,
     bps: 0, foreignRatio: 0,
     currency, exchange: exch,
+    _src: v7 ? "yahoo_v7" : "yahoo_v8",
   });
 }
 
 // ── Yahoo Chart ───────────────────────────────────────────────
 async function yahooChart(sym, days) {
   const rng = days <= 30 ? "1mo" : days <= 90 ? "3mo" : "6mo";
+  const YHD = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+    "Accept": "application/json, text/plain, */*",
+    "Referer": "https://finance.yahoo.com/",
+  };
+
+  // [1] Yahoo v8 chart
   for (const host of ["query1", "query2"]) {
     const d = await safeFetch(
       `https://${host}.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?interval=1d&range=${rng}`,
-      { headers: { "User-Agent": UA }, _timeout: 8000 }
+      { headers: YHD, _timeout: 8000 }
     );
-    if (!d) continue;
-    const res    = d.chart?.result?.[0];
-    if (!res) continue;
-    const ts     = res.timestamp ?? [];
-    const closes = res.indicators?.quote?.[0]?.close ?? [];
-    const hist   = ts.flatMap((t, i) =>
-      closes[i] > 0 ? [{ date: new Date(t * 1000).toISOString().slice(0, 10), close: closes[i] }] : []
-    );
-    return J({ ok: true, history: hist.slice(-days) });
+    const res = d?.chart?.result?.[0];
+    if (res) {
+      const ts     = res.timestamp ?? [];
+      const closes = res.indicators?.quote?.[0]?.close ?? [];
+      const hist   = ts.flatMap((t, i) =>
+        closes[i] > 0 ? [{ date: new Date(t * 1000).toISOString().slice(0, 10), close: closes[i] }] : []
+      );
+      if (hist.length > 0) return J({ ok: true, history: hist.slice(-days) });
+    }
   }
+
+  // [2] stooq.com CSV 폴백
+  try {
+    const stooqSym = sym.includes(".") ? sym : sym + ".US";
+    const r = await withTimeout(
+      fetch(`https://stooq.com/q/d/l/?s=${encodeURIComponent(stooqSym)}&i=d`, {
+        headers: { "User-Agent": "Mozilla/5.0" }
+      }), 8000
+    );
+    if (r.ok) {
+      const csv = await r.text();
+      const lines = csv.trim().split("\n").slice(1); // 헤더 제거
+      const hist = lines.flatMap(line => {
+        const cols = line.split(",");
+        // Date,Open,High,Low,Close,Volume
+        if (cols.length < 5) return [];
+        const dt   = (cols[0] ?? "").trim();
+        const cl   = parseFloat(cols[4]);
+        return (dt && cl > 0) ? [{ date: dt, close: cl }] : [];
+      }).sort((a, b) => a.date < b.date ? -1 : 1);
+      if (hist.length > 0) return J({ ok: true, history: hist.slice(-days) });
+    }
+  } catch {}
+
   return J({ ok: true, history: [] });
 }
 
