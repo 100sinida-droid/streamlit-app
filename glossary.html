@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>주식 투자 용어 사전 완전판 — StockMind AI | A~Z 핵심 용어 총정리</title>
+<meta name="description" content="주식 투자에 필요한 핵심 용어를 알기 쉽게 설명합니다. PER, PBR, ROE, EPS, 배당수익률, 시가총액, 코스피, 코스닥, 주가수익비율 등 100개 이상의 용어를 수록했습니다.">
+<meta name="keywords" content="주식용어사전,PER뜻,PBR해석,ROE의미,EPS주당순이익,배당수익률,시가총액,코스피,코스닥,주식초보용어,투자용어">
+<!-- Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-STOCKMIND01"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-STOCKMIND01');</script>
+<!-- Google AdSense -->
+<meta name="google-adsense-account" content="ca-pub-7938956361770773">
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7938956361770773" crossorigin="anonymous"></script>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Noto+Sans+KR:wght@400;500;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#07090d;--bg2:#0d1117;--bg3:#161b22;--brd:#21262d;--acc:#00d4aa;--tx:#e6edf3;--tx2:#8b949e;--tx3:#484f58;--up:#3fb950;--dn:#f85149;--r:12px}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--tx);font-family:'Noto Sans KR',sans-serif;min-height:100vh}
+header{position:sticky;top:0;z-index:100;background:rgba(7,9,13,.96);backdrop-filter:blur(16px);border-bottom:1px solid var(--brd);display:flex;align-items:center;padding:0 28px;height:56px;gap:16px}
+.logo{font-family:'Bebas Neue',sans-serif;font-size:1.55rem;letter-spacing:2px;text-decoration:none;color:var(--tx)}.logo span{color:var(--acc)}
+.hnav{margin-left:auto;display:flex;gap:14px;align-items:center}
+.hnav a{color:var(--tx2);font-size:.78rem;text-decoration:none;transition:color .2s}.hnav a:hover{color:var(--acc)}
+main{max-width:900px;margin:0 auto;padding:52px 24px 80px}
+.badge{display:inline-block;font-family:'JetBrains Mono',monospace;font-size:.65rem;letter-spacing:2px;text-transform:uppercase;color:var(--acc);border:1px solid rgba(0,212,170,.25);padding:2px 12px;border-radius:100px;margin-bottom:10px}
+h1{font-family:'Bebas Neue',sans-serif;font-size:clamp(2.2rem,6vw,3.2rem);line-height:1.08;letter-spacing:1px;margin-bottom:10px}
+h1 em{font-style:normal;color:var(--acc)}
+.intro{color:var(--tx2);font-size:.92rem;line-height:2;margin-bottom:28px}
+/* 검색 */
+.srch{position:relative;margin-bottom:28px}
+.srch input{width:100%;background:var(--bg2);border:1.5px solid var(--brd);border-radius:12px;padding:12px 18px 12px 44px;color:var(--tx);font-family:'Noto Sans KR',sans-serif;font-size:.92rem;outline:none;transition:border-color .2s}
+.srch input:focus{border-color:var(--acc)}
+.srch input::placeholder{color:var(--tx3)}
+.srch-ic{position:absolute;left:15px;top:50%;transform:translateY(-50%);color:var(--tx3)}
+/* 카테고리 탭 */
+.cat-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:28px}
+.cat{background:var(--bg2);border:1px solid var(--brd);border-radius:8px;padding:6px 14px;font-family:'JetBrains Mono',monospace;font-size:.68rem;color:var(--tx2);cursor:pointer;transition:all .2s}
+.cat:hover,.cat.active{background:rgba(0,212,170,.1);border-color:rgba(0,212,170,.3);color:var(--acc)}
+/* 섹션 */
+.term-section{margin-bottom:44px;scroll-margin-top:72px}
+.term-section h2{font-family:'Bebas Neue',sans-serif;font-size:1.5rem;letter-spacing:1px;color:var(--acc);margin-bottom:14px;padding-bottom:8px;border-bottom:2px solid rgba(0,212,170,.2)}
+/* 용어 카드 */
+.term-grid{display:grid;gap:10px}
+.term-card{background:var(--bg2);border:1px solid var(--brd);border-radius:var(--r);padding:16px 18px;transition:border-color .2s}
+.term-card:hover{border-color:rgba(0,212,170,.25)}
+.term-hd{display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap}
+.term-name{font-family:'JetBrains Mono',monospace;font-size:.95rem;font-weight:700;color:var(--acc)}
+.term-ko{font-size:.82rem;font-weight:700;color:var(--tx)}
+.term-tag{font-family:'JetBrains Mono',monospace;font-size:.58rem;padding:2px 8px;border-radius:100px;border:1px solid var(--brd);color:var(--tx3)}
+.term-body p{color:var(--tx2);font-size:.85rem;line-height:1.9}
+.term-body p strong{color:var(--tx)}
+.term-body .formula{font-family:'JetBrains Mono',monospace;font-size:.78rem;background:var(--bg3);border:1px solid var(--brd);border-radius:6px;padding:6px 12px;color:var(--acc);margin-top:6px;display:inline-block}
+.term-body .ex{font-size:.78rem;color:var(--tx3);margin-top:4px;font-style:italic}
+/* 광고 */
+.ad-slot{width:100%;min-height:90px;margin:28px 0}
+/* 숨김 처리 */
+.term-card.hidden{display:none}
+footer{text-align:center;padding:28px;border-top:1px solid var(--brd);color:var(--tx3);font-size:.74rem;line-height:2}
+footer nav{display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin-top:8px}
+footer nav a{color:var(--tx3);text-decoration:none;font-size:.72rem;transition:color .2s}
+footer nav a:hover{color:var(--acc)}
+</style>
+</head>
+<body>
+<header>
+  <a href="/" class="logo">STOCK<span>MIND</span></a>
+  <nav class="hnav">
+    <a href="/guide.html">투자가이드</a>
+    <a href="/beginner.html">입문가이드</a>
+    <a href="/sector.html">섹터분석</a>
+  </nav>
+</header>
+<main>
+  <div class="badge">용어 사전</div>
+  <h1>주식 투자 <em>용어 사전</em></h1>
+  <p class="intro">주식 투자에 꼭 필요한 핵심 용어를 알기 쉽게 정리했습니다.<br>검색창에서 원하는 용어를 바로 찾아보세요.</p>
+
+  <!-- 검색 -->
+  <div class="srch">
+    <svg class="srch-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+    <input type="text" id="searchInput" placeholder="용어 검색 (예: PER, 배당, 시가총액...)" oninput="filterTerms(this.value)">
+  </div>
+
+  <!-- 카테고리 탭 -->
+  <div class="cat-tabs">
+    <button class="cat active" onclick="filterCat('all',this)">전체</button>
+    <button class="cat" onclick="filterCat('valuation',this)">가치평가</button>
+    <button class="cat" onclick="filterCat('price',this)">가격/수익</button>
+    <button class="cat" onclick="filterCat('market',this)">시장구조</button>
+    <button class="cat" onclick="filterCat('trade',this)">매매전략</button>
+    <button class="cat" onclick="filterCat('etf',this)">ETF/펀드</button>
+    <button class="cat" onclick="filterCat('chart',this)">차트기술</button>
+  </div>
+
+  <div class="ad-slot">
+    <ins class="adsbygoogle" style="display:block" data-ad-format="autorelaxed" data-ad-client="ca-pub-7938956361770773" data-ad-slot="5368010468"></ins>
+    <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+  </div>
+
+  <!-- 가치평가 -->
+  <section class="term-section" id="valuation">
+    <h2>가치평가 지표</h2>
+    <div class="term-grid">
+      <div class="term-card" data-cat="valuation" data-kw="per 주가수익비율 price earnings">
+        <div class="term-hd"><span class="term-name">PER</span><span class="term-ko">주가수익비율</span><span class="term-tag">가치평가</span></div>
+        <div class="term-body"><p>Price Earnings Ratio. 주가를 주당순이익(EPS)으로 나눈 값. <strong>낮을수록 저평가</strong>를 의미하지만 업종 평균과 비교해야 합니다. 성장주는 높은 PER이 정상일 수 있습니다.</p><div class="formula">PER = 주가 ÷ 주당순이익(EPS)</div><div class="ex">예) 주가 70,000원, EPS 7,000원 → PER 10배 (업종 평균 대비 판단)</div></div>
+      </div>
+      <div class="term-card" data-cat="valuation" data-kw="pbr 주가순자산비율 book value">
+        <div class="term-hd"><span class="term-name">PBR</span><span class="term-ko">주가순자산비율</span><span class="term-tag">가치평가</span></div>
+        <div class="term-body"><p>Price Book-value Ratio. 주가를 주당순자산(BPS)으로 나눈 값. <strong>1배 미만이면 이론적 저평가</strong>. 금융주, 지주사에서 PBR이 낮은 경우가 많습니다. 3배 이상은 성장주 프리미엄.</p><div class="formula">PBR = 주가 ÷ 주당순자산(BPS)</div></div>
+      </div>
+      <div class="term-card" data-cat="valuation" data-kw="roe 자기자본이익률 return equity">
+        <div class="term-hd"><span class="term-name">ROE</span><span class="term-ko">자기자본이익률</span><span class="term-tag">가치평가</span></div>
+        <div class="term-body"><p>Return On Equity. 자기자본 대비 순이익 비율. <strong>높을수록 자본을 효율적으로 사용</strong>하는 기업. 워런 버핏은 ROE 15% 이상을 우량 기업의 기준으로 제시합니다.</p><div class="formula">ROE = 순이익 ÷ 자기자본 × 100</div><div class="ex">예) ROE 20% = 자기자본 100원으로 20원을 벌어냄</div></div>
+      </div>
+      <div class="term-card" data-cat="valuation" data-kw="eps 주당순이익 earning per share">
+        <div class="term-hd"><span class="term-name">EPS</span><span class="term-ko">주당순이익</span><span class="term-tag">가치평가</span></div>
+        <div class="term-body"><p>Earnings Per Share. 기업의 순이익을 발행 주식수로 나눈 값. <strong>EPS가 매년 증가하는 기업</strong>이 이상적이며, PER 계산의 기반이 됩니다.</p><div class="formula">EPS = 당기순이익 ÷ 발행 주식수</div></div>
+      </div>
+      <div class="term-card" data-cat="valuation" data-kw="배당수익률 dividend yield 배당">
+        <div class="term-hd"><span class="term-name">배당수익률</span><span class="term-ko">Dividend Yield</span><span class="term-tag">가치평가</span></div>
+        <div class="term-body"><p>주가 대비 배당금 비율. 은행 이자 대신 받는 주식 수익. <strong>3~5% 이상이면 고배당</strong>으로 분류됩니다. 배당이 꾸준히 증가하는 기업(배당 성장주)이 장기투자에 적합합니다.</p><div class="formula">배당수익률 = 주당 연간 배당금 ÷ 주가 × 100</div></div>
+      </div>
+      <div class="term-card" data-cat="valuation" data-kw="시가총액 market cap 기업가치">
+        <div class="term-hd"><span class="term-name">시가총액</span><span class="term-ko">Market Capitalization</span><span class="term-tag">가치평가</span></div>
+        <div class="term-body"><p>기업의 전체 시장 가치. 주가 × 발행 주식수. 코스피 대형주 기준 1조원 이상. <strong>시가총액이 클수록 안정적이지만 급격한 상승은 어렵습니다.</strong> 삼성전자는 약 400조원(2025년 기준).</p><div class="formula">시가총액 = 주가 × 발행 주식수</div></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="ad-slot">
+    <ins class="adsbygoogle" style="display:block" data-ad-format="autorelaxed" data-ad-client="ca-pub-7938956361770773" data-ad-slot="3808518808"></ins>
+    <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+  </div>
+
+  <!-- 가격/수익 -->
+  <section class="term-section" id="price">
+    <h2>가격 및 수익 관련</h2>
+    <div class="term-grid">
+      <div class="term-card" data-cat="price" data-kw="52주 고가 저가 신고가 신저가">
+        <div class="term-hd"><span class="term-name">52주 고가/저가</span><span class="term-ko">52-Week High/Low</span><span class="term-tag">가격</span></div>
+        <div class="term-body"><p>지난 1년간 주가의 최고점과 최저점. <strong>신고가 돌파 + 거래량 급증</strong>은 강세 신호. <strong>신저가 이탈</strong>은 즉시 손절을 고려해야 하는 위험 신호. StockMind AI는 현재 위치(%)를 자동 계산합니다.</p></div>
+      </div>
+      <div class="term-card" data-cat="price" data-kw="시가 종가 고가 저가 ohlc">
+        <div class="term-hd"><span class="term-name">시가 / 종가</span><span class="term-ko">Open / Close Price</span><span class="term-tag">가격</span></div>
+        <div class="term-body"><p><strong>시가(始價)</strong>: 당일 첫 거래 가격. <strong>종가(終價)</strong>: 당일 마지막 거래 가격. 캔들 차트에서 시가와 종가의 차이가 '몸통' 부분입니다. 종가가 시가보다 높으면 양봉(빨간색), 낮으면 음봉(파란색/검정).</p></div>
+      </div>
+      <div class="term-card" data-cat="price" data-kw="등락률 상한가 하한가 상승 하락">
+        <div class="term-hd"><span class="term-name">상한가 / 하한가</span><span class="term-ko">Upper/Lower Limit Price</span><span class="term-tag">가격</span></div>
+        <div class="term-body"><p>국내 주식은 하루에 오르거나 내릴 수 있는 최대 폭이 <strong>전일 종가 대비 ±30%</strong>로 제한됩니다. 미국 주식에는 이 제한이 없어 하루에 50% 이상 변동도 가능합니다.</p></div>
+      </div>
+      <div class="term-card" data-cat="price" data-kw="거래량 volume 유동성">
+        <div class="term-hd"><span class="term-name">거래량</span><span class="term-ko">Trading Volume</span><span class="term-tag">가격</span></div>
+        <div class="term-body"><p>일정 기간 내 거래된 주식 수. <strong>거래량은 주가 움직임의 신뢰도를 검증</strong>합니다. 주가 상승 + 거래량 증가 = 강한 신호. 주가 상승 + 거래량 감소 = 약한 신호.</p></div>
+      </div>
+      <div class="term-card" data-cat="price" data-kw="수익률 수익 손익 손실">
+        <div class="term-hd"><span class="term-name">수익률 계산</span><span class="term-ko">Return Rate</span><span class="term-tag">수익</span></div>
+        <div class="term-body"><p>투자 성과를 숫자로 나타내는 방법.<div class="formula">(현재가 - 매수가) ÷ 매수가 × 100 = 수익률(%)</div><div class="ex">예) 50,000원에 사서 60,000원이 되면 수익률 +20%</div></p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 시장 구조 -->
+  <section class="term-section" id="market">
+    <h2>시장 구조 및 제도</h2>
+    <div class="term-grid">
+      <div class="term-card" data-cat="market" data-kw="코스피 kospi 유가증권시장">
+        <div class="term-hd"><span class="term-name">코스피 (KOSPI)</span><span class="term-ko">Korea Composite Stock Price Index</span><span class="term-tag">시장</span></div>
+        <div class="term-body"><p>한국 유가증권시장의 종합 주가지수. 삼성전자, SK하이닉스, POSCO 등 대형 우량주 중심. <strong>코스피 2,500이면 기준 시점 대비 25배 상승</strong>했다는 의미입니다.</p></div>
+      </div>
+      <div class="term-card" data-cat="market" data-kw="코스닥 kosdaq 벤처 성장주">
+        <div class="term-hd"><span class="term-name">코스닥 (KOSDAQ)</span><span class="term-ko">Korea Securities Dealers Automated Quotation</span><span class="term-tag">시장</span></div>
+        <div class="term-body"><p>한국 코스닥시장. 주로 중소기업, 바이오, 게임, IT 벤처 기업들이 상장. <strong>코스피보다 변동성이 크고 성장성이 높은 종목</strong>이 많습니다.</p></div>
+      </div>
+      <div class="term-card" data-cat="market" data-kw="나스닥 nasdaq 미국주식">
+        <div class="term-hd"><span class="term-name">나스닥 (NASDAQ)</span><span class="term-ko">National Association of Securities Dealers Automated Quotations</span><span class="term-tag">시장</span></div>
+        <div class="term-body"><p>미국 기술주 중심 증권거래소. 애플, 마이크로소프트, 엔비디아, 구글 등 빅테크 기업이 상장. <strong>나스닥 100 지수</strong>는 나스닥 상위 100개 기업으로 구성됩니다.</p></div>
+      </div>
+      <div class="term-card" data-cat="market" data-kw="외국인 기관 개인 수급">
+        <div class="term-hd"><span class="term-name">외국인 / 기관 / 개인</span><span class="term-ko">Market Participants</span><span class="term-tag">시장</span></div>
+        <div class="term-body"><p>주식시장의 3대 참여자. <strong>외국인</strong>: 국내 주식의 약 30% 보유, 대형주 주도. <strong>기관</strong>: 연기금, 보험, 펀드 등. <strong>개인</strong>: 흔히 '개미'. 기관·외국인이 순매수하면 상승 동력이 됩니다.</p></div>
+      </div>
+      <div class="term-card" data-cat="market" data-kw="공시 ir 재무제표 사업보고서">
+        <div class="term-hd"><span class="term-name">공시 (公示)</span><span class="term-ko">Disclosure</span><span class="term-tag">시장</span></div>
+        <div class="term-body"><p>기업이 투자자에게 의무적으로 알려야 하는 중요 정보. 실적 발표, 대규모 계약, 임원 변경 등. <strong>DART(금융감독원 공시시스템)</strong>에서 모든 공시를 무료로 확인할 수 있습니다.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="ad-slot">
+    <ins class="adsbygoogle" style="display:block" data-ad-format="autorelaxed" data-ad-client="ca-pub-7938956361770773" data-ad-slot="5368010468"></ins>
+    <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+  </div>
+
+  <!-- 매매 전략 -->
+  <section class="term-section" id="trade">
+    <h2>매매 전략 용어</h2>
+    <div class="term-grid">
+      <div class="term-card" data-cat="trade" data-kw="손절 손절매 stop loss">
+        <div class="term-hd"><span class="term-name">손절매</span><span class="term-ko">Stop-Loss</span><span class="term-tag">매매전략</span></div>
+        <div class="term-body"><p>정해진 가격 이하로 하락하면 손실이더라도 매도하는 것. <strong>투자에서 가장 중요하고 어려운 행동</strong>. 손절가를 미리 정하고 기계적으로 실행해야 합니다. 보통 매수가 대비 -7~10%를 기준으로 합니다.</p></div>
+      </div>
+      <div class="term-card" data-cat="trade" data-kw="분할매수 물타기 평단가">
+        <div class="term-hd"><span class="term-name">분할매수</span><span class="term-ko">Dollar-Cost Averaging</span><span class="term-tag">매매전략</span></div>
+        <div class="term-body"><p>한 번에 전액 매수하지 않고 여러 번 나눠 매수하는 전략. 평균 매수 단가를 낮추는 효과. <strong>1차(40%) → 2차(40%) → 3차(20%)</strong> 순으로 진입하며, 반드시 손절 기준을 미리 정해야 합니다.</p></div>
+      </div>
+      <div class="term-card" data-cat="trade" data-kw="장기투자 단기투자 스윙 데이트레이딩">
+        <div class="term-hd"><span class="term-name">투자 기간별 전략</span><span class="term-ko">Investment Horizon</span><span class="term-tag">매매전략</span></div>
+        <div class="term-body"><p><strong>단타(데이트레이딩)</strong>: 당일 매매. 수수료 부담, 높은 집중력 필요.<br><strong>스윙트레이딩</strong>: 수일~수주 보유.<br><strong>중장기투자</strong>: 수개월~수년 보유. 대부분의 전문가가 초보자에게 권장하는 방식.</p></div>
+      </div>
+      <div class="term-card" data-cat="trade" data-kw="목표가 타겟가 매도시점">
+        <div class="term-hd"><span class="term-name">목표가</span><span class="term-ko">Target Price</span><span class="term-tag">매매전략</span></div>
+        <div class="term-body"><p>매수 전 미리 정하는 매도 기준 가격. 증권사 애널리스트들이 발표하는 목표주가는 향후 12개월 기준이 일반적. StockMind AI는 <strong>단기(1개월), 중기(3개월) 목표가</strong>를 자동으로 제시합니다.</p></div>
+      </div>
+      <div class="term-card" data-cat="trade" data-kw="공매도 숏 short selling">
+        <div class="term-hd"><span class="term-name">공매도</span><span class="term-ko">Short Selling</span><span class="term-tag">매매전략</span></div>
+        <div class="term-body"><p>주식을 빌려서 팔고 나중에 더 낮은 가격에 사서 갚는 전략. 주가 하락에 베팅. <strong>손실이 이론적으로 무한대</strong>이므로 초보자에게 적합하지 않습니다. 국내는 기관·외국인 중심으로 허용됩니다.</p></div>
+      </div>
+      <div class="term-card" data-cat="trade" data-kw="물타기 추가매수 평균단가">
+        <div class="term-hd"><span class="term-name">물타기</span><span class="term-ko">Averaging Down</span><span class="term-tag">매매전략</span></div>
+        <div class="term-body"><p>주가가 하락했을 때 추가 매수해 평균 단가를 낮추는 것. 기업 펀더멘털이 견고하다면 유효하지만, <strong>실적 악화 또는 하락 추세가 계속되는 종목에 물타기는 손실을 키울 수 있습니다.</strong></p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ETF -->
+  <section class="term-section" id="etf">
+    <h2>ETF 및 펀드</h2>
+    <div class="term-grid">
+      <div class="term-card" data-cat="etf" data-kw="etf 상장지수펀드 spy qqq">
+        <div class="term-hd"><span class="term-name">ETF</span><span class="term-ko">Exchange Traded Fund / 상장지수펀드</span><span class="term-tag">ETF</span></div>
+        <div class="term-body"><p>여러 종목을 묶어 만든 펀드를 주식처럼 사고파는 상품. <strong>개별 종목 위험 없이 시장 전체에 투자</strong>하는 가장 쉬운 방법. SPY(S&P500), QQQ(나스닥100), KODEX 200(코스피200)이 대표적.</p></div>
+      </div>
+      <div class="term-card" data-cat="etf" data-kw="레버리지 tqqq soxl 3배">
+        <div class="term-hd"><span class="term-name">레버리지 ETF</span><span class="term-ko">Leveraged ETF</span><span class="term-tag">ETF</span></div>
+        <div class="term-body"><p>지수 변동의 2~3배를 추구하는 ETF. TQQQ(나스닥3배), SOXL(반도체3배). <strong>단기 등락에서 이익을 극대화하지만 장기 보유 시 '변동성 손실' 효과로 원금이 녹습니다.</strong> 초보자는 주의 필요.</p></div>
+      </div>
+      <div class="term-card" data-cat="etf" data-kw="인버스 곱버스 sqqq 하락베팅">
+        <div class="term-hd"><span class="term-name">인버스 ETF</span><span class="term-ko">Inverse ETF</span><span class="term-tag">ETF</span></div>
+        <div class="term-body"><p>지수가 하락할 때 이익을 보는 ETF. 주가 하락에 베팅하거나 보유 주식의 헤지용으로 사용. SQQQ(나스닥 -3배), KODEX 인버스. <strong>시장이 상승하면 손실이 발생</strong>합니다.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="ad-slot">
+    <ins class="adsbygoogle" style="display:block" data-ad-format="autorelaxed" data-ad-client="ca-pub-7938956361770773" data-ad-slot="3808518808"></ins>
+    <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+  </div>
+
+  <!-- 차트/기술 -->
+  <section class="term-section" id="chart">
+    <h2>차트 및 기술적 분석</h2>
+    <div class="term-grid">
+      <div class="term-card" data-cat="chart" data-kw="이동평균선 ma 5일선 20일선 골든크로스">
+        <div class="term-hd"><span class="term-name">이동평균선 (MA)</span><span class="term-ko">Moving Average</span><span class="term-tag">차트</span></div>
+        <div class="term-body"><p>일정 기간 주가의 평균값을 이은 선. <strong>5일선(단기), 20일선(단기~중기), 60일선(중기), 120일선(장기)</strong>. 5일선이 20일선을 위로 돌파하면 '골든크로스(상승 신호)', 아래로 이탈하면 '데드크로스(하락 신호)'.</p></div>
+      </div>
+      <div class="term-card" data-cat="chart" data-kw="캔들 양봉 음봉 봉차트">
+        <div class="term-hd"><span class="term-name">캔들 차트</span><span class="term-ko">Candlestick Chart</span><span class="term-tag">차트</span></div>
+        <div class="term-body"><p>일본에서 발명된 주가 시각화 방법. 시가·종가·고가·저가를 한 눈에 파악. <strong>양봉(빨간/흰 몸통)</strong>: 종가>시가(상승일. <strong>음봉(파란/검정 몸통)</strong>: 종가&lt;시가(하락일). 윗꼬리와 아래꼬리는 고가/저가 범위를 나타냅니다.</p></div>
+      </div>
+      <div class="term-card" data-cat="chart" data-kw="RSI 과매수 과매도 상대강도지수">
+        <div class="term-hd"><span class="term-name">RSI</span><span class="term-ko">상대강도지수 (Relative Strength Index)</span><span class="term-tag">차트</span></div>
+        <div class="term-body"><p>0~100 사이 값으로 나타내는 과매수/과매도 지표. <strong>70 이상: 과매수 → 조정 가능성</strong>. <strong>30 이하: 과매도 → 반등 가능성</strong>. 추세가 강할 때는 70 이상이 지속되기도 합니다.</p></div>
+      </div>
+      <div class="term-card" data-cat="chart" data-kw="지지선 저항선 support resistance">
+        <div class="term-hd"><span class="term-name">지지선 / 저항선</span><span class="term-ko">Support / Resistance</span><span class="term-tag">차트</span></div>
+        <div class="term-body"><p><strong>지지선</strong>: 주가가 여러 번 반등한 가격대. 매수세가 강한 구간. <strong>저항선</strong>: 주가가 여러 번 막힌 가격대. 매도세가 강한 구간. 저항선을 돌파하면 새로운 지지선이 됩니다.</p></div>
+      </div>
+    </div>
+  </section>
+
+</main>
+<footer>
+  <p>© 2025 StockMind AI. All rights reserved.</p>
+  <nav>
+    <a href="/">홈</a><a href="/guide.html">투자가이드</a><a href="/beginner.html">입문가이드</a>
+    <a href="/sector.html">섹터분석</a><a href="/privacy.html">개인정보처리방침</a><a href="/terms.html">이용약관</a>
+  </nav>
+</footer>
+<script>
+function filterTerms(q) {
+  var kw = q.toLowerCase();
+  document.querySelectorAll('.term-card').forEach(function(c) {
+    var data = (c.getAttribute('data-kw') || '') + ' ' + (c.textContent || '');
+    c.classList.toggle('hidden', kw.length > 0 && !data.toLowerCase().includes(kw));
+  });
+}
+function filterCat(cat, btn) {
+  document.querySelectorAll('.cat').forEach(function(b) { b.classList.remove('active'); });
+  btn.classList.add('active');
+  document.getElementById('searchInput').value = '';
+  document.querySelectorAll('.term-card').forEach(function(c) {
+    c.classList.toggle('hidden', cat !== 'all' && c.getAttribute('data-cat') !== cat);
+  });
+}
+</script>
+</body>
+</html>

@@ -562,6 +562,55 @@ function autoAnalysis(prompt) {
   };
 }
 
+
+// ── 네이버 종목토론실 ──────────────────────────────────────────
+async function fetchDiscuss(cd, pageSize = 15) {
+  // 시도 1: m.stock.naver.com 모바일 API
+  for (const url of [
+    `https://m.stock.naver.com/api/discuss/stock/${cd}/topics?pageSize=${pageSize}&page=0`,
+    `https://m.stock.naver.com/api/discuss/stock/${cd}/discussions?pageSize=${pageSize}&page=0`,
+    `https://m.stock.naver.com/api/discuss/stock/${cd}/board?pageSize=${pageSize}&page=0`,
+  ]) {
+    const d = await safeFetch(url, { headers: KR_HDR, _timeout: 6000 });
+    if (!d) continue;
+    // 응답 구조 파악
+    const list = d.items ?? d.list ?? d.discussions ?? d.topics ?? d.data?.items ?? [];
+    if (!Array.isArray(list) || list.length === 0) continue;
+    return list.slice(0, pageSize).map(it => ({
+      title:   String(it.title ?? it.subject ?? it.topicTitle ?? "").trim(),
+      content: String(it.content ?? it.body ?? it.summary ?? it.contentSummary ?? "").slice(0, 100).trim(),
+      writer:  String(it.writer ?? it.userId ?? it.nickname ?? "익명").trim(),
+      date:    String(it.writeDate ?? it.createdAt ?? it.date ?? "").slice(0, 10),
+      views:   Number(it.viewCount ?? it.readCount ?? it.views ?? 0),
+      replies: Number(it.replyCount ?? it.commentCount ?? 0),
+      upVote:  Number(it.upVoteCount ?? it.likeCount ?? it.goodCount ?? 0),
+      url:     it.url ?? it.link ?? `https://finance.naver.com/item/board_read.nhn?code=${cd}`,
+    })).filter(it => it.title.length > 0);
+  }
+
+  // 시도 2: finance.naver.com 구형 API (JSON 형태)
+  const d2 = await safeFetch(
+    `https://finance.naver.com/item/board_reader.nhn?code=${cd}&page=1`,
+    { headers: { ...KR_HDR, "Referer": "https://finance.naver.com/" }, _timeout: 6000 }
+  );
+  if (d2) {
+    const list2 = d2.result?.articleList ?? d2.articleList ?? d2.list ?? [];
+    if (Array.isArray(list2) && list2.length > 0) {
+      return list2.slice(0, pageSize).map(it => ({
+        title:   String(it.title ?? "").trim(),
+        content: String(it.body ?? it.content ?? "").slice(0, 100).trim(),
+        writer:  String(it.userId ?? it.writer ?? "익명").trim(),
+        date:    String(it.writeDate ?? "").slice(0, 10),
+        views:   Number(it.viewCount ?? 0),
+        replies: Number(it.replyCount ?? 0),
+        upVote:  Number(it.goodCount ?? 0),
+        url:     `https://finance.naver.com/item/board_read.nhn?code=${cd}&article_id=${it.articleId ?? ""}`,
+      })).filter(it => it.title.length > 0);
+    }
+  }
+  return [];
+}
+
 // ── 라우터 ───────────────────────────────────────────────────
 export default {
   async fetch(req, env) {
@@ -573,7 +622,7 @@ export default {
 
       if (method === "OPTIONS") return new Response(null, { headers: CORS });
 
-      if (path === "/api/health") return J({ ok: true, v: 16, t: new Date().toISOString() });
+      if (path === "/api/health") return J({ ok: true, v: 17, t: new Date().toISOString() });
 
       if (path === "/api/search" && method === "GET") {
         const q = (url.searchParams.get("q") ?? "").trim();
@@ -606,6 +655,15 @@ export default {
         const body = await req.json().catch(() => ({}));
         if (!body?.prompt) return J({ ok: false, error: "prompt가 필요합니다" });
         return await doAnalyze(body.prompt, env);
+      }
+
+      // 종목토론실
+      if (path === "/api/discuss" && method === "GET") {
+        const code = (url.searchParams.get("code") ?? "").trim().replace(/[^0-9]/g, "");
+        const size = Math.min(30, Math.max(5, parseInt(url.searchParams.get("size") ?? "15", 10)));
+        if (!code || !/^\d{6}$/.test(code)) return J({ ok: false, error: "6자리 종목코드 필요" });
+        const posts = await fetchDiscuss(code, size);
+        return J({ ok: true, code, count: posts.length, posts });
       }
 
       // 그 외 요청은 정적 파일

@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>주식 섹터별 분석 가이드 — StockMind AI | 반도체, 배터리, 바이오, 금융</title>
+<meta name="description" content="코스피 코스닥 주요 섹터별 대표 종목과 투자 포인트를 분석합니다. 반도체, 2차전지, 바이오, 금융, IT, 소비재 섹터의 특성과 핵심 종목을 정리했습니다.">
+<meta name="keywords" content="주식섹터분석,반도체주식,2차전지주식,바이오주식,금융주식,삼성전자,sk하이닉스,에코프로,셀트리온,섹터투자">
+<!-- Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-STOCKMIND01"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-STOCKMIND01');</script>
+<!-- Google AdSense -->
+<meta name="google-adsense-account" content="ca-pub-7938956361770773">
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7938956361770773" crossorigin="anonymous"></script>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Noto+Sans+KR:wght@400;500;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#07090d;--bg2:#0d1117;--bg3:#161b22;--brd:#21262d;--acc:#00d4aa;--tx:#e6edf3;--tx2:#8b949e;--tx3:#484f58;--up:#3fb950;--dn:#f85149;--r:12px}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--tx);font-family:'Noto Sans KR',sans-serif;min-height:100vh}
+header{position:sticky;top:0;z-index:100;background:rgba(7,9,13,.96);backdrop-filter:blur(16px);border-bottom:1px solid var(--brd);display:flex;align-items:center;padding:0 28px;height:56px;gap:16px}
+.logo{font-family:'Bebas Neue',sans-serif;font-size:1.55rem;letter-spacing:2px;text-decoration:none;color:var(--tx)}.logo span{color:var(--acc)}
+.hnav{margin-left:auto;display:flex;gap:14px;align-items:center}
+.hnav a{color:var(--tx2);font-size:.78rem;text-decoration:none;transition:color .2s}.hnav a:hover{color:var(--acc)}
+main{max-width:960px;margin:0 auto;padding:52px 24px 80px}
+.badge{display:inline-block;font-family:'JetBrains Mono',monospace;font-size:.65rem;letter-spacing:2px;text-transform:uppercase;color:var(--acc);border:1px solid rgba(0,212,170,.25);padding:2px 12px;border-radius:100px;margin-bottom:10px}
+h1{font-family:'Bebas Neue',sans-serif;font-size:clamp(2.2rem,6vw,3.2rem);line-height:1.08;letter-spacing:1px;margin-bottom:10px}
+h1 em{font-style:normal;color:var(--acc)}
+.intro{color:var(--tx2);font-size:.92rem;line-height:2;margin-bottom:32px}
+/* 섹터 카드 */
+.sector-section{margin-bottom:52px;scroll-margin-top:72px}
+.sector-head{display:flex;align-items:center;gap:12px;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--brd)}
+.sector-icon{font-size:1.8rem}
+.sector-title-wrap h2{font-family:'Bebas Neue',sans-serif;font-size:1.7rem;letter-spacing:.5px;line-height:1.1}
+.sector-title-wrap h2 em{font-style:normal;color:var(--acc)}
+.sector-title-wrap p{font-size:.8rem;color:var(--tx2);margin-top:2px}
+.sector-body{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.sec-desc{grid-column:1/-1}
+.sec-desc p{color:var(--tx2);font-size:.9rem;line-height:2;margin-bottom:8px}
+.sec-desc p strong{color:var(--tx)}
+/* 투자 포인트 */
+.inv-points{background:rgba(0,212,170,.05);border:1px solid rgba(0,212,170,.15);border-radius:var(--r);padding:14px 18px;margin:12px 0}
+.inv-points h4{font-size:.78rem;font-family:'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:1px;color:var(--acc);margin-bottom:8px}
+.inv-points ul{list-style:none}
+.inv-points li{font-size:.85rem;color:var(--tx2);padding:3px 0;line-height:1.7}
+.inv-points li::before{content:'→ ';color:var(--acc)}
+/* 리스크 */
+.risk-box{background:rgba(248,81,73,.04);border:1px solid rgba(248,81,73,.15);border-radius:var(--r);padding:14px 18px;margin:12px 0}
+.risk-box h4{font-size:.78rem;font-family:'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:1px;color:var(--dn);margin-bottom:8px}
+.risk-box ul{list-style:none}
+.risk-box li{font-size:.85rem;color:var(--tx2);padding:3px 0;line-height:1.7}
+.risk-box li::before{content:'⚠ ';color:var(--dn)}
+/* 종목 그리드 */
+.stocks-panel{grid-column:1/-1}
+.stocks-panel h4{font-size:.78rem;font-family:'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:1px;color:var(--tx3);margin-bottom:10px}
+.stock-chips{display:flex;flex-wrap:wrap;gap:8px}
+.stock-chip{background:var(--bg2);border:1px solid var(--brd);border-radius:8px;padding:8px 14px;cursor:pointer;transition:all .2s;text-decoration:none;display:inline-flex;align-items:center;gap:7px}
+.stock-chip:hover{border-color:rgba(0,212,170,.4);background:rgba(0,212,170,.06);transform:translateY(-1px)}
+.sc-code{font-family:'JetBrains Mono',monospace;font-size:.65rem;color:var(--tx3)}
+.sc-name{font-size:.84rem;font-weight:500}
+/* 광고 */
+.ad-slot{width:100%;min-height:90px;margin:28px 0}
+/* 면책 */
+.disc{background:rgba(255,179,0,.04);border:1px solid rgba(255,179,0,.18);border-radius:var(--r);padding:14px 18px;margin-top:36px}
+.disc p{color:#ffb300;font-size:.82rem;line-height:1.9;margin:0}
+footer{text-align:center;padding:28px;border-top:1px solid var(--brd);color:var(--tx3);font-size:.74rem;line-height:2}
+footer nav{display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin-top:8px}
+footer nav a{color:var(--tx3);text-decoration:none;font-size:.72rem;transition:color .2s}
+footer nav a:hover{color:var(--acc)}
+@media(max-width:640px){.sector-body{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header>
+  <a href="/" class="logo">STOCK<span>MIND</span></a>
+  <nav class="hnav">
+    <a href="/guide.html">투자가이드</a>
+    <a href="/glossary.html">용어사전</a>
+    <a href="/beginner.html">입문가이드</a>
+  </nav>
+</header>
+<main>
+  <div class="badge">섹터 분석</div>
+  <h1>국내 주요 <em>섹터 분석</em></h1>
+  <p class="intro">코스피·코스닥의 대표 섹터별 특성과 투자 포인트를 정리했습니다.<br>종목을 클릭하면 StockMind AI에서 바로 분석합니다.</p>
+
+  <div class="ad-slot">
+    <ins class="adsbygoogle" style="display:block" data-ad-format="autorelaxed" data-ad-client="ca-pub-7938956361770773" data-ad-slot="5368010468"></ins>
+    <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+  </div>
+
+  <!-- 반도체 -->
+  <section class="sector-section" id="semiconductor">
+    <div class="sector-head">
+      <div class="sector-icon">💾</div>
+      <div class="sector-title-wrap">
+        <h2>반도체 <em>섹터</em></h2>
+        <p>코스피 시가총액 1~2위 삼성전자·SK하이닉스가 이끄는 한국 핵심 산업</p>
+      </div>
+    </div>
+    <div class="sector-body">
+      <div class="sec-desc">
+        <p>반도체 섹터는 <strong>메모리 반도체(DRAM, NAND)</strong>와 <strong>시스템 반도체(파운드리, 팹리스)</strong>로 구분됩니다. 한국은 삼성전자와 SK하이닉스가 글로벌 DRAM 시장의 약 70%를 점유하는 메모리 반도체 강국입니다.</p>
+        <p>반도체는 <strong>AI, 서버, 스마트폰, 자동차</strong> 등 모든 산업의 기반이 되는 소재로, 글로벌 AI 투자 확대가 HBM(고대역폭메모리) 수요를 폭발적으로 늘리고 있습니다. SK하이닉스는 HBM 시장에서 압도적 1위를 유지하고 있습니다.</p>
+      </div>
+      <div class="inv-points">
+        <h4>투자 포인트</h4>
+        <ul>
+          <li>AI 서버 수요 증가 → HBM, DDR5 수요 급증</li>
+          <li>메모리 업황 사이클 저점 매수 전략</li>
+          <li>글로벌 반도체 재고 사이클 확인 필수</li>
+          <li>미국 반도체 수출 규제 정책 모니터링</li>
+        </ul>
+      </div>
+      <div class="risk-box">
+        <h4>주요 리스크</h4>
+        <ul>
+          <li>반도체 업황 사이클 — 과잉공급 시 급락</li>
+          <li>미·중 무역 분쟁, 대중국 수출 규제</li>
+          <li>삼성전자 실적 변동 → 코스피 전체 영향</li>
+        </ul>
+      </div>
+      <div class="stocks-panel">
+        <h4>대표 종목 — 클릭하면 AI 분석</h4>
+        <div class="stock-chips">
+          <a class="stock-chip" href="/?q=005930"><span class="sc-code">005930</span><span class="sc-name">삼성전자</span></a>
+          <a class="stock-chip" href="/?q=000660"><span class="sc-code">000660</span><span class="sc-name">SK하이닉스</span></a>
+          <a class="stock-chip" href="/?q=006400"><span class="sc-code">006400</span><span class="sc-name">삼성SDI</span></a>
+          <a class="stock-chip" href="/?q=005930"><span class="sc-code">005935</span><span class="sc-name">삼성전자우</span></a>
+          <a class="stock-chip" href="/?q=011070"><span class="sc-code">011070</span><span class="sc-name">LG이노텍</span></a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="ad-slot">
+    <ins class="adsbygoogle" style="display:block" data-ad-format="autorelaxed" data-ad-client="ca-pub-7938956361770773" data-ad-slot="3808518808"></ins>
+    <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+  </div>
+
+  <!-- 2차전지 -->
+  <section class="sector-section" id="battery">
+    <div class="sector-head">
+      <div class="sector-icon">🔋</div>
+      <div class="sector-title-wrap">
+        <h2>2차전지 <em>섹터</em></h2>
+        <p>전기차·ESS 핵심 소재, 글로벌 에너지 전환의 수혜 섹터</p>
+      </div>
+    </div>
+    <div class="sector-body">
+      <div class="sec-desc">
+        <p>2차전지 섹터는 <strong>셀(배터리 셀 제조)</strong>, <strong>소재(양극재·음극재·분리막·전해질)</strong>, <strong>장비</strong> 등으로 구성됩니다. 한국은 LG에너지솔루션, 삼성SDI, SK온이 글로벌 배터리 시장 점유율 상위를 차지하고 있습니다.</p>
+        <p>전기차 전환과 에너지저장장치(ESS) 수요 증가가 장기 성장 동력입니다. 특히 <strong>에코프로 그룹</strong>이 이끄는 양극재 소재주는 2023년 급등 후 조정을 겪으며 다시 관심을 받고 있습니다.</p>
+      </div>
+      <div class="inv-points">
+        <h4>투자 포인트</h4>
+        <ul>
+          <li>전기차 보급률 증가 → 배터리 수요 지속</li>
+          <li>미국 IRA(인플레이션 감축법) 수혜</li>
+          <li>리튬·니켈·코발트 가격 변동 모니터링</li>
+          <li>차세대 배터리(전고체, 리튬황) 기술 개발</li>
+        </ul>
+      </div>
+      <div class="risk-box">
+        <h4>주요 리스크</h4>
+        <ul>
+          <li>전기차 수요 둔화 → 배터리 수주 감소</li>
+          <li>중국 CATL 등 경쟁사 가격 공세</li>
+          <li>원자재(리튬) 가격 급등락</li>
+        </ul>
+      </div>
+      <div class="stocks-panel">
+        <h4>대표 종목 — 클릭하면 AI 분석</h4>
+        <div class="stock-chips">
+          <a class="stock-chip" href="/?q=373220"><span class="sc-code">373220</span><span class="sc-name">LG에너지솔루션</span></a>
+          <a class="stock-chip" href="/?q=006400"><span class="sc-code">006400</span><span class="sc-name">삼성SDI</span></a>
+          <a class="stock-chip" href="/?q=086520"><span class="sc-code">086520</span><span class="sc-name">에코프로</span></a>
+          <a class="stock-chip" href="/?q=247540"><span class="sc-code">247540</span><span class="sc-name">에코프로비엠</span></a>
+          <a class="stock-chip" href="/?q=051910"><span class="sc-code">051910</span><span class="sc-name">LG화학</span></a>
+          <a class="stock-chip" href="/?q=096770"><span class="sc-code">096770</span><span class="sc-name">SK이노베이션</span></a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 바이오/제약 -->
+  <section class="sector-section" id="bio">
+    <div class="sector-head">
+      <div class="sector-icon">🧬</div>
+      <div class="sector-title-wrap">
+        <h2>바이오 / 제약 <em>섹터</em></h2>
+        <p>임상 결과에 따른 높은 변동성, 성공 시 폭발적 수익</p>
+      </div>
+    </div>
+    <div class="sector-body">
+      <div class="sec-desc">
+        <p>바이오 섹터는 <strong>신약 개발(바이오텍)</strong>, <strong>바이오시밀러(복제약)</strong>, <strong>제약(전통 의약품)</strong>, <strong>의료기기</strong>로 나뉩니다. 국내에서는 셀트리온의 바이오시밀러와 삼성바이오로직스의 위탁생산(CMO)이 대표적입니다.</p>
+        <p>바이오 섹터는 <strong>임상시험 결과, FDA 허가 여부</strong>에 따라 주가가 수십% 이상 급등락하는 고변동성 특성이 있습니다. 충분한 공부 없이 단순 테마 추종 매수는 위험합니다.</p>
+      </div>
+      <div class="inv-points">
+        <h4>투자 포인트</h4>
+        <ul>
+          <li>임상 2·3상 진행 중인 파이프라인 확인</li>
+          <li>기술 수출(라이선스아웃) 계약 규모</li>
+          <li>CMO 수주 잔고 (삼성바이오로직스)</li>
+          <li>글로벌 고령화 → 만성질환 치료제 수요</li>
+        </ul>
+      </div>
+      <div class="risk-box">
+        <h4>주요 리스크</h4>
+        <ul>
+          <li>임상 실패 → 50% 이상 급락 가능</li>
+          <li>신약 개발 기간 10년 이상, 성공률 낮음</li>
+          <li>적자 기업 많아 PER 계산 어려움</li>
+        </ul>
+      </div>
+      <div class="stocks-panel">
+        <h4>대표 종목 — 클릭하면 AI 분석</h4>
+        <div class="stock-chips">
+          <a class="stock-chip" href="/?q=207940"><span class="sc-code">207940</span><span class="sc-name">삼성바이오로직스</span></a>
+          <a class="stock-chip" href="/?q=068270"><span class="sc-code">068270</span><span class="sc-name">셀트리온</span></a>
+          <a class="stock-chip" href="/?q=128940"><span class="sc-code">128940</span><span class="sc-name">한미약품</span></a>
+          <a class="stock-chip" href="/?q=000100"><span class="sc-code">000100</span><span class="sc-name">유한양행</span></a>
+          <a class="stock-chip" href="/?q=326030"><span class="sc-code">326030</span><span class="sc-name">SK바이오팜</span></a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="ad-slot">
+    <ins class="adsbygoogle" style="display:block" data-ad-format="autorelaxed" data-ad-client="ca-pub-7938956361770773" data-ad-slot="5368010468"></ins>
+    <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+  </div>
+
+  <!-- 금융 -->
+  <section class="sector-section" id="finance">
+    <div class="sector-head">
+      <div class="sector-icon">🏦</div>
+      <div class="sector-title-wrap">
+        <h2>금융 <em>섹터</em></h2>
+        <p>저PBR 대표 섹터, 금리 환경에 민감하게 반응</p>
+      </div>
+    </div>
+    <div class="sector-body">
+      <div class="sec-desc">
+        <p>국내 금융 섹터는 <strong>4대 금융지주(KB·신한·하나·우리)</strong>가 핵심입니다. PBR이 0.3~0.6배에 불과한 전통적 저평가 섹터로, 정부의 <strong>기업가치 제고(밸류업) 프로그램</strong> 이후 투자자 관심이 높아졌습니다.</p>
+        <p>금리 상승기에는 순이자마진(NIM) 개선으로 이익이 늘고, 금리 하락기에는 대출 성장이 기대됩니다. <strong>배당수익률이 높아</strong> 중장기 배당 투자처로도 선호됩니다.</p>
+      </div>
+      <div class="inv-points">
+        <h4>투자 포인트</h4>
+        <ul>
+          <li>저PBR — 주주환원(자사주 매입·소각) 기대</li>
+          <li>배당수익률 3~5% 고배당 매력</li>
+          <li>금리 상승기 NIM 확대 → 이익 증가</li>
+          <li>정부 밸류업 정책 수혜 기대</li>
+        </ul>
+      </div>
+      <div class="risk-box">
+        <h4>주요 리스크</h4>
+        <ul>
+          <li>경기 침체 → 부실 여신 증가</li>
+          <li>금리 급하락 시 NIM 축소</li>
+          <li>부동산 PF(프로젝트 파이낸싱) 리스크</li>
+        </ul>
+      </div>
+      <div class="stocks-panel">
+        <h4>대표 종목 — 클릭하면 AI 분석</h4>
+        <div class="stock-chips">
+          <a class="stock-chip" href="/?q=105560"><span class="sc-code">105560</span><span class="sc-name">KB금융</span></a>
+          <a class="stock-chip" href="/?q=055550"><span class="sc-code">055550</span><span class="sc-name">신한지주</span></a>
+          <a class="stock-chip" href="/?q=086790"><span class="sc-code">086790</span><span class="sc-name">하나금융지주</span></a>
+          <a class="stock-chip" href="/?q=316140"><span class="sc-code">316140</span><span class="sc-name">우리금융지주</span></a>
+          <a class="stock-chip" href="/?q=024110"><span class="sc-code">024110</span><span class="sc-name">기업은행</span></a>
+          <a class="stock-chip" href="/?q=032830"><span class="sc-code">032830</span><span class="sc-name">삼성생명</span></a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 인터넷/플랫폼 -->
+  <section class="sector-section" id="internet">
+    <div class="sector-head">
+      <div class="sector-icon">📱</div>
+      <div class="sector-title-wrap">
+        <h2>인터넷 / 플랫폼 <em>섹터</em></h2>
+        <p>네이버·카카오 중심의 국내 디지털 경제 핵심</p>
+      </div>
+    </div>
+    <div class="sector-body">
+      <div class="sec-desc">
+        <p>네이버와 카카오가 양분하는 국내 인터넷 플랫폼 섹터입니다. 검색·커머스·핀테크·콘텐츠·클라우드 등 다양한 사업을 영위합니다. <strong>플랫폼 비즈니스는 규모의 경제</strong>가 작동해 한번 1위를 차지하면 유지력이 강합니다.</p>
+        <p>2021~2022년 규제 리스크와 금리 상승으로 큰 폭 하락 후, AI·커머스 성장을 기반으로 회복 중입니다.</p>
+      </div>
+      <div class="inv-points">
+        <h4>투자 포인트</h4>
+        <ul>
+          <li>AI 서비스 적용 확대 (네이버 AI 검색, 카카오 AI)</li>
+          <li>커머스·핀테크 성장성</li>
+          <li>클라우드 사업 B2B 확대</li>
+          <li>글로벌 진출 (네이버 웹툰, LINE)</li>
+        </ul>
+      </div>
+      <div class="risk-box">
+        <h4>주요 리스크</h4>
+        <ul>
+          <li>카카오 지배구조·규제 리스크</li>
+          <li>구글·메타 등 글로벌 빅테크 경쟁</li>
+          <li>광고 수익 경기 민감성</li>
+        </ul>
+      </div>
+      <div class="stocks-panel">
+        <h4>대표 종목 — 클릭하면 AI 분석</h4>
+        <div class="stock-chips">
+          <a class="stock-chip" href="/?q=035420"><span class="sc-code">035420</span><span class="sc-name">NAVER</span></a>
+          <a class="stock-chip" href="/?q=035720"><span class="sc-code">035720</span><span class="sc-name">카카오</span></a>
+          <a class="stock-chip" href="/?q=323410"><span class="sc-code">323410</span><span class="sc-name">카카오뱅크</span></a>
+          <a class="stock-chip" href="/?q=377300"><span class="sc-code">377300</span><span class="sc-name">카카오페이</span></a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="ad-slot">
+    <ins class="adsbygoogle" style="display:block" data-ad-format="autorelaxed" data-ad-client="ca-pub-7938956361770773" data-ad-slot="3808518808"></ins>
+    <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+  </div>
+
+  <!-- 엔터/게임 -->
+  <section class="sector-section" id="entertainment">
+    <div class="sector-head">
+      <div class="sector-icon">🎮</div>
+      <div class="sector-title-wrap">
+        <h2>엔터테인먼트 / 게임 <em>섹터</em></h2>
+        <p>K-POP, 웹툰, 게임으로 글로벌 시장 공략</p>
+      </div>
+    </div>
+    <div class="sector-body">
+      <div class="sec-desc">
+        <p>K-POP의 글로벌 인기에 힘입어 하이브·SM·JYP·YG 등 엔터테인먼트 기업들이 주목받고 있습니다. 아티스트의 글로벌 팬덤을 기반으로 <strong>음반, 공연, 굿즈, 팬 플랫폼</strong>에서 수익을 창출합니다.</p>
+        <p>게임 섹터는 크래프톤(배틀그라운드), 엔씨소프트, 넷마블, 카카오게임즈 등이 모바일·PC 게임 시장에서 경쟁합니다.</p>
+      </div>
+      <div class="inv-points">
+        <h4>투자 포인트</h4>
+        <ul>
+          <li>K-POP 글로벌 팬덤 확대</li>
+          <li>콘서트 투어 일정 및 앨범 발매 사이클</li>
+          <li>게임 신작 출시 및 글로벌 서비스 확장</li>
+          <li>위버스(팬 플랫폼) 글로벌 성장</li>
+        </ul>
+      </div>
+      <div class="risk-box">
+        <h4>주요 리스크</h4>
+        <ul>
+          <li>주요 아티스트 군입대·계약만료 리스크</li>
+          <li>게임 신작 흥행 실패</li>
+          <li>중국 게임 시장 규제</li>
+        </ul>
+      </div>
+      <div class="stocks-panel">
+        <h4>대표 종목 — 클릭하면 AI 분석</h4>
+        <div class="stock-chips">
+          <a class="stock-chip" href="/?q=352820"><span class="sc-code">352820</span><span class="sc-name">하이브</span></a>
+          <a class="stock-chip" href="/?q=041510"><span class="sc-code">041510</span><span class="sc-name">SM엔터테인먼트</span></a>
+          <a class="stock-chip" href="/?q=035900"><span class="sc-code">035900</span><span class="sc-name">JYP엔터</span></a>
+          <a class="stock-chip" href="/?q=122870"><span class="sc-code">122870</span><span class="sc-name">YG엔터테인먼트</span></a>
+          <a class="stock-chip" href="/?q=259960"><span class="sc-code">259960</span><span class="sc-name">크래프톤</span></a>
+          <a class="stock-chip" href="/?q=036570"><span class="sc-code">036570</span><span class="sc-name">엔씨소프트</span></a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="disc">
+    <p>⚠️ <strong>면책 고지</strong>: 본 페이지의 섹터 분석 및 종목 정보는 교육 목적이며 투자 권유가 아닙니다. 투자의 최종 판단과 책임은 투자자 본인에게 있습니다.</p>
+  </div>
+</main>
+<footer>
+  <p>© 2025 StockMind AI. All rights reserved.</p>
+  <nav>
+    <a href="/">홈</a><a href="/guide.html">투자가이드</a><a href="/beginner.html">입문가이드</a>
+    <a href="/glossary.html">용어사전</a><a href="/privacy.html">개인정보처리방침</a><a href="/terms.html">이용약관</a>
+  </nav>
+</footer>
+<script>
+// 종목 클릭 시 홈에서 검색 → /?q=종목코드 형태로 이동
+// index.html에서 URL 파라미터를 읽어 자동 검색하는 기능과 연동
+document.querySelectorAll('.stock-chip').forEach(function(chip) {
+  chip.addEventListener('click', function(e) {
+    // 링크로 이동 (href="/?q=종목코드")
+  });
+});
+</script>
+</body>
+</html>
