@@ -89,29 +89,54 @@ async function searchKR(q) {
 
 // ── Yahoo Finance 검색 (미국 주식/ETF) ───────────────────────
 async function searchUS(q) {
-  // v1/finance/search: 티커·회사명 모두 검색 가능
-  const d = await safeFetch(
-    `https://query1.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(q)}&quotesCount=8&newsCount=0&enableFuzzyQuery=true&enableNavLinks=false`,
-    { headers: { "User-Agent": UA, "Accept": "application/json" }, _timeout: 6000 }
-  );
-  if (!d?.quotes) return [];
+  const HDR = { "User-Agent": UA, "Accept": "application/json" };
+
+  // v1/finance/search 시도 (query1 → query2 순서)
+  let quotes = [];
+  for (const host of ["query1", "query2"]) {
+    const d = await safeFetch(
+      `https://${host}.finance.yahoo.com/v1/finance/search` +
+      `?q=${encodeURIComponent(q)}&quotesCount=10&newsCount=0&enableFuzzyQuery=true&enableNavLinks=false`,
+      { headers: HDR, _timeout: 6000 }
+    );
+    if (d?.quotes?.length) { quotes = d.quotes; break; }
+  }
+
   const out = [];
-  for (const qt of d.quotes) {
+  for (const qt of quotes) {
     const sym  = String(qt.symbol ?? "").trim();
     const nm   = String(qt.longname ?? qt.shortname ?? sym).trim();
     const type = String(qt.quoteType ?? "").toUpperCase();
     const exch = String(qt.exchange ?? "").toUpperCase();
-    if (!sym || sym.length > 6) continue;
-    // 주식·ETF만, OTC/pink sheet 제외
-    if (!["EQUITY","ETF"].includes(type)) continue;
-    if (["PNK","OTC","OTCBB"].includes(exch)) continue;
-    // 6자리 숫자(한국 코드) 제외
-    if (/^\d{6}$/.test(sym)) continue;
+    if (!sym || sym.length > 8) continue;           // ETF 접미어 고려해 8까지
+    if (!["EQUITY","ETF","MUTUALFUND"].includes(type)) continue;
+    if (/^\d{6}$/.test(sym)) continue;              // 한국 코드 제외
+    // 거래소별 마켓명 (OTC/PNK도 포함 - 소형 바이오 대응)
     const mkt = ["NMS","NGM","NCM"].includes(exch) ? "NASDAQ"
               : ["NYQ","ASE","PCX"].includes(exch) ? "NYSE"
+              : ["PNK","OTC","OTCBB"].includes(exch) ? "OTC"
               : type === "ETF" ? "ETF" : "US";
     out.push({ symbol: sym, code: sym, name: nm, market: mkt });
   }
+
+  // Yahoo search 결과가 없으면: 입력이 짧은 단어일 때 직접 quote 시도
+  if (out.length === 0) {
+    const words = q.trim().toUpperCase().split(/\s+/);
+    const candidates = words.filter(w => /^[A-Z]{1,6}$/.test(w));
+    for (const ticker of candidates.slice(0, 3)) {
+      const qd = await safeFetch(
+        `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(ticker)}&fields=longName,shortName,exchangeName,quoteType`,
+        { headers: HDR, _timeout: 5000 }
+      );
+      const r = qd?.quoteResponse?.result?.[0];
+      if (r && r.regularMarketPrice !== undefined) {
+        const mkt2 = ["NMS","NGM","NCM"].includes(r.exchange ?? "") ? "NASDAQ"
+                   : ["NYQ","ASE"].includes(r.exchange ?? "") ? "NYSE" : "US";
+        out.push({ symbol: ticker, code: ticker, name: r.longName ?? r.shortName ?? ticker, market: mkt2 });
+      }
+    }
+  }
+
   return out;
 }
 
@@ -122,9 +147,11 @@ async function searchAll(q) {
   if (/^\d+$/.test(lq)) {
     return J({ ok: true, results: await searchKR(lq) });
   }
-  // 알파벳 포함 → US 우선 + KR 병행
+  // 알파벳 포함 (영문 회사명·티커 모두) → US 우선 + KR 병행
   if (/[A-Za-z]/.test(lq)) {
-    const [kr, us] = await Promise.all([searchKR(lq), searchUS(lq)]);
+    const [krRes, usRes] = await Promise.allSettled([searchKR(lq), searchUS(lq)]);
+    const kr = krRes.status === "fulfilled" ? krRes.value : [];
+    const us = usRes.status === "fulfilled" ? usRes.value : [];
     // US 결과 앞에, KR 뒤에 (중복 제거)
     const seen = new Set();
     const merged = [];

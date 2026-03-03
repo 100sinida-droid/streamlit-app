@@ -169,8 +169,8 @@ main{max-width:1100px;margin:0 auto;padding:0 24px 80px}
 .toast.ok{border-color:var(--up);color:var(--up)}
 footer{text-align:center;padding:32px 24px;border-top:1px solid var(--brd);color:var(--tx3);font-size:.74rem;line-height:2}
 /* 광고 슬롯 */
-.ad-slot{width:100%;min-height:90px;margin:24px 0;background:rgba(255,255,255,.02);border:1px dashed rgba(255,255,255,.06);border-radius:var(--r);display:flex;align-items:center;justify-content:center;color:var(--tx3);font-size:.75rem;font-family:'JetBrains Mono',monospace}
-.ad-slot:empty::after{content:'광고 영역'}
+.ad-slot{width:100%;min-height:90px;margin:24px 0;display:block;overflow:hidden}
+
 /* 투자 가이드 섹션 */
 .guide-sec{margin-top:52px}
 .guide-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
@@ -225,6 +225,11 @@ footer{text-align:center;padding:32px 24px;border-top:1px solid var(--brd);color
 
 /* 장 상태 배지 */
 #rExtraPrice{border-left:2px solid rgba(0,212,170,.3);padding-left:8px;margin-top:5px}
+
+/* 검색 결과 없을 때 직접 시도 버튼 */
+.sg-empty-btns{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:10px}
+.sg-try-btn{background:rgba(0,212,170,.12);border:1px solid rgba(0,212,170,.3);color:var(--acc);padding:6px 14px;border-radius:8px;font-size:.78rem;cursor:pointer;transition:background .2s}
+.sg-try-btn:hover{background:rgba(0,212,170,.25)}
 </style>
 <!-- Google Analytics -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-STOCKMIND01"></script>
@@ -329,11 +334,14 @@ footer{text-align:center;padding:32px 24px;border-top:1px solid var(--brd);color
   <!-- ★ 애드센스 광고 슬롯 1 (메인 콘텐츠 사이) -->
   <div class="ad-slot" id="adSlot1">
 <ins class="adsbygoogle"
-     style="display:block"
-     data-ad-format="autorelaxed"
+     style="display:block;min-height:90px"
      data-ad-client="ca-pub-7938956361770773"
-     data-ad-slot="5368010468"></ins>
-<script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+     data-ad-slot="5368010468"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+  try { (adsbygoogle = window.adsbygoogle || []).push({}); } catch(e) {}
+</script>
   </div>
 
   <!-- 투자 핵심 원칙 (정적 콘텐츠 - SEO + 애드센스 가치) -->
@@ -373,11 +381,14 @@ footer{text-align:center;padding:32px 24px;border-top:1px solid var(--brd);color
   <!-- ★ 애드센스 광고 슬롯 2 (콘텐츠 하단) -->
   <div class="ad-slot" id="adSlot2">
 <ins class="adsbygoogle"
-     style="display:block"
-     data-ad-format="autorelaxed"
+     style="display:block;min-height:90px"
      data-ad-client="ca-pub-7938956361770773"
-     data-ad-slot="3808518808"></ins>
-<script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+     data-ad-slot="3808518808"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+  try { (adsbygoogle = window.adsbygoogle || []).push({}); } catch(e) {}
+</script>
   </div>
 
   <section class="ps">
@@ -1152,10 +1163,21 @@ function showSugAndSearch(nameQuery) {
       G('btn').textContent = '분석하기';
 
       if (results.length === 0) {
+        // 영문 입력이면 단어들을 티커 후보로 직접 시도 버튼 제공
+        var words = nameQuery.trim().toUpperCase().split(/\s+/);
+        var tickerCands = words.filter(function(w) { return /^[A-Z]{1,6}$/.test(w); });
+        var btnHtml = '';
+        if (tickerCands.length > 0) {
+          btnHtml = '<div class="sg-empty-btns">' +
+            tickerCands.slice(0, 3).map(function(tk) {
+              return '<button class="sg-try-btn" onclick="(function(){hideSug();G(\'q\').value=\'' + tk + '\';doSearch(\'' + tk + '\',\'' + tk + '\');})()">🔍 ' + tk + ' 직접 검색</button>';
+            }).join('') + '</div>';
+        }
         G('sug').innerHTML = '<div class="sg-empty">' +
           '<div class="sg-empty-icon">🔍</div>' +
-          '<div class="sg-empty-txt"><strong>' + nameQuery + '</strong>에 대한 검색 결과가 없습니다</div>' +
-          '<div class="sg-empty-hint">다른 키워드나 종목 코드로 검색해보세요 (예: 005930, AAPL)</div>' +
+          '<div class="sg-empty-txt"><strong>' + nameQuery + '</strong> 검색 결과 없음</div>' +
+          '<div class="sg-empty-hint">티커 코드로 검색하면 더 정확합니다 (예: ERNA, AAPL, 005930)</div>' +
+          btnHtml +
           '</div>';
         G('sug').classList.add('open');
         return;
