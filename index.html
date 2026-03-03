@@ -1,6 +1,13 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
+<!-- Google Tag Manager -->
+<script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+})(window,document,'script','dataLayer','GTM-NK2DTPPB');</script>
+<!-- End Google Tag Manager -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>StockMind AI — 코스피 코스닥 미국 주식 AI 실시간 분석</title>
@@ -165,7 +172,7 @@ main{max-width:1100px;margin:0 auto;padding:0 24px 80px}
 @keyframes sk{to{background-position:-200% 0}}
 /* toast */
 .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#0d1117;border:1px solid var(--brd);color:var(--tx2);padding:10px 22px;border-radius:11px;font-size:.84rem;z-index:9999;box-shadow:0 8px 28px rgba(0,0,0,.6);max-width:88vw;text-align:center;line-height:1.5;animation:fu .3s ease}
-.toast.err{border-color:var(--dn);color:var(--dn)}
+.toast.err{border-color:var(--dn);color:var(--dn)}.toast.info{border-color:var(--acc);color:var(--acc)}
 .toast.ok{border-color:var(--up);color:var(--up)}
 footer{text-align:center;padding:32px 24px;border-top:1px solid var(--brd);color:var(--tx3);font-size:.74rem;line-height:2}
 /* 광고 슬롯 */
@@ -232,13 +239,6 @@ footer{text-align:center;padding:32px 24px;border-top:1px solid var(--brd);color
 .sg-try-btn:hover{background:rgba(0,212,170,.25)}
 </style>
 <!-- Google Analytics -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-STOCKMIND01"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-  gtag('config', 'G-STOCKMIND01');
-</script>
 <!-- Google AdSense -->
 <meta name="google-adsense-account" content="ca-pub-7938956361770773">
 <!-- AdSense: 계정 승인 후 아래 주석 해제
@@ -246,6 +246,10 @@ footer{text-align:center;padding:32px 24px;border-top:1px solid var(--brd);color
 -->
 </head>
 <body>
+<!-- Google Tag Manager (noscript) -->
+<noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-NK2DTPPB"
+height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+<!-- End Google Tag Manager (noscript) -->
 <header>
   <div class="logo">STOCK<span>MIND</span></div>
   <div class="tb"><div class="tb-track" id="tbTrack"><span style="color:#484f58;font-size:.75rem;font-family:'JetBrains Mono',monospace">로딩 중...</span></div></div>
@@ -989,6 +993,9 @@ function doSearch(sym, displayName) {
     var divs     = qd.divYield != null && qd.divYield > 0 ? fmtNum(qd.divYield, 2) + '%' : '—';
 
     var name = displayName || qd.name || sym;
+    if (!isKRW && qd._src === 'stooq') {
+      showToast('Yahoo 연결 지연 — 기본 가격 표시 (PER/PBR 미제공)', 'info');
+    }
 
     // 헤더
     G('rMkt').textContent  = qd.exchange || mkt;
