@@ -862,6 +862,182 @@ function autoAnalysis(prompt) {
 }
 
 
+
+// ══════════════════════════════════════════════════════════════
+// 뉴스 수집 + 감성분석 + 주가 예측 엔진
+// ══════════════════════════════════════════════════════════════
+
+// ── 감성 키워드 사전 ─────────────────────────────────────────
+const POS_KW = [
+  "급등","상승","호재","신고가","매수","상향","흑자","증가","성장","돌파","강세",
+  "수주","계약","호실적","배당","인수","협력","개발","출시","승인","허가","확대",
+  "반등","회복","개선","증익","신제품","실적개선","목표가상향",
+  "beat","surge","rally","upgrade","profit","growth","record","buy","strong",
+  "gain","rise","bullish","outperform","exceed","win","deal","partnership","fda",
+  "approval","positive","revenue","earnings","above","launch","expand",
+];
+const NEG_KW = [
+  "급락","하락","악재","신저가","매도","하향","적자","감소","부진","이탈","약세",
+  "손실","취소","소송","조사","벌금","리콜","부채","파산","위기","규제","제재",
+  "실적부진","목표가하향","구조조정","감원","해고",
+  "miss","drop","fall","plunge","downgrade","loss","decline","weak","negative",
+  "bearish","underperform","below","fail","recall","lawsuit","fine","debt","risk",
+  "cut","layoff","warning","concern","sell","short","fraud","investigation",
+];
+
+function scoreSentiment(title) {
+  const t = title.toLowerCase();
+  let score = 0;
+  for (const w of POS_KW) if (t.includes(w.toLowerCase())) score += 14;
+  for (const w of NEG_KW) if (t.includes(w.toLowerCase())) score -= 14;
+  return Math.max(-100, Math.min(100, score));
+}
+
+// ── 네이버 금융 뉴스 (국내 주식) ────────────────────────────
+async function fetchNaverNews(code, name) {
+  const results = [];
+
+  // 시도 1: 네이버 종목 뉴스 API
+  for (const url of [
+    `https://m.stock.naver.com/api/news/stock/${code}?pageSize=12&page=0`,
+    `https://m.stock.naver.com/api/stock/${code}/news?pageSize=12&page=0`,
+  ]) {
+    const d = await safeFetch(url, { headers: KR_HDR, _timeout: 6000 });
+    const items = d?.items ?? d?.newsList ?? d?.list ?? [];
+    for (const it of items.slice(0, 12)) {
+      const title = String(it.title ?? it.headline ?? "").trim();
+      const link  = String(it.url ?? it.link ?? it.originalUrl ?? "").trim();
+      const time  = String(it.wdate ?? it.pubDate ?? it.date ?? "").slice(0, 16);
+      const press = String(it.officeName ?? it.press ?? it.source ?? "언론사").trim();
+      if (title.length < 4) continue;
+      results.push({ title, url: link, time, press, score: scoreSentiment(title) });
+    }
+    if (results.length >= 5) break;
+  }
+
+  // 시도 2: Google News RSS 한국어 폴백
+  if (results.length < 3) {
+    try {
+      const rssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(name)}+주식&hl=ko&gl=KR&ceid=KR:ko`;
+      const r = await withTimeout(fetch(rssUrl, { headers: { "User-Agent": UA } }), 6000);
+      if (r.ok) {
+        const xml = await r.text();
+        const re2 = /<item>([\s\S]*?)<\/item>/g;
+        let m2;
+        while ((m2 = re2.exec(xml)) !== null && results.length < 12) {
+          const b = m2[1];
+          const t = (b.match(/<title><!\[CDATA\[([\s\S]*?)\]\]>/) ?? b.match(/<title>([\s\S]*?)<\/title>/))?.[1]?.trim() ?? "";
+          const l = b.match(/<link>([\s\S]*?)<\/link>/)?.[1]?.trim() ?? "";
+          const p = b.match(/<pubDate>([\s\S]*?)<\/pubDate>/)?.[1]?.trim() ?? "";
+          const s = b.match(/<source[^>]*>([\s\S]*?)<\/source>/)?.[1]?.trim() ?? "";
+          if (t.length < 4) continue;
+          results.push({ title: t, url: l, time: p.slice(0, 16), press: s, score: scoreSentiment(t) });
+        }
+      }
+    } catch {}
+  }
+  return results.slice(0, 12);
+}
+
+// ── Google News RSS (해외 주식) ───────────────────────────────
+async function fetchGoogleNews(sym, name) {
+  const results = [];
+  const queries = [
+    `${sym} stock`,
+    `"${name.split(" ").slice(0, 2).join(" ")}" stock`,
+  ];
+
+  for (const q of queries) {
+    try {
+      const rssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(q)}&hl=en-US&gl=US&ceid=US:en`;
+      const r = await withTimeout(fetch(rssUrl, {
+        headers: { "User-Agent": UA, "Accept": "application/rss+xml,text/xml" }
+      }), 7000);
+      if (!r.ok) continue;
+      const xml = await r.text();
+      const re2 = /<item>([\s\S]*?)<\/item>/g;
+      let m2;
+      while ((m2 = re2.exec(xml)) !== null && results.length < 12) {
+        const b = m2[1];
+        const t = (b.match(/<title><!\[CDATA\[([\s\S]*?)\]\]>/) ?? b.match(/<title>([\s\S]*?)<\/title>/))?.[1]?.trim() ?? "";
+        const l = b.match(/<link>([\s\S]*?)<\/link>/)?.[1]?.trim() ?? "";
+        const p = b.match(/<pubDate>([\s\S]*?)<\/pubDate>/)?.[1]?.trim() ?? "";
+        const s = b.match(/<source[^>]*>([\s\S]*?)<\/source>/)?.[1]?.trim() ?? "";
+        if (t.length < 4) continue;
+        // 관련성 필터: 심볼명 포함 여부
+        const tl = t.toLowerCase();
+        const sl = sym.toLowerCase();
+        const nl = name.toLowerCase().split(" ")[0];
+        if (results.length > 3 && !tl.includes(sl) && !tl.includes(nl)) continue;
+        results.push({ title: t, url: l, time: p.slice(0, 16), press: s, score: scoreSentiment(t) });
+      }
+      if (results.length >= 8) break;
+    } catch {}
+  }
+  return results.slice(0, 12);
+}
+
+// ── AI 감성분석 + 내일/주간 예측 ─────────────────────────────
+async function analyzeNews(sym, name, newsItems, priceCtx, env) {
+  const total  = newsItems.length;
+  const avgScore = total > 0
+    ? Math.round(newsItems.reduce((s, n) => s + n.score, 0) / total) : 0;
+  const posCount = newsItems.filter(n => n.score > 10).length;
+  const negCount = newsItems.filter(n => n.score < -10).length;
+
+  // AI 분석 시도
+  if (env?.ANTHROPIC_API_KEY) {
+    const newsList = newsItems.slice(0, 8).map((n, i) => {
+      const tag = n.score > 10 ? "긍정" : n.score < -10 ? "부정" : "중립";
+      return `${i+1}. [${tag}${n.score>=0?"+":""}${n.score}] ${n.title}`;
+    }).join("\n");
+
+    const prompt = `종목: ${name}(${sym}) | 현재가: ${priceCtx.priceStr} | 등락: ${priceCtx.chgPct > 0 ? "+" : ""}${priceCtx.chgPct}% | 시장: ${priceCtx.mkt}
+
+최근뉴스(감성점수 -100~+100):
+${newsList}
+평균감성: ${avgScore} | 긍정${posCount}건 부정${negCount}건
+
+아래 JSON만 출력(마크다운 금지):
+{"sentimentScore":정수,"sentimentLabel":"매우긍정|긍정|중립|부정|매우부정","tomorrowPrediction":"상승|보합|하락","tomorrowConfidence":0~100정수,"weekPrediction":"상승|보합|하락","weekConfidence":0~100정수,"keyPositives":["긍정요인1","긍정요인2"],"keyNegatives":["부정요인1","부정요인2"],"newsSummary":"2~3문장요약","predictionReason":"2~3문장근거"}`;
+
+    try {
+      const r = await withTimeout(fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-api-key": env.ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01" },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-6", max_tokens: 700,
+          system: "주식 뉴스 감성분석 전문가. 순수 JSON만 출력.",
+          messages: [{ role: "user", content: prompt }],
+        }),
+      }), 20000);
+      if (r.ok) {
+        const cd = await r.json();
+        const text = (cd.content?.[0]?.text ?? "{}").replace(/```[\s\S]*?```/g, "").trim();
+        try { return JSON.parse(text); }
+        catch { const mm = text.match(/\{[\s\S]*\}/); if (mm) try { return JSON.parse(mm[0]); } catch {} }
+      }
+    } catch {}
+  }
+
+  // 키워드 기반 자동 분석 (AI 실패 폴백)
+  const label   = avgScore >= 30 ? "매우긍정" : avgScore >= 10 ? "긍정" : avgScore <= -30 ? "매우부정" : avgScore <= -10 ? "부정" : "중립";
+  const tmr     = avgScore >= 15 ? "상승" : avgScore <= -15 ? "하락" : "보합";
+  const wk      = avgScore >= 10 ? "상승" : avgScore <= -10 ? "하락" : "보합";
+  const conf    = Math.min(82, 38 + Math.abs(avgScore));
+  const posNews = newsItems.filter(n => n.score > 10).slice(0, 2).map(n => n.title.slice(0, 50));
+  const negNews = newsItems.filter(n => n.score < -10).slice(0, 2).map(n => n.title.slice(0, 50));
+  return {
+    sentimentScore: avgScore, sentimentLabel: label,
+    tomorrowPrediction: tmr, tomorrowConfidence: conf,
+    weekPrediction: wk,      weekConfidence: Math.max(30, conf - 12),
+    keyPositives: posNews.length ? posNews : ["긍정 뉴스 없음"],
+    keyNegatives: negNews.length ? negNews : ["부정 뉴스 없음"],
+    newsSummary: `최근 ${total}건 뉴스 분석. 긍정 ${posCount}건, 부정 ${negCount}건, 평균 감성점수 ${avgScore}점.`,
+    predictionReason: `뉴스 감성점수 ${avgScore}점 기준 ${tmr} 예측. 신뢰도 ${conf}%.`,
+  };
+}
+
 // ── 네이버 종목토론실 ──────────────────────────────────────────
 async function fetchDiscuss(cd, pageSize = 15) {
   // 시도 1: m.stock.naver.com 모바일 API
@@ -954,6 +1130,27 @@ export default {
         const body = await req.json().catch(() => ({}));
         if (!body?.prompt) return J({ ok: false, error: "prompt가 필요합니다" });
         return await doAnalyze(body.prompt, env);
+      }
+
+      // 뉴스 + 감성분석 + 예측
+      if (path === "/api/news" && method === "GET") {
+        const sym2   = (url.searchParams.get("symbol") ?? "").toUpperCase().trim();
+        const name2  = (url.searchParams.get("name")   ?? sym2).trim();
+        const isKRf  = isKR(sym2) || /^\d{6}$/.test(sym2);
+        const code2  = isKRf ? sym2.replace(/\.(KS|KQ)$/, "") : sym2;
+        if (!sym2) return J({ ok: false, error: "symbol 필요" });
+        const priceCtx = {
+          priceStr: url.searchParams.get("price") ?? "—",
+          chgPct:   parseFloat(url.searchParams.get("chgPct") ?? "0"),
+          mkt:      url.searchParams.get("mkt") ?? (isKRf ? "KOSPI" : "US"),
+        };
+        const news = isKRf
+          ? await fetchNaverNews(code2, name2)
+          : await fetchGoogleNews(sym2, name2);
+        const analysis = news.length > 0
+          ? await analyzeNews(sym2, name2, news, priceCtx, env)
+          : null;
+        return J({ ok: true, news, analysis });
       }
 
       // 종목토론실
