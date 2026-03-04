@@ -933,109 +933,132 @@ function scoreSentiment(title) {
 // ── 네이버 금융 뉴스 (국내 주식 전용, 4단계 폭포식) ─────────
 async function fetchNaverNews(code, name) {
   const results = [];
-  const seen = new Set();
+  const seen    = new Set();
 
-  // HTML 태그·엔티티 제거, 정상 UTF-8 텍스트만 남김
-  function cleanTitle(raw) {
-    return String(raw ?? "")
-      .replace(/<b>/gi,"").replace(/<\/b>/gi,"").replace(/<[^>]+>/g,"")
+  // HTML 태그·엔티티 제거, 깨진 문자 필터
+  function clean(raw) {
+    const t = String(raw ?? "")
+      .replace(/<[^>]+>/g, "")
       .replace(/&amp;/g,"&").replace(/&lt;/g,"<").replace(/&gt;/g,">")
       .replace(/&quot;/g,'"').replace(/&apos;/g,"'")
-      .replace(/&#(\d+);/g,(_,n)=>String.fromCharCode(+n))
+      .replace(/&#(\d+);/g, (_,n) => String.fromCharCode(+n))
       .replace(/&[a-z]+;/g," ").replace(/\s+/g," ").trim();
+    // EUC-KR 깨진 문자 감지 → 버림
+    if (/[ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖØÙÚÛÜÝÞßàáâãäåæçèéêëìíîïðñòóôõöøùúûüýþÿ]/.test(t)) return "";
+    return t;
   }
 
   function push(title, link, time, press) {
-    const t = cleanTitle(title);
+    const t = clean(title);
     if (t.length < 4) return;
-    // 깨진 문자 감지: 한글이 전혀 없고 이상한 특수문자 많으면 스킵
-    const hasKorean = /[가-힣]/.test(t);
-    const hasGarbled = /[ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖØÙÚÛÜÝÞß]/.test(t);
-    if (!hasKorean && hasGarbled) return; // EUC-KR 깨진 텍스트 필터
-    const key = t.slice(0,20);
+    const key = t.slice(0, 20);
     if (seen.has(key)) return;
     seen.add(key);
     results.push({
       title: t,
-      url:   String(link ?? "").trim(),
-      time:  String(time ?? "").slice(0,16).replace("T"," "),
-      press: cleanTitle(press).slice(0,25) || "네이버",
+      url:   String(link  ?? "").trim(),
+      time:  String(time  ?? "").slice(0,16).replace("T"," "),
+      press: clean(press).slice(0,25) || "언론사",
       score: scoreSentiment(t),
     });
   }
 
-  // 공통 아이템 파싱 함수
-  function parseItems(d) {
-    if (!d) return;
-    // 다양한 응답 구조 대응
-    const list =
-      d.items ?? d.newsList ?? d.list ?? d.result?.items ??
-      d.data?.items ?? d.data?.list ?? d.response?.items ?? [];
-    if (!Array.isArray(list)) return;
-    for (const it of list.slice(0,25)) {
-      push(
-        it.title   ?? it.headline  ?? it.newsTitle ?? it.subject ?? "",
-        it.url     ?? it.link      ?? it.originalUrl ?? it.newsUrl ?? it.href ?? "",
-        it.wdate   ?? it.pubDate   ?? it.date  ?? it.datetime ?? it.regDate ?? "",
-        it.officeName ?? it.press  ?? it.source ?? it.media ?? it.publisher ?? "",
-      );
+  // RSS XML 파싱 헬퍼
+  function parseRSS(xml) {
+    const re = /<item>([\s\S]*?)<\/item>/g;
+    let m;
+    while ((m = re.exec(xml)) !== null && results.length < 15) {
+      const b = m[1];
+      const t  = (b.match(/<title><!\[CDATA\[([\s\S]*?)\]\]>/) ?? b.match(/<title>([\s\S]*?)<\/title>/))?.[1] ?? "";
+      const l  = (b.match(/<link>([\s\S]*?)<\/link>/) ?? b.match(/<originallink>([\s\S]*?)<\/originallink>/))?.[1] ?? "";
+      const p  = (b.match(/<pubDate>([\s\S]*?)<\/pubDate>/))?.[1] ?? "";
+      const s  = (b.match(/<source[^>]*>([\s\S]*?)<\/source>/) ?? b.match(/<press>([\s\S]*?)<\/press>/))?.[1] ?? "";
+      push(t.trim(), l.trim(), p.trim(), s.trim());
     }
   }
 
-  // ── [1] m.stock.naver.com JSON API (UTF-8, 가장 정확) ────
-  const tier1 = [
-    `https://m.stock.naver.com/api/news/stock/${code}?pageSize=20&page=0`,
-    `https://m.stock.naver.com/api/news/stock/${code}?pageSize=20&page=1`,
-    `https://m.stock.naver.com/api/news/company/${code}?pageSize=20&page=0`,
+  const RSS_HDR = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124 Safari/537.36",
+    "Accept": "application/rss+xml, application/xml, text/xml, */*",
+    "Accept-Language": "ko-KR,ko;q=0.9,en;q=0.8",
+  };
+
+  // ── [1] Google News RSS - 한국어 (가장 안정적) ─────────────
+  // Google은 Cloudflare Worker IP 차단 안 함
+  const googleQueries = [
+    name,                                    // "삼성전자"
+    name + " 주가",                          // "삼성전자 주가"
+    name + " 실적",                          // "삼성전자 실적"
   ];
-  for (const ep of tier1) {
+
+  for (const q of googleQueries) {
     if (results.length >= 10) break;
-    parseItems(await safeFetch(ep, { headers: KR_HDR, _timeout: 8000 }));
-  }
-
-  // ── [2] 종목명 검색 API ───────────────────────────────────
-  if (results.length < 6) {
-    const queries = [name, name.replace(/\s*(주식회사|㈜|Inc\.?|Corp\.?)\s*/gi,"").trim()];
-    for (const q of queries) {
-      if (results.length >= 10) break;
-      parseItems(await safeFetch(
-        `https://m.stock.naver.com/api/news/search?query=${encodeURIComponent(q)}&pageSize=20&page=0`,
-        { headers: KR_HDR, _timeout: 7000 }
-      ));
-    }
-  }
-
-  // ── [3] m.stock.naver.com 종목 뉴스 (다른 경로) ──────────
-  if (results.length < 5) {
-    const alt = [
-      `https://m.stock.naver.com/api/stock/${code}/news?pageSize=20&page=0`,
-      `https://m.stock.naver.com/api/stock/${code}/news?pageSize=20`,
-    ];
-    for (const ep of alt) {
-      if (results.length >= 10) break;
-      parseItems(await safeFetch(ep, { headers: KR_HDR, _timeout: 7000 }));
-    }
-  }
-
-  // ── [4] 네이버 모바일 금융 뉴스 JSON (최후 수단) ─────────
-  if (results.length < 3) {
-    // 캐시 버스터로 재시도
-    parseItems(await safeFetch(
-      `https://m.stock.naver.com/api/news/stock/${code}?pageSize=20&page=0&_t=${Date.now()}`,
-      {
-        headers: {
-          "User-Agent": "Mozilla/5.0 (Linux; Android 13; SM-S918N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Mobile Safari/537.36",
-          "Accept": "application/json, text/plain, */*",
-          "Accept-Language": "ko-KR,ko;q=0.9",
-          "Referer": `https://m.stock.naver.com/domestic/stock/${code}/news`,
-          "Origin": "https://m.stock.naver.com",
-        },
-        _timeout: 10000
+    try {
+      const url = `https://news.google.com/rss/search?q=${encodeURIComponent(q)}&hl=ko&gl=KR&ceid=KR:ko`;
+      const r = await withTimeout(fetch(url, { headers: RSS_HDR }), 8000);
+      if (r.ok) {
+        const xml = await r.text();
+        parseRSS(xml);
       }
-    ));
+    } catch {}
   }
 
-  return results.sort((a,b) => b.time > a.time ? 1 : b.time < a.time ? -1 : 0).slice(0,15);
+  // ── [2] 네이버 뉴스 검색 RSS (다른 도메인) ────────────────
+  // newssearch.naver.com은 API와 다른 서버 → 차단 덜함
+  if (results.length < 6) {
+    try {
+      const url = `https://newssearch.naver.com/search.naver?where=rss&query=${encodeURIComponent(name)}&sort=0`;
+      const r = await withTimeout(fetch(url, { headers: RSS_HDR }), 7000);
+      if (r.ok) {
+        const xml = await r.text();
+        parseRSS(xml);
+      }
+    } catch {}
+  }
+
+  // ── [3] 네이버 뉴스 RSS - 종목명+"주식" ───────────────────
+  if (results.length < 5) {
+    try {
+      const url = `https://newssearch.naver.com/search.naver?where=rss&query=${encodeURIComponent(name + " 주식")}&sort=0`;
+      const r = await withTimeout(fetch(url, { headers: RSS_HDR }), 7000);
+      if (r.ok) {
+        const xml = await r.text();
+        parseRSS(xml);
+      }
+    } catch {}
+  }
+
+  // ── [4] m.stock.naver.com JSON API (혹시 열려있을 때 보너스) ─
+  if (results.length < 5) {
+    try {
+      const r = await withTimeout(
+        fetch(`https://m.stock.naver.com/api/news/stock/${code}?pageSize=20&page=0`, {
+          headers: {
+            "User-Agent": "Mozilla/5.0 (Linux; Android 13; SM-S918N) AppleWebKit/537.36 Chrome/121 Mobile Safari/537.36",
+            "Accept": "application/json",
+            "Accept-Language": "ko-KR,ko;q=0.9",
+            "Referer": `https://m.stock.naver.com/domestic/stock/${code}/news`,
+            "Origin": "https://m.stock.naver.com",
+          }
+        }), 8000
+      );
+      if (r.ok) {
+        const d = await r.json();
+        const items = d?.items ?? d?.newsList ?? d?.list ?? [];
+        for (const it of items.slice(0, 20)) {
+          push(
+            it.title ?? it.headline ?? "",
+            it.url ?? it.link ?? it.originalUrl ?? "",
+            it.wdate ?? it.pubDate ?? it.date ?? "",
+            it.officeName ?? it.press ?? it.source ?? "",
+          );
+        }
+      }
+    } catch {}
+  }
+
+  // 중복 제거 후 최신순 정렬
+  return results.sort((a, b) => b.time > a.time ? 1 : b.time < a.time ? -1 : 0).slice(0, 15);
 }
 
 async function analyzeNews(sym, name, newsItems, priceCtx, env) {
@@ -1271,7 +1294,10 @@ export default {
         const analysis = news.length > 0
           ? await analyzeNews(sym2, cleanName, news, priceCtx, env)
           : null;
-        return J({ ok: true, news, analysis, _meta: { code: code2, name: cleanName, count: news.length } });
+        return J({
+          ok: true, news, analysis,
+          _meta: { code: code2, name: cleanName, count: news.length, sym: sym2 }
+        });
       }
 
       // 종목토론실

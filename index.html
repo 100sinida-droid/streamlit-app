@@ -1025,7 +1025,7 @@ function renderNews(data, isKRW) {
   var message  = data.message  || '';
 
   G('newsLoading').style.display = 'none';
-  G('newsSrcBadge').textContent = isKRW ? 'Naver News' : '준비 중';
+  G('newsSrcBadge').textContent = isKRW ? 'Google/Naver RSS' : '준비 중';
 
   if (message) {
     G('newsEmpty').innerHTML = '📡 ' + message;
@@ -1033,7 +1033,7 @@ function renderNews(data, isKRW) {
     return;
   }
   if (news.length === 0) {
-    G('newsEmpty').innerHTML = '관련 뉴스를 찾을 수 없습니다';
+    G('newsEmpty').innerHTML = '📭 관련 뉴스를 찾을 수 없습니다 — 뉴스 서버 지연일 수 있습니다. 잠시 후 재검색해 보세요.';
     G('newsEmpty').style.display = 'block';
     return;
   }
