@@ -869,20 +869,24 @@ function autoAnalysis(prompt) {
 
 // ── 감성 키워드 사전 ─────────────────────────────────────────
 const POS_KW = [
-  "급등","상승","호재","신고가","매수","상향","흑자","증가","성장","돌파","강세",
-  "수주","계약","호실적","배당","인수","협력","개발","출시","승인","허가","확대",
-  "반등","회복","개선","증익","신제품","실적개선","목표가상향",
-  "beat","surge","rally","upgrade","profit","growth","record","buy","strong",
-  "gain","rise","bullish","outperform","exceed","win","deal","partnership","fda",
-  "approval","positive","revenue","earnings","above","launch","expand",
+  // 주가/실적 긍정
+  "급등","상승","호재","신고가","상향","흑자","증가","성장","돌파","강세","반등",
+  "호실적","실적개선","목표가상향","어닝서프라이즈","깜짝실적","예상상회",
+  // 사업/계약
+  "수주","계약","인수","협력","파트너십","출시","신제품","FDA승인","허가","확대",
+  "투자유치","IPO","공모","배당확대","자사주","주주환원","매수추천",
+  // 투자의견
+  "매수","비중확대","아웃퍼폼","목표주가상향","긍정","호조","개선","증익","회복",
 ];
 const NEG_KW = [
-  "급락","하락","악재","신저가","매도","하향","적자","감소","부진","이탈","약세",
+  // 주가/실적 부정
+  "급락","하락","악재","신저가","하향","적자","감소","부진","이탈","약세","폭락",
+  "실적부진","목표가하향","어닝쇼크","예상하회","실망","최저",
+  // 사업/리스크
   "손실","취소","소송","조사","벌금","리콜","부채","파산","위기","규제","제재",
-  "실적부진","목표가하향","구조조정","감원","해고",
-  "miss","drop","fall","plunge","downgrade","loss","decline","weak","negative",
-  "bearish","underperform","below","fail","recall","lawsuit","fine","debt","risk",
-  "cut","layoff","warning","concern","sell","short","fraud","investigation",
+  "구조조정","감원","해고","매각","분식","횡령","배임","과징금","영업정지",
+  // 투자의견
+  "매도","비중축소","언더퍼폼","목표주가하향","부정","우려","악화","감익","위험",
 ];
 
 function scoreSentiment(title) {
@@ -893,87 +897,87 @@ function scoreSentiment(title) {
   return Math.max(-100, Math.min(100, score));
 }
 
-// ── 네이버 금융 뉴스 (국내 주식) ────────────────────────────
+// ── 네이버 금융 뉴스 (국내 주식 전용) ───────────────────────
+// 3단계 폭포식: 종목별 API → 네이버 금융검색 → 네이버 뉴스검색
 async function fetchNaverNews(code, name) {
   const results = [];
+  const seen = new Set();
 
-  // 시도 1: 네이버 종목 뉴스 API
-  for (const url of [
-    `https://m.stock.naver.com/api/news/stock/${code}?pageSize=12&page=0`,
-    `https://m.stock.naver.com/api/stock/${code}/news?pageSize=12&page=0`,
-  ]) {
-    const d = await safeFetch(url, { headers: KR_HDR, _timeout: 6000 });
-    const items = d?.items ?? d?.newsList ?? d?.list ?? [];
-    for (const it of items.slice(0, 12)) {
-      const title = String(it.title ?? it.headline ?? "").trim();
-      const link  = String(it.url ?? it.link ?? it.originalUrl ?? "").trim();
-      const time  = String(it.wdate ?? it.pubDate ?? it.date ?? "").slice(0, 16);
-      const press = String(it.officeName ?? it.press ?? it.source ?? "언론사").trim();
-      if (title.length < 4) continue;
-      results.push({ title, url: link, time, press, score: scoreSentiment(title) });
-    }
-    if (results.length >= 5) break;
+  function pushItem(title, link, time, press) {
+    const t = String(title ?? "").replace(/<[^>]+>/g, "").trim();
+    if (t.length < 4 || seen.has(t)) return;
+    seen.add(t);
+    results.push({
+      title: t,
+      url:   String(link  ?? "").trim(),
+      time:  String(time  ?? "").slice(0, 16),
+      press: String(press ?? "언론사").slice(0, 30).trim(),
+      score: scoreSentiment(t),
+    });
   }
 
-  // 시도 2: Google News RSS 한국어 폴백
-  if (results.length < 3) {
+  // ── [1] 네이버 모바일 종목 뉴스 API ─────────────────────
+  const apiEndpoints = [
+    `https://m.stock.naver.com/api/news/stock/${code}?pageSize=15&page=0`,
+    `https://m.stock.naver.com/api/stock/${code}/news?pageSize=15`,
+    `https://m.stock.naver.com/api/news/company/${code}?pageSize=15&page=0`,
+  ];
+  for (const ep of apiEndpoints) {
+    if (results.length >= 8) break;
+    const d = await safeFetch(ep, { headers: KR_HDR, _timeout: 6000 });
+    const items = d?.items ?? d?.newsList ?? d?.list ?? d?.data ?? [];
+    for (const it of items.slice(0, 15)) {
+      pushItem(
+        it.title ?? it.headline ?? it.newsTitle,
+        it.url ?? it.link ?? it.originalUrl ?? it.newsUrl,
+        it.wdate ?? it.pubDate ?? it.date ?? it.datetime,
+        it.officeName ?? it.press ?? it.source ?? it.media,
+      );
+    }
+  }
+
+  // ── [2] 네이버 금융 뉴스 RSS ────────────────────────────
+  if (results.length < 5) {
     try {
-      const rssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(name)}+주식&hl=ko&gl=KR&ceid=KR:ko`;
-      const r = await withTimeout(fetch(rssUrl, { headers: { "User-Agent": UA } }), 6000);
-      if (r.ok) {
-        const xml = await r.text();
-        const re2 = /<item>([\s\S]*?)<\/item>/g;
-        let m2;
-        while ((m2 = re2.exec(xml)) !== null && results.length < 12) {
-          const b = m2[1];
-          const t = (b.match(/<title><!\[CDATA\[([\s\S]*?)\]\]>/) ?? b.match(/<title>([\s\S]*?)<\/title>/))?.[1]?.trim() ?? "";
-          const l = b.match(/<link>([\s\S]*?)<\/link>/)?.[1]?.trim() ?? "";
-          const p = b.match(/<pubDate>([\s\S]*?)<\/pubDate>/)?.[1]?.trim() ?? "";
-          const s = b.match(/<source[^>]*>([\s\S]*?)<\/source>/)?.[1]?.trim() ?? "";
-          if (t.length < 4) continue;
-          results.push({ title: t, url: l, time: p.slice(0, 16), press: s, score: scoreSentiment(t) });
+      const rssUrl = `https://finance.naver.com/news/news_list.nhn?mode=LSS2D&section_id=101&section_id2=258`;
+      // 종목명 기반 검색 RSS
+      const searchRss = `https://finance.naver.com/news/news_search.nhn?q=${encodeURIComponent(name)}`;
+      for (const ep of [searchRss]) {
+        const r = await withTimeout(fetch(ep, { headers: KR_HDR }), 6000);
+        if (!r.ok) continue;
+        const html = await r.text();
+        // 뉴스 제목 패턴 파싱
+        const re = /class="articleSubject"[\s\S]*?href="([^"]+)"[\s\S]*?>([\s\S]*?)<\/a>/g;
+        let m;
+        while ((m = re.exec(html)) !== null && results.length < 15) {
+          const rawTitle = m[2].replace(/<[^>]+>/g, "").replace(/&[a-z#0-9]+;/g, " ").trim();
+          const rawUrl = m[1].startsWith("http") ? m[1] : "https://finance.naver.com" + m[1];
+          pushItem(rawTitle, rawUrl, "", "네이버금융");
         }
       }
     } catch {}
   }
-  return results.slice(0, 12);
-}
 
-// ── Google News RSS (해외 주식) ───────────────────────────────
-async function fetchGoogleNews(sym, name) {
-  const results = [];
-  const queries = [
-    `${sym} stock`,
-    `"${name.split(" ").slice(0, 2).join(" ")}" stock`,
-  ];
-
-  for (const q of queries) {
+  // ── [3] 네이버 뉴스 검색 API ────────────────────────────
+  if (results.length < 5) {
     try {
-      const rssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(q)}&hl=en-US&gl=US&ceid=US:en`;
-      const r = await withTimeout(fetch(rssUrl, {
-        headers: { "User-Agent": UA, "Accept": "application/rss+xml,text/xml" }
-      }), 7000);
-      if (!r.ok) continue;
-      const xml = await r.text();
-      const re2 = /<item>([\s\S]*?)<\/item>/g;
-      let m2;
-      while ((m2 = re2.exec(xml)) !== null && results.length < 12) {
-        const b = m2[1];
-        const t = (b.match(/<title><!\[CDATA\[([\s\S]*?)\]\]>/) ?? b.match(/<title>([\s\S]*?)<\/title>/))?.[1]?.trim() ?? "";
-        const l = b.match(/<link>([\s\S]*?)<\/link>/)?.[1]?.trim() ?? "";
-        const p = b.match(/<pubDate>([\s\S]*?)<\/pubDate>/)?.[1]?.trim() ?? "";
-        const s = b.match(/<source[^>]*>([\s\S]*?)<\/source>/)?.[1]?.trim() ?? "";
-        if (t.length < 4) continue;
-        // 관련성 필터: 심볼명 포함 여부
-        const tl = t.toLowerCase();
-        const sl = sym.toLowerCase();
-        const nl = name.toLowerCase().split(" ")[0];
-        if (results.length > 3 && !tl.includes(sl) && !tl.includes(nl)) continue;
-        results.push({ title: t, url: l, time: p.slice(0, 16), press: s, score: scoreSentiment(t) });
+      // 네이버 오픈 API 불필요한 비공개 엔드포인트 시도
+      const d = await safeFetch(
+        `https://m.stock.naver.com/api/news/search?query=${encodeURIComponent(name)}&pageSize=10&page=0`,
+        { headers: KR_HDR, _timeout: 5000 }
+      );
+      const items = d?.items ?? d?.list ?? [];
+      for (const it of items.slice(0, 10)) {
+        pushItem(
+          it.title ?? it.headline,
+          it.url ?? it.link,
+          it.wdate ?? it.pubDate,
+          it.officeName ?? it.press,
+        );
       }
-      if (results.length >= 8) break;
     } catch {}
   }
+
   return results.slice(0, 12);
 }
 
@@ -1144,9 +1148,11 @@ export default {
           chgPct:   parseFloat(url.searchParams.get("chgPct") ?? "0"),
           mkt:      url.searchParams.get("mkt") ?? (isKRf ? "KOSPI" : "US"),
         };
-        const news = isKRf
-          ? await fetchNaverNews(code2, name2)
-          : await fetchGoogleNews(sym2, name2);
+        // 국내 주식만 뉴스 제공 (사용자 선택)
+        if (!isKRf) {
+          return J({ ok: true, news: [], analysis: null, message: "해외주식 뉴스는 준비 중입니다" });
+        }
+        const news = await fetchNaverNews(code2, name2);
         const analysis = news.length > 0
           ? await analyzeNews(sym2, name2, news, priceCtx, env)
           : null;
