@@ -935,69 +935,107 @@ async function fetchNaverNews(code, name) {
   const results = [];
   const seen = new Set();
 
+  // HTML 태그·엔티티 제거, 정상 UTF-8 텍스트만 남김
+  function cleanTitle(raw) {
+    return String(raw ?? "")
+      .replace(/<b>/gi,"").replace(/<\/b>/gi,"").replace(/<[^>]+>/g,"")
+      .replace(/&amp;/g,"&").replace(/&lt;/g,"<").replace(/&gt;/g,">")
+      .replace(/&quot;/g,'"').replace(/&apos;/g,"'")
+      .replace(/&#(\d+);/g,(_,n)=>String.fromCharCode(+n))
+      .replace(/&[a-z]+;/g," ").replace(/\s+/g," ").trim();
+  }
+
   function push(title, link, time, press) {
-    const t = String(title ?? "").replace(/<[^>]+>/g,"").replace(/&[a-z#0-9]+;/gi," ").trim();
-    const key = t.slice(0,24);
-    if (t.length < 4 || seen.has(key)) return;
+    const t = cleanTitle(title);
+    if (t.length < 4) return;
+    // 깨진 문자 감지: 한글이 전혀 없고 이상한 특수문자 많으면 스킵
+    const hasKorean = /[가-힣]/.test(t);
+    const hasGarbled = /[ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖØÙÚÛÜÝÞß]/.test(t);
+    if (!hasKorean && hasGarbled) return; // EUC-KR 깨진 텍스트 필터
+    const key = t.slice(0,20);
+    if (seen.has(key)) return;
     seen.add(key);
     results.push({
       title: t,
-      url:   String(link  ?? "").trim(),
-      time:  String(time  ?? "").slice(0,16).replace("T"," "),
-      press: String(press ?? "언론사").slice(0,30).trim(),
+      url:   String(link ?? "").trim(),
+      time:  String(time ?? "").slice(0,16).replace("T"," "),
+      press: cleanTitle(press).slice(0,25) || "네이버",
       score: scoreSentiment(t),
     });
   }
 
-  // [1] 종목 전용 API (3개 엔드포인트 순차 시도)
-  for (const ep of [
-    `https://m.stock.naver.com/api/news/stock/${code}?pageSize=20&page=0`,
-    `https://m.stock.naver.com/api/stock/${code}/news?pageSize=20`,
-    `https://m.stock.naver.com/api/news/company/${code}?pageSize=15&page=0`,
-  ]) {
-    if (results.length >= 10) break;
-    const d = await safeFetch(ep, { headers: KR_HDR, _timeout: 7000 });
-    for (const it of (d?.items ?? d?.newsList ?? d?.list ?? d?.data ?? []).slice(0,20))
-      push(it.title??it.headline??it.newsTitle, it.url??it.link??it.originalUrl, it.wdate??it.pubDate??it.date, it.officeName??it.press??it.source);
-  }
-
-  // [2] 종목명 뉴스 검색
-  if (results.length < 6) {
-    const d = await safeFetch(
-      `https://m.stock.naver.com/api/news/search?query=${encodeURIComponent(name)}&pageSize=15&page=0`,
-      { headers: KR_HDR, _timeout: 6000 }
-    );
-    for (const it of (d?.items ?? d?.list ?? []).slice(0,15))
-      push(it.title??it.headline, it.url??it.link, it.wdate??it.pubDate, it.officeName??it.press);
-  }
-
-  // [3] 네이버 금융 뉴스 HTML 파싱
-  if (results.length < 5) {
-    try {
-      const r = await withTimeout(
-        fetch(`https://finance.naver.com/item/news_news.nhn?code=${code}&page=1&sm=title_entity_id.basic`, { headers: KR_HDR }), 7000
+  // 공통 아이템 파싱 함수
+  function parseItems(d) {
+    if (!d) return;
+    // 다양한 응답 구조 대응
+    const list =
+      d.items ?? d.newsList ?? d.list ?? d.result?.items ??
+      d.data?.items ?? d.data?.list ?? d.response?.items ?? [];
+    if (!Array.isArray(list)) return;
+    for (const it of list.slice(0,25)) {
+      push(
+        it.title   ?? it.headline  ?? it.newsTitle ?? it.subject ?? "",
+        it.url     ?? it.link      ?? it.originalUrl ?? it.newsUrl ?? it.href ?? "",
+        it.wdate   ?? it.pubDate   ?? it.date  ?? it.datetime ?? it.regDate ?? "",
+        it.officeName ?? it.press  ?? it.source ?? it.media ?? it.publisher ?? "",
       );
-      if (r.ok) {
-        const html = await r.text();
-        const re = /href="(\/item\/news_read[^"]+)"[^>]*>([^<]{5,100})</g;
-        let m;
-        while ((m = re.exec(html)) !== null && results.length < 15)
-          push(m[2].trim(), "https://finance.naver.com"+m[1], "", "네이버금융");
-      }
-    } catch {}
+    }
   }
 
-  // [4] 네이버 뉴스 일반 검색 (최후 수단)
+  // ── [1] m.stock.naver.com JSON API (UTF-8, 가장 정확) ────
+  const tier1 = [
+    `https://m.stock.naver.com/api/news/stock/${code}?pageSize=20&page=0`,
+    `https://m.stock.naver.com/api/news/stock/${code}?pageSize=20&page=1`,
+    `https://m.stock.naver.com/api/news/company/${code}?pageSize=20&page=0`,
+  ];
+  for (const ep of tier1) {
+    if (results.length >= 10) break;
+    parseItems(await safeFetch(ep, { headers: KR_HDR, _timeout: 8000 }));
+  }
+
+  // ── [2] 종목명 검색 API ───────────────────────────────────
+  if (results.length < 6) {
+    const queries = [name, name.replace(/\s*(주식회사|㈜|Inc\.?|Corp\.?)\s*/gi,"").trim()];
+    for (const q of queries) {
+      if (results.length >= 10) break;
+      parseItems(await safeFetch(
+        `https://m.stock.naver.com/api/news/search?query=${encodeURIComponent(q)}&pageSize=20&page=0`,
+        { headers: KR_HDR, _timeout: 7000 }
+      ));
+    }
+  }
+
+  // ── [3] m.stock.naver.com 종목 뉴스 (다른 경로) ──────────
+  if (results.length < 5) {
+    const alt = [
+      `https://m.stock.naver.com/api/stock/${code}/news?pageSize=20&page=0`,
+      `https://m.stock.naver.com/api/stock/${code}/news?pageSize=20`,
+    ];
+    for (const ep of alt) {
+      if (results.length >= 10) break;
+      parseItems(await safeFetch(ep, { headers: KR_HDR, _timeout: 7000 }));
+    }
+  }
+
+  // ── [4] 네이버 모바일 금융 뉴스 JSON (최후 수단) ─────────
   if (results.length < 3) {
-    const d = await safeFetch(
-      `https://m.stock.naver.com/api/news/search?query=${encodeURIComponent(name)}+주식&pageSize=10`,
-      { headers: KR_HDR, _timeout: 5000 }
-    );
-    for (const it of (d?.items ?? d?.list ?? []).slice(0,10))
-      push(it.title??it.headline, it.url??it.link, it.wdate??it.pubDate, it.officeName??it.press);
+    // 캐시 버스터로 재시도
+    parseItems(await safeFetch(
+      `https://m.stock.naver.com/api/news/stock/${code}?pageSize=20&page=0&_t=${Date.now()}`,
+      {
+        headers: {
+          "User-Agent": "Mozilla/5.0 (Linux; Android 13; SM-S918N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Mobile Safari/537.36",
+          "Accept": "application/json, text/plain, */*",
+          "Accept-Language": "ko-KR,ko;q=0.9",
+          "Referer": `https://m.stock.naver.com/domestic/stock/${code}/news`,
+          "Origin": "https://m.stock.naver.com",
+        },
+        _timeout: 10000
+      }
+    ));
   }
 
-  return results.sort((a,b) => b.time > a.time ? 1 : -1).slice(0,15);
+  return results.sort((a,b) => b.time > a.time ? 1 : b.time < a.time ? -1 : 0).slice(0,15);
 }
 
 async function analyzeNews(sym, name, newsItems, priceCtx, env) {
@@ -1203,25 +1241,37 @@ export default {
 
       // 뉴스 + 감성분석 + 예측
       if (path === "/api/news" && method === "GET") {
-        const sym2   = (url.searchParams.get("symbol") ?? "").toUpperCase().trim();
-        const name2  = (url.searchParams.get("name")   ?? sym2).trim();
-        const isKRf  = isKR(sym2) || /^\d{6}$/.test(sym2);
-        const code2  = isKRf ? sym2.replace(/\.(KS|KQ)$/, "") : sym2;
+        const sym2  = (url.searchParams.get("symbol") ?? "").trim().toUpperCase();
+        const name2 = decodeURIComponent(url.searchParams.get("name") ?? sym2).trim();
         if (!sym2) return J({ ok: false, error: "symbol 필요" });
-        const priceCtx = {
-          priceStr: url.searchParams.get("price") ?? "—",
-          chgPct:   parseFloat(url.searchParams.get("chgPct") ?? "0"),
-          mkt:      url.searchParams.get("mkt") ?? (isKRf ? "KOSPI" : "US"),
-        };
-        // 국내 주식만 뉴스 제공 (사용자 선택)
+
+        const isKRf = isKR(sym2) || /^\d{6}$/.test(sym2);
+
+        // 해외 주식은 뉴스 미지원 (Naver는 국내 전용)
         if (!isKRf) {
           return J({ ok: true, news: [], analysis: null, message: "해외주식 뉴스는 준비 중입니다" });
         }
-        const news = await fetchNaverNews(code2, name2);
+
+        // 6자리 코드 추출: "005930.KS" → "005930"
+        const code2 = sym2.replace(/\.(KS|KQ)$/i, "").replace(/[^0-9]/g,"").slice(0,6);
+        if (code2.length !== 6) {
+          return J({ ok: false, error: `유효하지 않은 종목 코드: ${sym2}` });
+        }
+
+        // name2 전처리: URL 인코딩 잔재 제거
+        const cleanName = name2.replace(/[+%]/g, " ").replace(/\s+/g," ").trim() || code2;
+
+        const priceCtx = {
+          priceStr: decodeURIComponent(url.searchParams.get("price") ?? "—"),
+          chgPct:   parseFloat(url.searchParams.get("chgPct") ?? "0") || 0,
+          mkt:      url.searchParams.get("mkt") ?? "KOSPI",
+        };
+
+        const news = await fetchNaverNews(code2, cleanName);
         const analysis = news.length > 0
-          ? await analyzeNews(sym2, name2, news, priceCtx, env)
+          ? await analyzeNews(sym2, cleanName, news, priceCtx, env)
           : null;
-        return J({ ok: true, news, analysis });
+        return J({ ok: true, news, analysis, _meta: { code: code2, name: cleanName, count: news.length } });
       }
 
       // 종목토론실

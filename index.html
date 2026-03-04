@@ -1153,16 +1153,36 @@ function loadNews(sym, name, isKRW, priceStr, chgPct, mkt) {
   G('newsListHdr').style.display = 'none';
   G('newsStatRow').innerHTML = '';
 
-  var params = '?symbol='+encodeURIComponent(sym)+
-    '&name='+encodeURIComponent(name)+
-    '&price='+encodeURIComponent(priceStr)+
-    '&chgPct='+encodeURIComponent(chgPct)+
-    '&mkt='+encodeURIComponent(mkt);
+  // 국내 주식만 (해외는 패널 숨김)
+  if (!isKRW) {
+    G('newsPanel').style.display = 'none';
+    return;
+  }
 
-  fetch('/api/news'+params)
-    .then(function(r){ return r.json(); })
-    .then(function(d){ if (d.ok) renderNews(d,isKRW); else G('newsEmpty').style.display='block'; })
-    .catch(function(){ G('newsLoading').style.display='none'; G('newsEmpty').style.display='block'; });
+  var params = new URLSearchParams({
+    symbol: sym,
+    name:   name,
+    price:  priceStr,
+    chgPct: String(chgPct),
+    mkt:    mkt,
+  });
+
+  fetch('/api/news?' + params.toString())
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      G('newsLoading').style.display = 'none';
+      if (d.ok) {
+        renderNews(d, isKRW);
+      } else {
+        G('newsEmpty').innerHTML = '⚠ ' + (d.error || '뉴스를 불러올 수 없습니다');
+        G('newsEmpty').style.display = 'block';
+      }
+    })
+    .catch(function(e) {
+      G('newsLoading').style.display = 'none';
+      G('newsEmpty').innerHTML = '⚠ 뉴스 로드 실패. 잠시 후 다시 시도해주세요.';
+      G('newsEmpty').style.display = 'block';
+    });
 }
 
 
