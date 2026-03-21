@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>차트 분석 | STOCKHUB</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+    <style>
+        .strategy-content {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 2rem;
+        }
+        .strategy-hero {
+            background: linear-gradient(135deg, var(--bg-card) 0%, var(--bg-secondary) 100%);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 3rem;
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+        .strategy-hero h1 {
+            font-family: var(--font-display);
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .content-section {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+        .content-section h2 {
+            font-family: var(--font-display);
+            color: var(--accent-primary);
+            margin-bottom: 1rem;
+        }
+        .indicator-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-top: 1.5rem;
+        }
+        .indicator-card {
+            background: rgba(0, 240, 255, 0.05);
+            padding: 1.5rem;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .indicator-card h3 {
+            color: var(--accent-primary);
+            margin-bottom: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="grain-overlay"></div>
+    
+    <header class="main-header">
+        <div class="header-content">
+            <h1 class="logo" onclick="window.location.href='index.html'" style="cursor: pointer;">
+                <span class="logo-icon">📊</span>
+                <span class="logo-text">STOCK<span class="logo-accent">HUB</span></span>
+            </h1>
+        </div>
+    </header>
+
+    <div class="strategy-content">
+        <div class="strategy-hero">
+            <h1>📈 차트 분석</h1>
+            <p style="font-size: 1.2rem; color: var(--text-secondary);">기술적 분석의 기초부터 고급 기법까지</p>
+        </div>
+
+        <div class="content-section">
+            <h2>1. 캔들스틱 패턴</h2>
+            <p>캔들스틱은 주가의 움직임을 시각적으로 표현한 차트입니다.</p>
+            
+            <div class="indicator-list">
+                <div class="indicator-card">
+                    <h3>양봉 (상승)</h3>
+                    <p>시가보다 종가가 높을 때. 매수 세력이 강함을 의미합니다.</p>
+                </div>
+                <div class="indicator-card">
+                    <h3>음봉 (하락)</h3>
+                    <p>시가보다 종가가 낮을 때. 매도 세력이 강함을 의미합니다.</p>
+                </div>
+                <div class="indicator-card">
+                    <h3>도지 (중립)</h3>
+                    <p>시가와 종가가 비슷할 때. 방향성 전환 신호일 수 있습니다.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="content-section">
+            <h2>2. 주요 보조지표</h2>
+            
+            <div class="indicator-list">
+                <div class="indicator-card">
+                    <h3>이동평균선 (MA)</h3>
+                    <p><strong>용도:</strong> 추세 파악<br>
+                    <strong>활용:</strong> 5일선, 20일선, 60일선, 120일선 등<br>
+                    <strong>신호:</strong> 단기선이 장기선을 상향 돌파 시 매수</p>
+                </div>
+                
+                <div class="indicator-card">
+                    <h3>RSI (상대강도지수)</h3>
+                    <p><strong>범위:</strong> 0~100<br>
+                    <strong>과매수:</strong> 70 이상<br>
+                    <strong>과매도:</strong> 30 이하<br>
+                    <strong>활용:</strong> 반전 시점 포착</p>
+                </div>
+                
+                <div class="indicator-card">
+                    <h3>MACD</h3>
+                    <p><strong>구성:</strong> 단기/장기 이동평균선 차이<br>
+                    <strong>매수신호:</strong> MACD선이 시그널선 상향돌파<br>
+                    <strong>매도신호:</strong> MACD선이 시그널선 하향돌파</p>
+                </div>
+                
+                <div class="indicator-card">
+                    <h3>볼린저 밴드</h3>
+                    <p><strong>구성:</strong> 중심선 + 상단밴드 + 하단밴드<br>
+                    <strong>활용:</strong> 변동성과 추세 파악<br>
+                    <strong>신호:</strong> 밴드 이탈 시 반등/반락 가능성</p>
+                </div>
+                
+                <div class="indicator-card">
+                    <h3>스토캐스틱</h3>
+                    <p><strong>범위:</strong> 0~100<br>
+                    <strong>과매수:</strong> 80 이상<br>
+                    <strong>과매도:</strong> 20 이하<br>
+                    <strong>특징:</strong> 단기 매매에 유용</p>
+                </div>
+                
+                <div class="indicator-card">
+                    <h3>거래량</h3>
+                    <p><strong>중요성:</strong> 주가 움직임의 신뢰도<br>
+                    <strong>활용:</strong> 상승 시 거래량 증가는 강한 상승신호<br>
+                    <strong>주의:</strong> 거래량 감소는 추세 약화 가능성</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="content-section">
+            <h2>3. 차트 패턴</h2>
+            
+            <div class="indicator-list">
+                <div class="indicator-card">
+                    <h3>헤드앤숄더 (머리어깨형)</h3>
+                    <p>고점 3개가 머리와 어깨 모양을 이루는 패턴. 강력한 하락 전환 신호입니다.</p>
+                </div>
+                
+                <div class="indicator-card">
+                    <h3>더블탑 / 더블바텀</h3>
+                    <p>고점(저점) 2개가 비슷한 위치에서 형성. 추세 전환 신호입니다.</p>
+                </div>
+                
+                <div class="indicator-card">
+                    <h3>삼각수렴</h3>
+                    <p>고점은 낮아지고 저점은 높아지며 변동폭 축소. 돌파 방향으로 급등락합니다.</p>
+                </div>
+                
+                <div class="indicator-card">
+                    <h3>컵앤핸들</h3>
+                    <p>U자형 바닥 후 짧은 조정. 강력한 상승 신호로 알려져 있습니다.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="content-section">
+            <h2>4. 실전 활용 팁</h2>
+            <ul style="line-height: 2; font-size: 1.1rem;">
+                <li>📌 <strong>여러 지표 조합 사용</strong> - 하나의 지표만 보지 말고 2-3개 조합</li>
+                <li>📌 <strong>시간대 다양화</strong> - 일봉, 주봉, 월봉을 함께 확인</li>
+                <li>📌 <strong>거래량 필수 확인</strong> - 신호의 신뢰도를 높이는 핵심 요소</li>
+                <li>📌 <strong>과신 금지</strong> - 차트는 참고용, 100% 정확하지 않음</li>
+                <li>📌 <strong>손절매 설정</strong> - 차트 분석이 틀렸을 때를 대비</li>
+            </ul>
+        </div>
+
+        <div class="content-section" style="background: linear-gradient(135deg, rgba(255, 0, 153, 0.1) 0%, rgba(0, 240, 255, 0.1) 100%);">
+            <h2>⚠️ 주의사항</h2>
+            <p style="font-size: 1.1rem; line-height: 1.8;">
+                차트 분석은 과거 데이터를 기반으로 하므로 미래를 100% 예측할 수 없습니다. 
+                기본적 분석(재무제표, 산업 동향 등)과 병행하여 사용하고, 
+                항상 리스크 관리를 우선시해야 합니다.
+            </p>
+        </div>
+    </div>
+
+    <footer class="main-footer">
+        <div class="footer-content">
+            <p>본 정보는 교육 목적이며, 투자 판단의 책임은 투자자 본인에게 있습니다.</p>
+            <button onclick="window.close()" style="margin-top: 1rem; padding: 0.75rem 2rem; background: var(--accent-primary); color: var(--bg-primary); border: none; border-radius: 8px; cursor: pointer; font-weight: 700;">닫기</button>
+        </div>
+    </footer>
+</body>
+</html>
