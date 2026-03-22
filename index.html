@@ -7,22 +7,15 @@
     <link rel="stylesheet" href="styles.css">
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap" rel="stylesheet">
     <style>
-        .index-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; margin-bottom: 2rem; }
-        .index-item { background: rgba(0,0,0,0.4); padding: 2rem; border-radius: 12px; border: 1px solid var(--border-color); }
-        .index-name { font-size: 0.9rem; color: #8fa3bf; margin-bottom: 0.5rem; }
-        .index-price { font-size: 2.5rem; font-weight: 900; font-family: var(--font-display); margin-bottom: 0.5rem; }
-        .index-change { font-size: 1.1rem; font-weight: 700; }
-        .stock-table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
-        .stock-table th { background: rgba(0,240,255,0.1); padding: 1rem; text-align: left; font-weight: 700; border-bottom: 2px solid var(--border-color); }
-        .stock-table td { padding: 1rem; border-bottom: 1px solid var(--border-color); }
-        .stock-table tr:hover { background: rgba(0,240,255,0.05); cursor: pointer; }
-        .search-container { background: rgba(0,0,0,0.3); padding: 2rem; border-radius: 12px; margin-bottom: 2rem; }
-        .search-input { width: 100%; padding: 1.2rem; background: rgba(255,255,255,0.05); border: 2px solid var(--border-color); border-radius: 8px; color: white; font-size: 1.1rem; font-family: var(--font-body); }
-        .search-input:focus { outline: none; border-color: var(--accent-primary); }
-        .search-results { margin-top: 1.5rem; display: grid; gap: 1rem; }
-        .result-item { padding: 1.5rem; background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: 8px; cursor: pointer; transition: all 0.3s; }
-        .result-item:hover { background: rgba(0,240,255,0.1); transform: translateX(8px); }
-        .loading { text-align: center; color: var(--accent-primary); padding: 2rem; font-size: 1.2rem; }
+        .iframe-container { position: relative; width: 100%; border-radius: 12px; overflow: hidden; background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); }
+        .search-box { background: rgba(0,0,0,0.4); padding: 2rem; border-radius: 12px; margin-bottom: 2rem; }
+        .search-input { width: 100%; padding: 1.5rem; background: rgba(255,255,255,0.05); border: 2px solid var(--border-color); border-radius: 8px; color: white; font-size: 1.2rem; font-family: var(--font-body); }
+        .search-input:focus { outline: none; border-color: var(--accent-primary); background: rgba(255,255,255,0.08); }
+        .search-btn { margin-top: 1rem; width: 100%; padding: 1.2rem; background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary)); color: var(--bg-primary); border: none; border-radius: 8px; font-size: 1.1rem; font-weight: 700; cursor: pointer; transition: all 0.3s; }
+        .search-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0,240,255,0.3); }
+        .quick-links { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem; margin-top: 1.5rem; }
+        .quick-link { padding: 1.2rem; background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: 8px; cursor: pointer; transition: all 0.3s; text-decoration: none; color: white; display: block; }
+        .quick-link:hover { background: rgba(0,240,255,0.1); transform: translateX(8px); }
     </style>
 </head>
 <body>
@@ -44,105 +37,135 @@
 
     <main class="dashboard">
         
-        <!-- 섹션 1: 실시간 주요 지수 -->
+        <!-- 섹션 1: 실시간 시장 현황 -->
         <section class="card">
             <div class="card-header">
-                <h2><span class="section-number">01</span> 실시간 주요 지수</h2>
-                <button onclick="refreshIndices()" style="padding: 0.5rem 1rem; background: var(--accent-primary); color: var(--bg-primary); border: none; border-radius: 6px; cursor: pointer; font-weight: 700;">🔄 새로고침</button>
+                <h2><span class="section-number">01</span> 실시간 시장 현황 (코스피/코스닥/미국)</h2>
             </div>
             
-            <div class="index-grid" id="indicesGrid">
-                <div class="index-item">
-                    <div class="index-name">코스피</div>
-                    <div class="index-price" id="kospi-price">로딩중...</div>
-                    <div class="index-change" id="kospi-change">--</div>
-                </div>
-                <div class="index-item">
-                    <div class="index-name">코스닥</div>
-                    <div class="index-price" id="kosdaq-price">로딩중...</div>
-                    <div class="index-change" id="kosdaq-change">--</div>
-                </div>
-                <div class="index-item">
-                    <div class="index-name">S&P 500</div>
-                    <div class="index-price" id="sp500-price">로딩중...</div>
-                    <div class="index-change" id="sp500-change">--</div>
-                </div>
-                <div class="index-item">
-                    <div class="index-name">나스닥</div>
-                    <div class="index-price" id="nasdaq-price">로딩중...</div>
-                    <div class="index-change" id="nasdaq-change">--</div>
+            <div class="iframe-container" style="height: 500px; margin-bottom: 2rem;">
+                <iframe src="https://finance.naver.com/sise/" style="width: 100%; height: 100%; border: none;"></iframe>
+            </div>
+            
+            <div style="background: rgba(0,240,255,0.05); padding: 1.5rem; border-radius: 8px; border: 1px solid var(--border-color);">
+                <h4 style="color: var(--accent-primary); margin-bottom: 1rem;">📊 실시간 지수 확인</h4>
+                <div class="quick-links">
+                    <a href="https://finance.naver.com/sise/sise_index.naver?code=KOSPI" class="quick-link" target="_blank">
+                        <strong>코스피 실시간 →</strong>
+                    </a>
+                    <a href="https://finance.naver.com/sise/sise_index.naver?code=KOSDAQ" class="quick-link" target="_blank">
+                        <strong>코스닥 실시간 →</strong>
+                    </a>
+                    <a href="https://finance.yahoo.com/quote/%5EGSPC" class="quick-link" target="_blank">
+                        <strong>S&P 500 실시간 →</strong>
+                    </a>
+                    <a href="https://finance.yahoo.com/quote/%5EIXIC" class="quick-link" target="_blank">
+                        <strong>나스닥 실시간 →</strong>
+                    </a>
                 </div>
             </div>
         </section>
 
-        <!-- 섹션 2: 주식 검색 -->
+        <!-- 섹션 2: 주식 검색 (전체) -->
         <section class="card">
             <div class="card-header">
-                <h2><span class="section-number">02</span> 🔍 주식 검색 (한국 + 미국)</h2>
+                <h2><span class="section-number">02</span> 🔍 주식 검색 (대한민국 + 미국 전체)</h2>
             </div>
             
-            <div class="search-container">
-                <input type="text" id="stockSearchInput" class="search-input" placeholder="종목명 또는 종목코드 입력 (예: 삼성전자, 005930, AAPL, 테슬라)" onkeyup="searchStocks(event)">
-                <div id="searchResults" class="search-results"></div>
+            <div class="search-box">
+                <h3 style="color: var(--accent-primary); margin-bottom: 1.5rem;">종목명 또는 종목코드 입력</h3>
+                <input type="text" id="stockSearchInput" class="search-input" placeholder="예: 삼성전자, 카카오, 애플, AAPL, TSLA, 엔비디아" onkeypress="if(event.key==='Enter') searchStock()">
+                <button class="search-btn" onclick="searchStock()">🔍 검색하기</button>
+                
+                <div style="margin-top: 2rem; padding: 1.5rem; background: rgba(0,0,0,0.3); border-radius: 8px; border: 1px solid var(--border-color);">
+                    <h4 style="color: var(--accent-success); margin-bottom: 1rem;">검색 결과 페이지 구성</h4>
+                    <ul style="color: #8fa3bf; line-height: 2;">
+                        <li>✅ <strong>실시간 차트</strong> - 분봉/일봉/주봉/월봉</li>
+                        <li>✅ <strong>시세 정보</strong> - 현재가, 전일대비, 거래량</li>
+                        <li>✅ <strong>투자 의견</strong> - 증권사 리포트, 목표가</li>
+                        <li>✅ <strong>재무제표</strong> - 매출, 영업이익, ROE, PER, PBR</li>
+                        <li>✅ <strong>종목 토론실</strong> - 실시간 투자자 의견</li>
+                        <li>✅ <strong>뉴스 & 공시</strong> - 종목 관련 최신 뉴스</li>
+                    </ul>
+                </div>
             </div>
             
-            <div style="background: rgba(0,240,255,0.05); padding: 1.5rem; border-radius: 8px; border: 1px solid var(--border-color);">
-                <h4 style="color: var(--accent-primary); margin-bottom: 1rem;">💡 검색 팁</h4>
-                <ul style="color: #8fa3bf; line-height: 2;">
-                    <li>• <strong>한국 주식:</strong> 종목명 (삼성전자, SK하이닉스) 또는 종목코드 (005930, 000660)</li>
-                    <li>• <strong>미국 주식:</strong> 티커 (AAPL, TSLA, NVDA) 또는 회사명 (애플, 테슬라)</li>
-                    <li>• 검색 결과 클릭 시 <strong>네이버 금융 토론실</strong>로 바로 이동합니다</li>
-                </ul>
+            <div style="background: rgba(255,51,102,0.05); padding: 1.5rem; border-radius: 8px; border: 1px solid var(--border-color);">
+                <h4 style="color: var(--accent-danger); margin-bottom: 1rem;">💡 빠른 검색 팁</h4>
+                <div class="quick-links">
+                    <a href="https://finance.naver.com/" class="quick-link" target="_blank">
+                        <strong>네이버 금융 홈 →</strong>
+                        <div style="font-size: 0.9rem; color: #8fa3bf; margin-top: 0.5rem;">전체 종목 검색</div>
+                    </a>
+                    <a href="https://finance.yahoo.com/" class="quick-link" target="_blank">
+                        <strong>야후 파이낸스 →</strong>
+                        <div style="font-size: 0.9rem; color: #8fa3bf; margin-top: 0.5rem;">미국 주식 전문</div>
+                    </a>
+                    <a href="https://kr.investing.com/" class="quick-link" target="_blank">
+                        <strong>인베스팅닷컴 →</strong>
+                        <div style="font-size: 0.9rem; color: #8fa3bf; margin-top: 0.5rem;">글로벌 주식 검색</div>
+                    </a>
+                </div>
             </div>
         </section>
 
         <!-- 섹션 3: 한국 주요 종목 -->
         <section class="card">
             <div class="card-header">
-                <h2><span class="section-number">03</span> 🇰🇷 한국 주요 종목 TOP 20</h2>
-                <button onclick="refreshKoreanStocks()" style="padding: 0.5rem 1rem; background: var(--accent-success); color: var(--bg-primary); border: none; border-radius: 6px; cursor: pointer; font-weight: 700;">🔄 새로고침</button>
+                <h2><span class="section-number">03</span> 🇰🇷 한국 주식 시장</h2>
             </div>
             
-            <div style="overflow-x: auto;">
-                <table class="stock-table">
-                    <thead>
-                        <tr>
-                            <th>순위</th>
-                            <th>종목명</th>
-                            <th>종목코드</th>
-                            <th>현재가</th>
-                            <th>등락률</th>
-                        </tr>
-                    </thead>
-                    <tbody id="koreanStocksTable">
-                        <tr><td colspan="5" class="loading">📊 데이터 로딩중...</td></tr>
-                    </tbody>
-                </table>
+            <div class="iframe-container" style="height: 700px; margin-bottom: 2rem;">
+                <iframe src="https://finance.naver.com/sise/sise_market_sum.naver?&page=1" style="width: 100%; height: 100%; border: none;"></iframe>
+            </div>
+            
+            <div class="quick-links">
+                <a href="https://finance.naver.com/sise/sise_rise.naver" class="quick-link" target="_blank">
+                    <strong>🔥 상승률 TOP →</strong>
+                    <div style="font-size: 0.9rem; color: #8fa3bf; margin-top: 0.5rem;">급등주 실시간</div>
+                </a>
+                <a href="https://finance.naver.com/sise/sise_fall.naver" class="quick-link" target="_blank">
+                    <strong>📉 하락률 TOP →</strong>
+                    <div style="font-size: 0.9rem; color: #8fa3bf; margin-top: 0.5rem;">급락주 실시간</div>
+                </a>
+                <a href="https://finance.naver.com/sise/sise_quant.naver" class="quick-link" target="_blank">
+                    <strong>📊 거래량 TOP →</strong>
+                    <div style="font-size: 0.9rem; color: #8fa3bf; margin-top: 0.5rem;">거래 활발한 종목</div>
+                </a>
+                <a href="https://finance.naver.com/sise/theme.naver" class="quick-link" target="_blank">
+                    <strong>🎯 테마별 종목 →</strong>
+                    <div style="font-size: 0.9rem; color: #8fa3bf; margin-top: 0.5rem;">2차전지, AI, 반도체</div>
+                </a>
             </div>
         </section>
 
-        <!-- 섹션 4: 미국 주요 종목 -->
+        <!-- 섹션 4: 미국 주식 -->
         <section class="card">
             <div class="card-header">
-                <h2><span class="section-number">04</span> 🇺🇸 미국 주요 종목 TOP 20</h2>
-                <button onclick="refreshUSStocks()" style="padding: 0.5rem 1rem; background: var(--accent-primary); color: var(--bg-primary); border: none; border-radius: 6px; cursor: pointer; font-weight: 700;">🔄 새로고침</button>
+                <h2><span class="section-number">04</span> 🇺🇸 미국 주식 시장</h2>
             </div>
             
-            <div style="overflow-x: auto;">
-                <table class="stock-table">
-                    <thead>
-                        <tr>
-                            <th>순위</th>
-                            <th>종목명</th>
-                            <th>티커</th>
-                            <th>현재가</th>
-                            <th>등락률</th>
-                        </tr>
-                    </thead>
-                    <tbody id="usStocksTable">
-                        <tr><td colspan="5" class="loading">📊 데이터 로딩중...</td></tr>
-                    </tbody>
-                </table>
+            <div class="iframe-container" style="height: 700px; margin-bottom: 2rem;">
+                <iframe src="https://finance.yahoo.com/markets/stocks/most-active/" style="width: 100%; height: 100%; border: none;"></iframe>
+            </div>
+            
+            <div class="quick-links">
+                <a href="https://finance.yahoo.com/markets/stocks/gainers/" class="quick-link" target="_blank">
+                    <strong>🚀 상승 TOP →</strong>
+                    <div style="font-size: 0.9rem; color: #8fa3bf; margin-top: 0.5rem;">Day Gainers</div>
+                </a>
+                <a href="https://finance.yahoo.com/markets/stocks/losers/" class="quick-link" target="_blank">
+                    <strong>📉 하락 TOP →</strong>
+                    <div style="font-size: 0.9rem; color: #8fa3bf; margin-top: 0.5rem;">Day Losers</div>
+                </a>
+                <a href="https://finance.yahoo.com/markets/stocks/most-active/" class="quick-link" target="_blank">
+                    <strong>📊 거래량 TOP →</strong>
+                    <div style="font-size: 0.9rem; color: #8fa3bf; margin-top: 0.5rem;">Most Active</div>
+                </a>
+                <a href="https://finance.yahoo.com/markets/stocks/trending/" class="quick-link" target="_blank">
+                    <strong>🔥 트렌딩 →</strong>
+                    <div style="font-size: 0.9rem; color: #8fa3bf; margin-top: 0.5rem;">Trending Stocks</div>
+                </a>
             </div>
         </section>
 
@@ -180,34 +203,26 @@
             </div>
         </section>
 
-        <!-- 섹션 6: 한국 금융 뉴스 -->
+        <!-- 섹션 6: 뉴스 -->
         <section class="card">
             <div class="card-header">
-                <h2><span class="section-number">06</span> 📰 실시간 금융 뉴스</h2>
+                <h2><span class="section-number">06</span> 📰 실시간 증시 뉴스</h2>
             </div>
             
-            <div style="display: grid; gap: 1rem;">
-                <div onclick="window.open('https://finance.naver.com/news/', '_blank')" style="padding: 1.5rem; background: rgba(0,255,136,0.05); border: 1px solid var(--border-color); border-radius: 8px; cursor: pointer; transition: all 0.3s;" onmouseover="this.style.background='rgba(0,240,255,0.1)'" onmouseout="this.style.background='rgba(0,255,136,0.05)'">
-                    <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 0.5rem;">
-                        <span style="padding: 0.25rem 0.75rem; background: rgba(0,255,136,0.3); border-radius: 4px; font-size: 0.85rem; font-weight: 700; color: var(--accent-success);">실시간</span>
-                        <span style="color: #8fa3bf; font-size: 0.9rem;">네이버 금융</span>
-                    </div>
-                    <h4 style="font-weight: 700; font-size: 1.1rem;">📱 네이버 금융 뉴스 →</h4>
-                </div>
-                <div onclick="window.open('https://www.hankyung.com/stock', '_blank')" style="padding: 1.5rem; background: rgba(255,51,102,0.05); border: 1px solid var(--border-color); border-radius: 8px; cursor: pointer; transition: all 0.3s;" onmouseover="this.style.background='rgba(0,240,255,0.1)'" onmouseout="this.style.background='rgba(255,51,102,0.05)'">
-                    <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 0.5rem;">
-                        <span style="padding: 0.25rem 0.75rem; background: rgba(255,51,102,0.3); border-radius: 4px; font-size: 0.85rem; font-weight: 700;">증시</span>
-                        <span style="color: #8fa3bf; font-size: 0.9rem;">한국경제</span>
-                    </div>
-                    <h4 style="font-weight: 700; font-size: 1.1rem;">📊 한국경제 증시 뉴스 →</h4>
-                </div>
-                <div onclick="window.open('https://www.mk.co.kr/news/stock/', '_blank')" style="padding: 1.5rem; background: rgba(0,240,255,0.05); border: 1px solid var(--border-color); border-radius: 8px; cursor: pointer; transition: all 0.3s;" onmouseover="this.style.background='rgba(0,240,255,0.1)'" onmouseout="this.style.background='rgba(0,240,255,0.05)'">
-                    <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 0.5rem;">
-                        <span style="padding: 0.25rem 0.75rem; background: rgba(0,240,255,0.3); border-radius: 4px; font-size: 0.85rem; font-weight: 700;">증시</span>
-                        <span style="color: #8fa3bf; font-size: 0.9rem;">매일경제</span>
-                    </div>
-                    <h4 style="font-weight: 700; font-size: 1.1rem;">📊 매일경제 증시 뉴스 →</h4>
-                </div>
+            <div class="iframe-container" style="height: 600px; margin-bottom: 2rem;">
+                <iframe src="https://finance.naver.com/news/" style="width: 100%; height: 100%; border: none;"></iframe>
+            </div>
+            
+            <div class="quick-links">
+                <a href="https://www.hankyung.com/stock" class="quick-link" target="_blank">
+                    <strong>한국경제 증시 뉴스 →</strong>
+                </a>
+                <a href="https://www.mk.co.kr/news/stock/" class="quick-link" target="_blank">
+                    <strong>매일경제 증시 뉴스 →</strong>
+                </a>
+                <a href="https://www.edaily.co.kr/stock/" class="quick-link" target="_blank">
+                    <strong>이데일리 증시 뉴스 →</strong>
+                </a>
             </div>
         </section>
 
@@ -215,12 +230,35 @@
 
     <footer class="main-footer">
         <div class="footer-content">
-            <p><strong>📊 실시간 데이터:</strong> Yahoo Finance API를 통해 실시간 시장 데이터 제공</p>
+            <p><strong>📊 실시간 데이터:</strong> 네이버 금융, 야후 파이낸스 연동</p>
             <p><strong>⚠️ 투자 유의:</strong> 본 정보는 참고용이며, 투자 판단의 책임은 투자자 본인에게 있습니다.</p>
             <p class="footer-copy">© 2026 STOCKHUB. Real-time Market Data.</p>
         </div>
     </footer>
 
-    <script src="script.js"></script>
+    <script>
+        // 시간 업데이트
+        function updateTime() {
+            const now = new Date();
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
+            document.getElementById('currentTime').textContent = hours + ':' + minutes + ':' + seconds;
+        }
+        updateTime();
+        setInterval(updateTime, 1000);
+
+        // 주식 검색
+        function searchStock() {
+            const query = document.getElementById('stockSearchInput').value.trim();
+            if (!query) {
+                alert('종목명 또는 종목코드를 입력하세요.');
+                return;
+            }
+            
+            // 네이버 금융에서 검색
+            window.open('https://finance.naver.com/search/searchList.naver?query=' + encodeURIComponent(query), '_blank');
+        }
+    </script>
 </body>
 </html>
