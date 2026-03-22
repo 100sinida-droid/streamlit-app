@@ -3,10 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>STOCKHUB - 실시간 주식 대시보드</title>
+    <title>주식 투자 종합 대시보드 | STOCKHUB</title>
     <link rel="stylesheet" href="styles.css">
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap" rel="stylesheet">
-    <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
+    <style>
+        .quick-links { margin-top: 2rem; }
+        .quick-links h3 { color: var(--accent-primary); font-family: var(--font-display); margin-bottom: 1rem; }
+        .link-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; }
+        .quick-link-card { display: flex; align-items: center; gap: 1rem; padding: 1.5rem; background: rgba(0, 240, 255, 0.05); border: 1px solid var(--border-color); border-radius: 8px; text-decoration: none; color: white; transition: all 0.3s ease; }
+        .quick-link-card:hover { background: rgba(0, 240, 255, 0.15); border-color: var(--accent-primary); transform: translateY(-4px); }
+        .link-icon { font-size: 2rem; }
+        .link-text { font-weight: 600; }
+        .stock-search { margin-bottom: 2rem; }
+        .strategy-card { text-decoration: none; color: inherit; cursor: pointer; }
+        .progress-step { text-decoration: none; color: inherit; cursor: pointer; }
+        .tag { cursor: pointer; }
+    </style>
 </head>
 <body>
     <div class="grain-overlay"></div>
@@ -26,112 +38,240 @@
     </header>
 
     <main class="dashboard">
-        <!-- 실시간 시황 -->
-        <section class="card" data-section="1" style="grid-column: 1 / -1;">
+        
+        <!-- 섹션 1: 실시간 시황 -->
+        <section class="card" data-section="1">
             <div class="card-header">
-                <h2><span class="section-number">01</span> 실시간 시황 분석</h2>
+                <h2><span class="section-number">01</span> 실시간 시황 분석 & 전망</h2>
             </div>
-            <div class="tradingview-widget-container" style="height: 400px;">
-                <div id="tradingview_market"></div>
+            
+            <div class="tradingview-widget-container" style="height: 400px; margin-bottom: 2rem;">
+                <div class="tradingview-widget-container__widget"></div>
+                <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-market-overview.js" async>
+                {
+                  "colorTheme": "dark",
+                  "dateRange": "1D",
+                  "showChart": true,
+                  "locale": "kr",
+                  "width": "100%",
+                  "height": "400",
+                  "isTransparent": true,
+                  "showSymbolLogo": true,
+                  "plotLineColorGrowing": "rgba(0, 255, 136, 1)",
+                  "plotLineColorFalling": "rgba(255, 51, 102, 1)",
+                  "tabs": [
+                    {"title": "한국", "symbols": [{"s": "KRX:KOSPI", "d": "코스피"}, {"s": "KRX:KOSDAQ", "d": "코스닥"}]},
+                    {"title": "미국", "symbols": [{"s": "FOREXCOM:SPXUSD", "d": "S&P 500"}, {"s": "FOREXCOM:NSXUSD", "d": "NASDAQ"}]}
+                  ]
+                }
+                </script>
+            </div>
+            
+            <div class="quick-links">
+                <h3>📰 오늘의 시황 브리핑</h3>
+                <div class="link-grid">
+                    <a href="market-briefing.html" class="quick-link-card" target="_blank">
+                        <span class="link-icon">📊</span>
+                        <span class="link-text">개장 전/후 시황</span>
+                    </a>
+                    <a href="index-analysis.html" class="quick-link-card" target="_blank">
+                        <span class="link-icon">📈</span>
+                        <span class="link-text">주요 지수 분석</span>
+                    </a>
+                    <a href="market-forecast.html" class="quick-link-card" target="_blank">
+                        <span class="link-icon">🔮</span>
+                        <span class="link-text">내일/다음주 전망</span>
+                    </a>
+                </div>
             </div>
         </section>
 
-        <!-- 한국 주식 -->
+        <!-- 섹션 2: 종목 검색 & 추천 -->
         <section class="card" data-section="2">
             <div class="card-header">
-                <h2><span class="section-number">02</span> 한국 주요 종목</h2>
+                <h2><span class="section-number">02</span> 종목 검색 & 추천</h2>
             </div>
-            <div id="tradingview_stocks" style="height: 400px;"></div>
+            
+            <div class="stock-search">
+                <input type="text" id="stockSearch" placeholder="종목명 또는 코드 입력 (예: 삼성전자, 005930)" 
+                       style="width: 100%; padding: 1rem; background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); border-radius: 8px; color: white; font-size: 1rem;">
+                <button onclick="searchStock()" style="margin-top: 1rem; padding: 1rem; background: var(--accent-primary); color: var(--bg-primary); border: none; border-radius: 8px; cursor: pointer; font-weight: 700; width: 100%;">
+                    🔍 종목 검색 (네이버 금융)
+                </button>
+            </div>
+            
+            <div class="tradingview-widget-container" style="margin-bottom: 2rem;">
+                <div class="tradingview-widget-container__widget"></div>
+                <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-screener.js" async>
+                {
+                  "width": "100%",
+                  "height": "500",
+                  "defaultColumn": "overview",
+                  "defaultScreen": "general",
+                  "market": "korea",
+                  "showToolbar": true,
+                  "colorTheme": "dark",
+                  "isTransparent": true,
+                  "locale": "kr"
+                }
+                </script>
+            </div>
+            
+            <div class="quick-links">
+                <h3>🎯 지금 주목할 종목</h3>
+                <div class="link-grid">
+                    <a href="top5-stocks.html" class="quick-link-card" target="_blank">
+                        <span class="link-icon">⭐</span>
+                        <span class="link-text">지금 사야 할 TOP 5</span>
+                    </a>
+                    <a href="trending-stocks.html" class="quick-link-card" target="_blank">
+                        <span class="link-icon">🔥</span>
+                        <span class="link-text">급등주/테마주</span>
+                    </a>
+                    <a href="stock-analysis.html" class="quick-link-card" target="_blank">
+                        <span class="link-icon">🔬</span>
+                        <span class="link-text">종목 심층 분석</span>
+                    </a>
+                </div>
+            </div>
         </section>
 
-        <!-- 투자 전략 -->
+        <!-- 섹션 3: 투자 전략 -->
         <section class="card" data-section="3">
             <div class="card-header">
-                <h2><span class="section-number">03</span> 투자 전략</h2>
+                <h2><span class="section-number">03</span> 투자 전략 & 기법</h2>
             </div>
             <div class="strategy-grid">
-                <div class="strategy-card" onclick="window.open('chart-analysis.html', '_blank')" style="cursor:pointer">
+                <a href="chart-analysis.html" class="strategy-card" target="_blank">
                     <div class="strategy-icon">📈</div>
                     <h3>차트 분석</h3>
-                    <p>기술적 분석 기법</p>
-                    <span class="strategy-link">보기 →</span>
-                </div>
-                <div class="strategy-card" onclick="window.open('value-investing.html', '_blank')" style="cursor:pointer">
+                    <p>캔들 패턴, 이동평균선, RSI, MACD</p>
+                    <span class="strategy-link">자세히 보기 →</span>
+                </a>
+                <a href="value-investing.html" class="strategy-card" target="_blank">
                     <div class="strategy-icon">💎</div>
                     <h3>가치투자</h3>
-                    <p>저평가 우량주 발굴</p>
-                    <span class="strategy-link">보기 →</span>
-                </div>
-                <div class="strategy-card" onclick="window.open('risk-management.html', '_blank')" style="cursor:pointer">
+                    <p>PER, PBR, ROE 분석</p>
+                    <span class="strategy-link">자세히 보기 →</span>
+                </a>
+                <a href="risk-management.html" class="strategy-card" target="_blank">
                     <div class="strategy-icon">🎯</div>
                     <h3>손익 관리</h3>
-                    <p>포트폴리오 관리</p>
-                    <span class="strategy-link">보기 →</span>
-                </div>
-                <div class="strategy-card" onclick="window.open('dividend-investing.html', '_blank')" style="cursor:pointer">
+                    <p>손절/익절 타이밍</p>
+                    <span class="strategy-link">자세히 보기 →</span>
+                </a>
+                <a href="dividend-investing.html" class="strategy-card" target="_blank">
                     <div class="strategy-icon">💰</div>
                     <h3>배당투자</h3>
-                    <p>안정적 현금흐름</p>
-                    <span class="strategy-link">보기 →</span>
-                </div>
+                    <p>안정적인 현금흐름</p>
+                    <span class="strategy-link">자세히 보기 →</span>
+                </a>
             </div>
         </section>
 
-        <!-- 암호화폐 -->
+        <!-- 섹션 4: 실전 투자 -->
         <section class="card" data-section="4">
             <div class="card-header">
-                <h2><span class="section-number">04</span> 암호화폐 <span class="live-badge">LIVE</span></h2>
+                <h2><span class="section-number">04</span> 실전 투자 콘텐츠</h2>
             </div>
-            <div id="tradingview_crypto" style="height: 400px;"></div>
+            
+            <div class="tradingview-widget-container" style="margin-bottom: 2rem;">
+                <div class="tradingview-widget-container__widget"></div>
+                <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js" async>
+                {
+                  "symbols": [
+                    {"description": "코스피", "proName": "KRX:KOSPI"},
+                    {"description": "코스닥", "proName": "KRX:KOSDAQ"},
+                    {"description": "달러/원", "proName": "FX:USDKRW"}
+                  ],
+                  "showSymbolLogo": true,
+                  "colorTheme": "dark",
+                  "isTransparent": true,
+                  "locale": "kr"
+                }
+                </script>
+            </div>
+            
+            <div class="quick-links">
+                <h3>💼 실전 투자 가이드</h3>
+                <div class="link-grid">
+                    <a href="live-trading.html" class="quick-link-card" target="_blank">
+                        <span class="link-icon">📡</span>
+                        <span class="link-text">실시간 매매 전략</span>
+                    </a>
+                    <a href="portfolio.html" class="quick-link-card" target="_blank">
+                        <span class="link-icon">💼</span>
+                        <span class="link-text">포트폴리오 공개</span>
+                    </a>
+                    <a href="lessons-learned.html" class="quick-link-card" target="_blank">
+                        <span class="link-icon">📚</span>
+                        <span class="link-text">투자 경험담</span>
+                    </a>
+                </div>
+            </div>
         </section>
 
-        <!-- 뉴스 -->
-        <section class="card" data-section="5" style="grid-column: 1 / -1;">
+        <!-- 섹션 5: 경제 이슈 -->
+        <section class="card" data-section="5">
             <div class="card-header">
-                <h2><span class="section-number">05</span> 경제 뉴스</h2>
+                <h2><span class="section-number">05</span> 경제 이슈 해설</h2>
             </div>
-            <div class="news-list">
-                <article class="news-item" onclick="window.open('https://finance.naver.com', '_blank')" style="cursor:pointer">
-                    <div class="news-category">증시</div>
-                    <h3 class="news-title">코스피 2650선, 외국인 매수세</h3>
-                    <p class="news-summary">반도체·2차전지 강세</p>
-                    <div class="news-meta"><span class="news-time">실시간</span><span class="news-source">네이버 금융</span></div>
-                </article>
-                <article class="news-item" onclick="window.open('https://www.hankyung.com', '_blank')" style="cursor:pointer">
-                    <div class="news-category">산업</div>
-                    <h3 class="news-title">AI 반도체 수요 급증</h3>
-                    <p class="news-summary">HBM 업체 주가 상승</p>
-                    <div class="news-meta"><span class="news-time">실시간</span><span class="news-source">한국경제</span></div>
-                </article>
-                <article class="news-item" onclick="window.open('https://www.mk.co.kr', '_blank')" style="cursor:pointer">
-                    <div class="news-category">금리</div>
-                    <h3 class="news-title">한은 금리 동결 전망</h3>
-                    <p class="news-summary">물가 안정세 지속</p>
-                    <div class="news-meta"><span class="news-time">실시간</span><span class="news-source">매일경제</span></div>
-                </article>
+            
+            <div class="quick-links">
+                <h3>🌍 주요 경제 이슈</h3>
+                <div class="link-grid">
+                    <a href="interest-rate.html" class="quick-link-card" target="_blank">
+                        <span class="link-icon">💹</span>
+                        <span class="link-text">금리/환율 분석</span>
+                    </a>
+                    <a href="fed-policy.html" class="quick-link-card" target="_blank">
+                        <span class="link-icon">🏦</span>
+                        <span class="link-text">연준 정책 해석</span>
+                    </a>
+                    <a href="industry-trends.html" class="quick-link-card" target="_blank">
+                        <span class="link-icon">🔧</span>
+                        <span class="link-text">산업 트렌드</span>
+                    </a>
+                </div>
             </div>
         </section>
 
-        <!-- 교육 -->
-        <section class="card" data-section="6" style="grid-column: 1 / -1;">
+        <!-- 섹션 6: 초보자 교육 -->
+        <section class="card" data-section="6">
             <div class="card-header">
-                <h2><span class="section-number">06</span> 투자 가이드</h2>
+                <h2><span class="section-number">06</span> 초보자 투자 가이드</h2>
             </div>
+            
             <div class="education-content">
                 <div class="progress-tracker">
-                    <div class="progress-step completed"><div class="step-number">1</div><div class="step-info"><h4>계좌 개설</h4></div></div>
-                    <div class="progress-step active"><div class="step-number">2</div><div class="step-info"><h4>기본 용어</h4></div></div>
-                    <div class="progress-step"><div class="step-number">3</div><div class="step-info"><h4>첫 매수</h4></div></div>
-                    <div class="progress-step"><div class="step-number">4</div><div class="step-info"><h4>포트폴리오</h4></div></div>
-                </div>
-                <div class="learning-resources">
-                    <h4>학습 자료</h4>
-                    <div class="resource-tags">
-                        <span class="tag" onclick="window.open('chart-analysis.html', '_blank')" style="cursor:pointer">📘 차트</span>
-                        <span class="tag" onclick="window.open('value-investing.html', '_blank')" style="cursor:pointer">💎 가치</span>
-                        <span class="tag" onclick="window.open('risk-management.html', '_blank')" style="cursor:pointer">🎯 손익</span>
-                        <span class="tag" onclick="window.open('dividend-investing.html', '_blank')" style="cursor:pointer">💰 배당</span>
-                    </div>
+                    <a href="step1-account.html" class="progress-step" target="_blank">
+                        <div class="step-number">1</div>
+                        <div class="step-info">
+                            <h4>계좌 개설하기</h4>
+                            <p>증권사 선택 및 계좌 개설 방법</p>
+                        </div>
+                    </a>
+                    <a href="step2-basics.html" class="progress-step" target="_blank">
+                        <div class="step-number">2</div>
+                        <div class="step-info">
+                            <h4>기본 용어 익히기</h4>
+                            <p>주식 투자 핵심 용어</p>
+                        </div>
+                    </a>
+                    <a href="step3-hts.html" class="progress-step" target="_blank">
+                        <div class="step-number">3</div>
+                        <div class="step-info">
+                            <h4>HTS/MTS 사용법</h4>
+                            <p>거래 프로그램 사용 방법</p>
+                        </div>
+                    </a>
+                    <a href="step4-first-buy.html" class="progress-step" target="_blank">
+                        <div class="step-number">4</div>
+                        <div class="step-info">
+                            <h4>첫 매수하기</h4>
+                            <p>실전 주식 매수 가이드</p>
+                        </div>
+                    </a>
                 </div>
             </div>
         </section>
@@ -139,74 +279,24 @@
 
     <footer class="main-footer">
         <div class="footer-content">
-            <p>투자 판단의 책임은 투자자 본인에게 있습니다. TradingView 제공</p>
+            <p>본 정보는 투자 참고용이며, 투자 판단의 책임은 투자자 본인에게 있습니다.</p>
+            <p class="footer-copy">© 2026 STOCKHUB. Powered by TradingView.</p>
         </div>
     </footer>
 
+    <script src="script.js"></script>
     <script>
-        // 시간
-        function updateTime() {
-            const now = new Date();
-            document.getElementById('currentTime').textContent = now.toLocaleTimeString('ko-KR');
+        function searchStock() {
+            const query = document.getElementById('stockSearch').value.trim();
+            if (query) {
+                window.open(`https://finance.naver.com/search/searchList.naver?query=${encodeURIComponent(query)}`, '_blank');
+            } else {
+                alert('종목명 또는 종목코드를 입력하세요.');
+            }
         }
-        updateTime();
-        setInterval(updateTime, 1000);
-
-        // TradingView 위젯
-        new TradingView.widget({
-            container_id: "tradingview_market",
-            width: "100%",
-            height: 400,
-            symbol: "KRX:KOSPI",
-            interval: "D",
-            timezone: "Asia/Seoul",
-            theme: "dark",
-            style: "1",
-            locale: "kr",
-            toolbar_bg: "#1a2332",
-            enable_publishing: false,
-            allow_symbol_change: true,
-            save_image: false,
-            studies: ["MASimple@tv-basicstudies"],
-            show_popup_button: true,
-            popup_width: "1000",
-            popup_height: "650"
+        document.getElementById('stockSearch').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') searchStock();
         });
-
-        new TradingView.MediumWidget({
-            symbols: [
-                ["삼성전자", "KRX:005930|1D"],
-                ["SK하이닉스", "KRX:000660|1D"],
-                ["NAVER", "KRX:035420|1D"],
-                ["카카오", "KRX:035720|1D"],
-                ["LG에너지", "KRX:373220|1D"]
-            ],
-            chartOnly: false,
-            width: "100%",
-            height: 400,
-            locale: "kr",
-            colorTheme: "dark",
-            isTransparent: true,
-            container_id: "tradingview_stocks"
-        });
-
-        new TradingView.MediumWidget({
-            symbols: [
-                ["BTC", "BINANCE:BTCUSDT|1D"],
-                ["ETH", "BINANCE:ETHUSDT|1D"],
-                ["XRP", "BINANCE:XRPUSDT|1D"],
-                ["SOL", "BINANCE:SOLUSDT|1D"]
-            ],
-            chartOnly: false,
-            width: "100%",
-            height: 400,
-            locale: "kr",
-            colorTheme: "dark",
-            isTransparent: true,
-            container_id: "tradingview_crypto"
-        });
-
-        console.log('✅ STOCKHUB - Real-time data from TradingView');
     </script>
 </body>
 </html>
