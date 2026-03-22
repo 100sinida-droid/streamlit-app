@@ -3,22 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>주식 투자 종합 대시보드 | STOCKHUB</title>
+    <title>실시간 글로벌 주식 대시보드 | STOCKHUB</title>
     <link rel="stylesheet" href="styles.css">
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap" rel="stylesheet">
-    <style>
-        .quick-links { margin-top: 2rem; }
-        .quick-links h3 { color: var(--accent-primary); font-family: var(--font-display); margin-bottom: 1rem; }
-        .link-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; }
-        .quick-link-card { display: flex; align-items: center; gap: 1rem; padding: 1.5rem; background: rgba(0, 240, 255, 0.05); border: 1px solid var(--border-color); border-radius: 8px; text-decoration: none; color: white; transition: all 0.3s ease; }
-        .quick-link-card:hover { background: rgba(0, 240, 255, 0.15); border-color: var(--accent-primary); transform: translateY(-4px); }
-        .link-icon { font-size: 2rem; }
-        .link-text { font-weight: 600; }
-        .stock-search { margin-bottom: 2rem; }
-        .strategy-card { text-decoration: none; color: inherit; cursor: pointer; }
-        .progress-step { text-decoration: none; color: inherit; cursor: pointer; }
-        .tag { cursor: pointer; }
-    </style>
 </head>
 <body>
     <div class="grain-overlay"></div>
@@ -40,15 +27,14 @@
     <main class="dashboard">
         
         <!-- 섹션 1: 실시간 시황 -->
-        <section class="card" data-section="1">
+        <section class="card">
             <div class="card-header">
-                <h2><span class="section-number">01</span> 실시간 시황 분석 & 전망</h2>
+                <h2><span class="section-number">01</span> 실시간 글로벌 시장 현황</h2>
             </div>
             
-            <!-- 실시간 시장 차트 -->
+            <!-- 주요 지수 차트 -->
             <div style="background: rgba(0,0,0,0.3); padding: 1.5rem; border-radius: 12px; margin-bottom: 2rem;">
-                <h3 style="color: var(--accent-primary); margin-bottom: 1rem;">📊 실시간 시장 현황</h3>
-                <!-- TradingView Widget BEGIN -->
+                <h3 style="color: var(--accent-primary); margin-bottom: 1rem;">📊 주요 지수 실시간 차트</h3>
                 <div class="tradingview-widget-container">
                   <div class="tradingview-widget-container__widget"></div>
                   <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-symbol-overview.js" async>
@@ -57,15 +43,17 @@
                     ["Korea Stock Exchange:KOSPI|1D"],
                     ["Korea Stock Exchange:KOSDAQ|1D"],
                     ["FOREXCOM:SPXUSD|1D"],
-                    ["NASDAQ:IXIC|1D"]
+                    ["NASDAQ:IXIC|1D"],
+                    ["FOREXCOM:DJI|1D"],
+                    ["NASDAQ:AAPL|1D"]
                   ],
                   "chartOnly": false,
                   "width": "100%",
-                  "height": "400",
+                  "height": "500",
                   "locale": "kr",
                   "colorTheme": "dark",
                   "autosize": false,
-                  "showVolume": false,
+                  "showVolume": true,
                   "showMA": false,
                   "hideDateRanges": false,
                   "hideMarketStatus": false,
@@ -78,87 +66,78 @@
                   "valuesTracking": "1",
                   "changeMode": "price-and-percent",
                   "chartType": "area",
-                  "maLineColor": "#2962FF",
-                  "maLineWidth": 1,
-                  "maLength": 9,
                   "lineWidth": 2,
                   "lineType": 0,
-                  "dateRanges": [
-                    "1d|1",
-                    "1m|30",
-                    "3m|60",
-                    "12m|1D",
-                    "60m|1W",
-                    "all|1M"
-                  ]
+                  "dateRanges": ["1d|1","1m|30","3m|60","12m|1D","60m|1W","all|1M"]
                   }
                   </script>
                 </div>
-                <!-- TradingView Widget END -->
             </div>
             
-            <div class="quick-links">
-                <h3>📰 오늘의 시황 브리핑</h3>
-                
-                <!-- 실시간 주요 지수 요약 -->
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
-                    <div style="background: rgba(0, 255, 136, 0.1); padding: 1.5rem; border-radius: 8px; border: 1px solid rgba(0, 255, 136, 0.3);">
-                        <div style="font-size: 0.9rem; color: #8fa3bf; margin-bottom: 0.5rem;">코스피</div>
-                        <div style="font-size: 1.8rem; font-weight: 700; font-family: var(--font-display); color: var(--accent-success);">2,650.27</div>
-                        <div style="font-size: 0.9rem; color: var(--accent-success); margin-top: 0.5rem;">▲ 15.32 (+0.58%)</div>
-                    </div>
-                    <div style="background: rgba(255, 51, 102, 0.1); padding: 1.5rem; border-radius: 8px; border: 1px solid rgba(255, 51, 102, 0.3);">
-                        <div style="font-size: 0.9rem; color: #8fa3bf; margin-bottom: 0.5rem;">코스닥</div>
-                        <div style="font-size: 1.8rem; font-weight: 700; font-family: var(--font-display); color: var(--accent-danger);">785.43</div>
-                        <div style="font-size: 0.9rem; color: var(--accent-danger); margin-top: 0.5rem;">▼ 5.21 (-0.66%)</div>
-                    </div>
-                    <div style="background: rgba(0, 240, 255, 0.1); padding: 1.5rem; border-radius: 8px; border: 1px solid rgba(0, 240, 255, 0.3);">
-                        <div style="font-size: 0.9rem; color: #8fa3bf; margin-bottom: 0.5rem;">S&P 500</div>
-                        <div style="font-size: 1.8rem; font-weight: 700; font-family: var(--font-display); color: var(--accent-primary);">5,234.18</div>
-                        <div style="font-size: 0.9rem; color: var(--accent-success); margin-top: 0.5rem;">▲ 23.45 (+0.45%)</div>
-                    </div>
-                    <div style="background: rgba(0, 240, 255, 0.1); padding: 1.5rem; border-radius: 8px; border: 1px solid rgba(0, 240, 255, 0.3);">
-                        <div style="font-size: 0.9rem; color: #8fa3bf; margin-bottom: 0.5rem;">나스닥</div>
-                        <div style="font-size: 1.8rem; font-weight: 700; font-family: var(--font-display); color: var(--accent-primary);">16,315.70</div>
-                        <div style="font-size: 0.9rem; color: var(--accent-success); margin-top: 0.5rem;">▲ 87.33 (+0.54%)</div>
-                    </div>
-                </div>
-                
-                <div class="link-grid">
-                    <a href="market-briefing.html" class="quick-link-card" target="_blank">
-                        <span class="link-icon">📊</span>
-                        <span class="link-text">개장 전/후 시황</span>
-                    </a>
-                    <a href="index-analysis.html" class="quick-link-card" target="_blank">
-                        <span class="link-icon">📈</span>
-                        <span class="link-text">주요 지수 분석</span>
-                    </a>
-                    <a href="market-forecast.html" class="quick-link-card" target="_blank">
-                        <span class="link-icon">🔮</span>
-                        <span class="link-text">내일/다음주 전망</span>
-                    </a>
+            <!-- 글로벌 히트맵 -->
+            <div style="background: rgba(0,0,0,0.3); padding: 1.5rem; border-radius: 12px; margin-bottom: 2rem;">
+                <h3 style="color: var(--accent-primary); margin-bottom: 1rem;">🌍 글로벌 시장 히트맵 (실시간)</h3>
+                <p style="color: #8fa3bf; margin-bottom: 1rem; font-size: 0.9rem;">
+                    전세계 주요 주식의 실시간 등락을 한눈에 확인하세요. 클릭하여 상세 정보를 확인할 수 있습니다.
+                </p>
+                <div class="tradingview-widget-container">
+                  <div class="tradingview-widget-container__widget"></div>
+                  <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-stock-heatmap.js" async>
+                  {
+                  "exchanges": [],
+                  "dataSource": "SPX500",
+                  "grouping": "sector",
+                  "blockSize": "market_cap_basic",
+                  "blockColor": "change",
+                  "locale": "kr",
+                  "symbolUrl": "",
+                  "colorTheme": "dark",
+                  "hasTopBar": true,
+                  "isDataSetEnabled": true,
+                  "isZoomEnabled": true,
+                  "hasSymbolTooltip": true,
+                  "width": "100%",
+                  "height": "600"
+                  }
+                  </script>
                 </div>
             </div>
         </section>
 
-        <!-- 섹션 2: 종목 검색 & 추천 -->
-        <section class="card" data-section="2">
+        <!-- 섹션 2: 한국 전체 주식 -->
+        <section class="card">
             <div class="card-header">
-                <h2><span class="section-number">02</span> 종목 검색 & 추천</h2>
+                <h2><span class="section-number">02</span> 🇰🇷 한국 전체 상장 주식 (코스피 + 코스닥)</h2>
             </div>
             
-            <div class="stock-search">
-                <input type="text" id="stockSearch" placeholder="종목명 또는 코드 입력 (예: 삼성전자, 005930)" 
-                       style="width: 100%; padding: 1rem; background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); border-radius: 8px; color: white; font-size: 1rem;">
-                <button onclick="searchStock()" style="margin-top: 1rem; padding: 1rem; background: var(--accent-primary); color: var(--bg-primary); border: none; border-radius: 8px; cursor: pointer; font-weight: 700; width: 100%;">
-                    🔍 종목 검색 (네이버 금융)
-                </button>
-            </div>
-            
-            <!-- 한국 주요 종목 실시간 -->
             <div style="background: rgba(0,0,0,0.3); padding: 1.5rem; border-radius: 12px; margin-bottom: 2rem;">
-                <h3 style="color: var(--accent-primary); margin-bottom: 1rem;">🔥 한국 주요 종목</h3>
-                <!-- TradingView Widget BEGIN -->
+                <h3 style="color: var(--accent-success); margin-bottom: 1rem;">📈 한국 전체 주식 실시간 스크리너</h3>
+                <p style="color: #8fa3bf; margin-bottom: 1rem; font-size: 0.9rem;">
+                    ✅ <strong>코스피 + 코스닥 전체 상장 주식</strong>을 실시간으로 확인<br>
+                    ✅ 시가총액, 거래량, 등락률, PER, PBR 등으로 <strong>정렬 및 필터링</strong> 가능<br>
+                    ✅ 종목 클릭 시 <strong>상세 차트 및 재무 정보</strong> 확인
+                </p>
+                <div class="tradingview-widget-container">
+                  <div class="tradingview-widget-container__widget"></div>
+                  <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-screener.js" async>
+                  {
+                  "width": "100%",
+                  "height": "700",
+                  "defaultColumn": "overview",
+                  "defaultScreen": "general",
+                  "market": "korea",
+                  "showToolbar": true,
+                  "colorTheme": "dark",
+                  "locale": "kr",
+                  "isTransparent": true
+                  }
+                  </script>
+                </div>
+            </div>
+            
+            <!-- 한국 급등주 -->
+            <div style="background: rgba(0,0,0,0.3); padding: 1.5rem; border-radius: 12px; margin-bottom: 2rem;">
+                <h3 style="color: var(--accent-success); margin-bottom: 1rem;">🔥 한국 급등주 & 인기 종목 (실시간)</h3>
                 <div class="tradingview-widget-container">
                   <div class="tradingview-widget-container__widget"></div>
                   <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-hotlists.js" async>
@@ -168,15 +147,15 @@
                   "exchange": "KRX",
                   "showChart": true,
                   "locale": "kr",
+                  "width": "100%",
+                  "height": "600",
                   "largeChartUrl": "",
                   "isTransparent": true,
-                  "showSymbolLogo": false,
+                  "showSymbolLogo": true,
                   "showFloatingTooltip": false,
-                  "width": "100%",
-                  "height": "500",
                   "plotLineColorGrowing": "rgba(0, 255, 136, 1)",
                   "plotLineColorFalling": "rgba(255, 51, 102, 1)",
-                  "gridLineColor": "rgba(42, 46, 57, 0)",
+                  "gridLineColor": "rgba(240, 243, 250, 0)",
                   "scaleFontColor": "rgba(120, 123, 134, 1)",
                   "belowLineFillColorGrowing": "rgba(0, 255, 136, 0.12)",
                   "belowLineFillColorFalling": "rgba(255, 51, 102, 0.12)",
@@ -186,252 +165,146 @@
                   }
                   </script>
                 </div>
-                <!-- TradingView Widget END -->
+            </div>
+        </section>
+
+        <!-- 섹션 3: 미국 전체 주식 -->
+        <section class="card">
+            <div class="card-header">
+                <h2><span class="section-number">03</span> 🇺🇸 미국 전체 상장 주식 (NYSE + NASDAQ)</h2>
             </div>
             
-            <div class="quick-links">
-                <h3>🎯 지금 주목할 종목</h3>
-                
-                <!-- 주요 종목 리스트 -->
-                <div style="background: rgba(0,0,0,0.3); padding: 1.5rem; border-radius: 12px; margin-bottom: 1.5rem;">
-                    <h4 style="color: var(--accent-success); margin-bottom: 1rem;">🔥 오늘의 급등주</h4>
-                    <div style="display: flex; flex-direction: column; gap: 1rem;">
-                        <div onclick="window.open('https://finance.naver.com/item/main.naver?code=005930', '_blank')" style="display: grid; grid-template-columns: 40px 1fr auto auto; gap: 1rem; align-items: center; padding: 1rem; background: rgba(255,255,255,0.02); border-radius: 8px; cursor: pointer; transition: all 0.3s ease;" onmouseover="this.style.background='rgba(0,240,255,0.1)'" onmouseout="this.style.background='rgba(255,255,255,0.02)'">
-                            <div style="width: 40px; height: 40px; background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary)); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-family: var(--font-display);">1</div>
-                            <div>
-                                <div style="font-weight: 700; font-size: 1.1rem;">삼성전자</div>
-                                <div style="font-size: 0.85rem; color: #8fa3bf; font-family: var(--font-display);">005930</div>
-                            </div>
-                            <div style="font-size: 1.2rem; font-weight: 700; font-family: var(--font-display);">73,500원</div>
-                            <div style="padding: 0.5rem 1rem; background: rgba(0,255,136,0.1); border-radius: 6px; color: var(--accent-success); font-weight: 700;">+2.8%</div>
-                        </div>
-                        
-                        <div onclick="window.open('https://finance.naver.com/item/main.naver?code=000660', '_blank')" style="display: grid; grid-template-columns: 40px 1fr auto auto; gap: 1rem; align-items: center; padding: 1rem; background: rgba(255,255,255,0.02); border-radius: 8px; cursor: pointer; transition: all 0.3s ease;" onmouseover="this.style.background='rgba(0,240,255,0.1)'" onmouseout="this.style.background='rgba(255,255,255,0.02)'">
-                            <div style="width: 40px; height: 40px; background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary)); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-family: var(--font-display);">2</div>
-                            <div>
-                                <div style="font-weight: 700; font-size: 1.1rem;">SK하이닉스</div>
-                                <div style="font-size: 0.85rem; color: #8fa3bf; font-family: var(--font-display);">000660</div>
-                            </div>
-                            <div style="font-size: 1.2rem; font-weight: 700; font-family: var(--font-display);">187,000원</div>
-                            <div style="padding: 0.5rem 1rem; background: rgba(0,255,136,0.1); border-radius: 6px; color: var(--accent-success); font-weight: 700;">+4.2%</div>
-                        </div>
-                        
-                        <div onclick="window.open('https://finance.naver.com/item/main.naver?code=373220', '_blank')" style="display: grid; grid-template-columns: 40px 1fr auto auto; gap: 1rem; align-items: center; padding: 1rem; background: rgba(255,255,255,0.02); border-radius: 8px; cursor: pointer; transition: all 0.3s ease;" onmouseover="this.style.background='rgba(0,240,255,0.1)'" onmouseout="this.style.background='rgba(255,255,255,0.02)'">
-                            <div style="width: 40px; height: 40px; background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary)); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-family: var(--font-display);">3</div>
-                            <div>
-                                <div style="font-weight: 700; font-size: 1.1rem;">LG에너지솔루션</div>
-                                <div style="font-size: 0.85rem; color: #8fa3bf; font-family: var(--font-display);">373220</div>
-                            </div>
-                            <div style="font-size: 1.2rem; font-weight: 700; font-family: var(--font-display);">432,000원</div>
-                            <div style="padding: 0.5rem 1rem; background: rgba(0,255,136,0.1); border-radius: 6px; color: var(--accent-success); font-weight: 700;">+1.9%</div>
-                        </div>
-                        
-                        <div onclick="window.open('https://finance.naver.com/item/main.naver?code=035420', '_blank')" style="display: grid; grid-template-columns: 40px 1fr auto auto; gap: 1rem; align-items: center; padding: 1rem; background: rgba(255,255,255,0.02); border-radius: 8px; cursor: pointer; transition: all 0.3s ease;" onmouseover="this.style.background='rgba(0,240,255,0.1)'" onmouseout="this.style.background='rgba(255,255,255,0.02)'">
-                            <div style="width: 40px; height: 40px; background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary)); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-family: var(--font-display);">4</div>
-                            <div>
-                                <div style="font-weight: 700; font-size: 1.1rem;">NAVER</div>
-                                <div style="font-size: 0.85rem; color: #8fa3bf; font-family: var(--font-display);">035420</div>
-                            </div>
-                            <div style="font-size: 1.2rem; font-weight: 700; font-family: var(--font-display);">217,000원</div>
-                            <div style="padding: 0.5rem 1rem; background: rgba(0,255,136,0.1); border-radius: 6px; color: var(--accent-success); font-weight: 700;">+2.1%</div>
-                        </div>
-                        
-                        <div onclick="window.open('https://finance.naver.com/item/main.naver?code=035720', '_blank')" style="display: grid; grid-template-columns: 40px 1fr auto auto; gap: 1rem; align-items: center; padding: 1rem; background: rgba(255,255,255,0.02); border-radius: 8px; cursor: pointer; transition: all 0.3s ease;" onmouseover="this.style.background='rgba(0,240,255,0.1)'" onmouseout="this.style.background='rgba(255,255,255,0.02)'">
-                            <div style="width: 40px; height: 40px; background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary)); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-family: var(--font-display);">5</div>
-                            <div>
-                                <div style="font-weight: 700; font-size: 1.1rem;">카카오</div>
-                                <div style="font-size: 0.85rem; color: #8fa3bf; font-family: var(--font-display);">035720</div>
-                            </div>
-                            <div style="font-size: 1.2rem; font-weight: 700; font-family: var(--font-display);">53,500원</div>
-                            <div style="padding: 0.5rem 1rem; background: rgba(0,255,136,0.1); border-radius: 6px; color: var(--accent-success); font-weight: 700;">+1.7%</div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="link-grid">
-                    <a href="top5-stocks.html" class="quick-link-card" target="_blank">
-                        <span class="link-icon">⭐</span>
-                        <span class="link-text">지금 사야 할 TOP 5</span>
-                    </a>
-                    <a href="trending-stocks.html" class="quick-link-card" target="_blank">
-                        <span class="link-icon">🔥</span>
-                        <span class="link-text">급등주/테마주</span>
-                    </a>
-                    <a href="stock-analysis.html" class="quick-link-card" target="_blank">
-                        <span class="link-icon">🔬</span>
-                        <span class="link-text">종목 심층 분석</span>
-                    </a>
+            <div style="background: rgba(0,0,0,0.3); padding: 1.5rem; border-radius: 12px; margin-bottom: 2rem;">
+                <h3 style="color: var(--accent-primary); margin-bottom: 1rem;">📈 미국 전체 주식 실시간 스크리너</h3>
+                <p style="color: #8fa3bf; margin-bottom: 1rem; font-size: 0.9rem;">
+                    ✅ <strong>NYSE + NASDAQ 전체 상장 주식</strong>을 실시간으로 확인<br>
+                    ✅ 애플, 테슬라, 엔비디아, 마이크로소프트 등 <strong>모든 미국 주식</strong><br>
+                    ✅ 시가총액, 거래량, 등락률, PER, PBR 등으로 <strong>정렬 및 필터링</strong> 가능
+                </p>
+                <div class="tradingview-widget-container">
+                  <div class="tradingview-widget-container__widget"></div>
+                  <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-screener.js" async>
+                  {
+                  "width": "100%",
+                  "height": "700",
+                  "defaultColumn": "overview",
+                  "defaultScreen": "most_capitalized",
+                  "market": "america",
+                  "showToolbar": true,
+                  "colorTheme": "dark",
+                  "locale": "kr",
+                  "isTransparent": true
+                  }
+                  </script>
                 </div>
             </div>
         </section>
 
-        <!-- 섹션 3: 투자 전략 -->
-        <section class="card" data-section="3">
+        <!-- 섹션 4: 전세계 주식 검색 -->
+        <section class="card">
             <div class="card-header">
-                <h2><span class="section-number">03</span> 투자 전략 & 기법</h2>
+                <h2><span class="section-number">04</span> 🔍 전세계 주식 검색</h2>
             </div>
+            
+            <div style="background: rgba(0,0,0,0.3); padding: 1.5rem; border-radius: 12px; margin-bottom: 2rem;">
+                <h3 style="color: var(--accent-primary); margin-bottom: 1rem;">🌍 글로벌 주식 검색 & 차트</h3>
+                <p style="color: #8fa3bf; margin-bottom: 1rem; font-size: 0.9rem;">
+                    한국, 미국, 일본, 유럽 등 <strong>전세계 모든 주식</strong>을 검색하고 실시간 차트를 확인하세요.
+                </p>
+                <div class="tradingview-widget-container">
+                  <div class="tradingview-widget-container__widget"></div>
+                  <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-symbol-search.js" async>
+                  {
+                  "width": "100%",
+                  "height": "550",
+                  "defaultMarket": "KRX",
+                  "showSymbolLogo": true,
+                  "colorTheme": "dark",
+                  "isTransparent": true,
+                  "locale": "kr"
+                  }
+                  </script>
+                </div>
+            </div>
+            
+            <!-- 네이버 금융 검색 -->
+            <div style="background: rgba(0,0,0,0.3); padding: 1.5rem; border-radius: 12px;">
+                <h3 style="color: var(--accent-primary); margin-bottom: 1rem;">🔍 네이버 금융 검색</h3>
+                <input type="text" id="stockSearch" placeholder="종목명 또는 종목코드 입력 (예: 삼성전자, 005930, AAPL)" 
+                       style="width: 100%; padding: 1rem; background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); border-radius: 8px; color: white; font-size: 1rem; margin-bottom: 1rem;">
+                <button onclick="searchStock()" style="padding: 1rem 2rem; background: var(--accent-primary); color: var(--bg-primary); border: none; border-radius: 8px; cursor: pointer; font-weight: 700; width: 100%;">
+                    🔍 네이버 금융에서 검색
+                </button>
+            </div>
+        </section>
+
+        <!-- 섹션 5: 투자 전략 -->
+        <section class="card">
+            <div class="card-header">
+                <h2><span class="section-number">05</span> 투자 전략 & 교육</h2>
+            </div>
+            
             <div class="strategy-grid">
                 <a href="chart-analysis.html" class="strategy-card" target="_blank">
                     <div class="strategy-icon">📈</div>
                     <h3>차트 분석</h3>
-                    <p>캔들 패턴, 이동평균선, RSI, MACD</p>
+                    <p>캔들 패턴, 보조지표 완벽 가이드</p>
                     <span class="strategy-link">자세히 보기 →</span>
                 </a>
                 <a href="value-investing.html" class="strategy-card" target="_blank">
                     <div class="strategy-icon">💎</div>
                     <h3>가치투자</h3>
-                    <p>PER, PBR, ROE 분석</p>
+                    <p>재무제표 분석 및 저평가주 발굴</p>
                     <span class="strategy-link">자세히 보기 →</span>
                 </a>
                 <a href="risk-management.html" class="strategy-card" target="_blank">
                     <div class="strategy-icon">🎯</div>
                     <h3>손익 관리</h3>
-                    <p>손절/익절 타이밍</p>
+                    <p>손절매/익절매 타이밍 전략</p>
                     <span class="strategy-link">자세히 보기 →</span>
                 </a>
                 <a href="dividend-investing.html" class="strategy-card" target="_blank">
                     <div class="strategy-icon">💰</div>
                     <h3>배당투자</h3>
-                    <p>안정적인 현금흐름</p>
+                    <p>안정적인 현금흐름 구축하기</p>
                     <span class="strategy-link">자세히 보기 →</span>
                 </a>
             </div>
         </section>
 
-        <!-- 섹션 4: 실전 투자 -->
-        <section class="card" data-section="4">
+        <!-- 섹션 6: 실시간 뉴스 -->
+        <section class="card">
             <div class="card-header">
-                <h2><span class="section-number">04</span> 실전 투자 콘텐츠</h2>
+                <h2><span class="section-number">06</span> 실시간 금융 뉴스</h2>
             </div>
             
-            <!-- 실시간 주요 지수 티커 -->
-            <div style="background: rgba(0,0,0,0.3); padding: 0.5rem; border-radius: 8px; margin-bottom: 2rem;">
-                <!-- TradingView Widget BEGIN -->
+            <div style="background: rgba(0,0,0,0.3); padding: 1.5rem; border-radius: 12px;">
+                <h3 style="color: var(--accent-primary); margin-bottom: 1rem;">📰 글로벌 시장 뉴스 (실시간)</h3>
                 <div class="tradingview-widget-container">
                   <div class="tradingview-widget-container__widget"></div>
-                  <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-tickers.js" async>
+                  <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-timeline.js" async>
                   {
-                  "symbols": [
-                    {
-                      "proName": "FOREXCOM:SPXUSD",
-                      "title": "S&P 500"
-                    },
-                    {
-                      "proName": "FOREXCOM:NSXUSD",
-                      "title": "US 100"
-                    },
-                    {
-                      "proName": "FX_IDC:EURUSD",
-                      "title": "EUR to USD"
-                    },
-                    {
-                      "proName": "BITSTAMP:BTCUSD",
-                      "title": "Bitcoin"
-                    },
-                    {
-                      "proName": "BITSTAMP:ETHUSD",
-                      "title": "Ethereum"
-                    }
-                  ],
-                  "isTransparent": true,
-                  "showSymbolLogo": true,
+                  "feedMode": "market",
+                  "market": "stock",
                   "colorTheme": "dark",
+                  "isTransparent": true,
+                  "displayMode": "regular",
+                  "width": "100%",
+                  "height": "550",
                   "locale": "kr"
                   }
                   </script>
                 </div>
-                <!-- TradingView Widget END -->
-            </div>
-            
-            <div class="quick-links">
-                <h3>💼 실전 투자 가이드</h3>
-                <div class="link-grid">
-                    <a href="live-trading.html" class="quick-link-card" target="_blank">
-                        <span class="link-icon">📡</span>
-                        <span class="link-text">실시간 매매 전략</span>
-                    </a>
-                    <a href="portfolio.html" class="quick-link-card" target="_blank">
-                        <span class="link-icon">💼</span>
-                        <span class="link-text">포트폴리오 공개</span>
-                    </a>
-                    <a href="lessons-learned.html" class="quick-link-card" target="_blank">
-                        <span class="link-icon">📚</span>
-                        <span class="link-text">투자 경험담</span>
-                    </a>
-                </div>
             </div>
         </section>
 
-        <!-- 섹션 5: 경제 이슈 -->
-        <section class="card" data-section="5">
-            <div class="card-header">
-                <h2><span class="section-number">05</span> 경제 이슈 해설</h2>
-            </div>
-            
-            <div class="quick-links">
-                <h3>🌍 주요 경제 이슈</h3>
-                <div class="link-grid">
-                    <a href="interest-rate.html" class="quick-link-card" target="_blank">
-                        <span class="link-icon">💹</span>
-                        <span class="link-text">금리/환율 분석</span>
-                    </a>
-                    <a href="fed-policy.html" class="quick-link-card" target="_blank">
-                        <span class="link-icon">🏦</span>
-                        <span class="link-text">연준 정책 해석</span>
-                    </a>
-                    <a href="industry-trends.html" class="quick-link-card" target="_blank">
-                        <span class="link-icon">🔧</span>
-                        <span class="link-text">산업 트렌드</span>
-                    </a>
-                </div>
-            </div>
-        </section>
-
-        <!-- 섹션 6: 초보자 교육 -->
-        <section class="card" data-section="6">
-            <div class="card-header">
-                <h2><span class="section-number">06</span> 초보자 투자 가이드</h2>
-            </div>
-            
-            <div class="education-content">
-                <div class="progress-tracker">
-                    <a href="step1-account.html" class="progress-step" target="_blank">
-                        <div class="step-number">1</div>
-                        <div class="step-info">
-                            <h4>계좌 개설하기</h4>
-                            <p>증권사 선택 및 계좌 개설 방법</p>
-                        </div>
-                    </a>
-                    <a href="step2-basics.html" class="progress-step" target="_blank">
-                        <div class="step-number">2</div>
-                        <div class="step-info">
-                            <h4>기본 용어 익히기</h4>
-                            <p>주식 투자 핵심 용어</p>
-                        </div>
-                    </a>
-                    <a href="step3-hts.html" class="progress-step" target="_blank">
-                        <div class="step-number">3</div>
-                        <div class="step-info">
-                            <h4>HTS/MTS 사용법</h4>
-                            <p>거래 프로그램 사용 방법</p>
-                        </div>
-                    </a>
-                    <a href="step4-first-buy.html" class="progress-step" target="_blank">
-                        <div class="step-number">4</div>
-                        <div class="step-info">
-                            <h4>첫 매수하기</h4>
-                            <p>실전 주식 매수 가이드</p>
-                        </div>
-                    </a>
-                </div>
-            </div>
-        </section>
     </main>
 
     <footer class="main-footer">
         <div class="footer-content">
-            <p>본 정보는 투자 참고용이며, 투자 판단의 책임은 투자자 본인에게 있습니다.</p>
-            <p class="footer-copy">© 2026 STOCKHUB. Powered by TradingView.</p>
+            <p><strong>📊 실시간 데이터:</strong> 모든 주식 가격은 TradingView를 통해 실시간으로 제공됩니다.</p>
+            <p><strong>⚠️ 투자 유의사항:</strong> 본 정보는 투자 참고용이며, 투자 판단의 책임은 투자자 본인에게 있습니다.</p>
+            <p class="footer-copy">© 2026 STOCKHUB. Powered by TradingView Real-time Data.</p>
         </div>
     </footer>
 
