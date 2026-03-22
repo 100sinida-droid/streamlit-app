@@ -3,11 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>주식 투자 종합 대시보드</title>
+    <title>STOCKHUB - 실시간 주식 대시보드</title>
     <link rel="stylesheet" href="styles.css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+    <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
 </head>
 <body>
     <div class="grain-overlay"></div>
@@ -18,7 +17,7 @@
                 <span class="logo-icon">📊</span>
                 <span class="logo-text">STOCK<span class="logo-accent">HUB</span></span>
             </h1>
-            <div class="market-time" id="marketTime">
+            <div class="market-time">
                 <span class="time-label">현재 시각</span>
                 <span class="time-value" id="currentTime">--:--:--</span>
             </div>
@@ -27,301 +26,111 @@
     </header>
 
     <main class="dashboard">
-        <!-- 섹션 1: 시황 분석 -->
-        <section class="card card-market" data-section="1">
+        <!-- 실시간 시황 -->
+        <section class="card" data-section="1" style="grid-column: 1 / -1;">
             <div class="card-header">
-                <h2>
-                    <span class="section-number">01</span>
-                    실시간 시황 분석
-                </h2>
-                <button class="refresh-btn" onclick="refreshSection('market')">
-                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                        <path d="M17.5 10C17.5 14.1421 14.1421 17.5 10 17.5C5.85786 17.5 2.5 14.1421 2.5 10C2.5 5.85786 5.85786 2.5 10 2.5C12.5 2.5 14.6774 3.75 16 5.625" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                        <path d="M16 2.5V5.625H12.875" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
-                </button>
+                <h2><span class="section-number">01</span> 실시간 시황 분석</h2>
             </div>
-            <div class="indices-grid">
-                <div class="index-card">
-                    <div class="index-name">코스피</div>
-                    <div class="index-value" id="kospi">2,645.27</div>
-                    <div class="index-change positive">
-                        <span>▲ 15.32</span>
-                        <span>(+0.58%)</span>
-                    </div>
-                </div>
-                <div class="index-card">
-                    <div class="index-name">코스닥</div>
-                    <div class="index-value" id="kosdaq">785.43</div>
-                    <div class="index-change negative">
-                        <span>▼ 5.21</span>
-                        <span>(-0.66%)</span>
-                    </div>
-                </div>
-                <div class="index-card">
-                    <div class="index-name">S&P 500</div>
-                    <div class="index-value" id="sp500">5,234.18</div>
-                    <div class="index-change positive">
-                        <span>▲ 23.45</span>
-                        <span>(+0.45%)</span>
-                    </div>
-                </div>
-                <div class="index-card">
-                    <div class="index-name">나스닥</div>
-                    <div class="index-value" id="nasdaq">16,315.70</div>
-                    <div class="index-change positive">
-                        <span>▲ 87.33</span>
-                        <span>(+0.54%)</span>
-                    </div>
-                </div>
-            </div>
-            <div class="market-status">
-                <div class="status-item">
-                    <span class="status-label">거래량</span>
-                    <span class="status-value">432.5백만주</span>
-                </div>
-                <div class="status-item">
-                    <span class="status-label">외국인</span>
-                    <span class="status-value positive">+1,234억</span>
-                </div>
-                <div class="status-item">
-                    <span class="status-label">기관</span>
-                    <span class="status-value negative">-892억</span>
-                </div>
+            <div class="tradingview-widget-container" style="height: 400px;">
+                <div id="tradingview_market"></div>
             </div>
         </section>
 
-        <!-- 섹션 2: 종목 추천 -->
-        <section class="card card-stocks" data-section="2">
+        <!-- 한국 주식 -->
+        <section class="card" data-section="2">
             <div class="card-header">
-                <h2>
-                    <span class="section-number">02</span>
-                    오늘의 주목 종목
-                </h2>
-                <div class="stock-tabs">
-                    <button class="tab-btn active" data-tab="hot">급등주</button>
-                    <button class="tab-btn" data-tab="recommend">추천</button>
-                    <button class="tab-btn" data-tab="theme">테마주</button>
-                </div>
+                <h2><span class="section-number">02</span> 한국 주요 종목</h2>
             </div>
-            <div class="stocks-list" id="stocksList">
-                <div class="stock-item">
-                    <div class="stock-rank">1</div>
-                    <div class="stock-info">
-                        <div class="stock-name">삼성전자</div>
-                        <div class="stock-code">005930</div>
-                    </div>
-                    <div class="stock-price">72,300원</div>
-                    <div class="stock-change positive">+3.2%</div>
-                </div>
-                <div class="stock-item">
-                    <div class="stock-rank">2</div>
-                    <div class="stock-info">
-                        <div class="stock-name">SK하이닉스</div>
-                        <div class="stock-code">000660</div>
-                    </div>
-                    <div class="stock-price">185,500원</div>
-                    <div class="stock-change positive">+5.7%</div>
-                </div>
-                <div class="stock-item">
-                    <div class="stock-rank">3</div>
-                    <div class="stock-info">
-                        <div class="stock-name">LG에너지솔루션</div>
-                        <div class="stock-code">373220</div>
-                    </div>
-                    <div class="stock-price">428,000원</div>
-                    <div class="stock-change positive">+2.1%</div>
-                </div>
-                <div class="stock-item">
-                    <div class="stock-rank">4</div>
-                    <div class="stock-info">
-                        <div class="stock-name">현대차</div>
-                        <div class="stock-code">005380</div>
-                    </div>
-                    <div class="stock-price">234,500원</div>
-                    <div class="stock-change negative">-1.3%</div>
-                </div>
-                <div class="stock-item">
-                    <div class="stock-rank">5</div>
-                    <div class="stock-info">
-                        <div class="stock-name">POSCO홀딩스</div>
-                        <div class="stock-code">005490</div>
-                    </div>
-                    <div class="stock-price">287,000원</div>
-                    <div class="stock-change positive">+1.8%</div>
-                </div>
-            </div>
+            <div id="tradingview_stocks" style="height: 400px;"></div>
         </section>
 
-        <!-- 섹션 3: 투자 전략 -->
-        <section class="card card-strategy" data-section="3">
+        <!-- 투자 전략 -->
+        <section class="card" data-section="3">
             <div class="card-header">
-                <h2>
-                    <span class="section-number">03</span>
-                    투자 전략 & 기법
-                </h2>
+                <h2><span class="section-number">03</span> 투자 전략</h2>
             </div>
             <div class="strategy-grid">
-                <div class="strategy-card">
+                <div class="strategy-card" onclick="window.open('chart-analysis.html', '_blank')" style="cursor:pointer">
                     <div class="strategy-icon">📈</div>
                     <h3>차트 분석</h3>
-                    <p>캔들 패턴, 이동평균선, RSI, MACD 등 기술적 분석 기법</p>
-                    <a href="#" class="strategy-link">자세히 보기 →</a>
+                    <p>기술적 분석 기법</p>
+                    <span class="strategy-link">보기 →</span>
                 </div>
-                <div class="strategy-card">
+                <div class="strategy-card" onclick="window.open('value-investing.html', '_blank')" style="cursor:pointer">
                     <div class="strategy-icon">💎</div>
                     <h3>가치투자</h3>
-                    <p>PER, PBR, ROE 분석을 통한 저평가 우량주 발굴</p>
-                    <a href="#" class="strategy-link">자세히 보기 →</a>
+                    <p>저평가 우량주 발굴</p>
+                    <span class="strategy-link">보기 →</span>
                 </div>
-                <div class="strategy-card">
+                <div class="strategy-card" onclick="window.open('risk-management.html', '_blank')" style="cursor:pointer">
                     <div class="strategy-icon">🎯</div>
                     <h3>손익 관리</h3>
-                    <p>효과적인 손절/익절 타이밍과 포트폴리오 관리</p>
-                    <a href="#" class="strategy-link">자세히 보기 →</a>
+                    <p>포트폴리오 관리</p>
+                    <span class="strategy-link">보기 →</span>
                 </div>
-                <div class="strategy-card">
+                <div class="strategy-card" onclick="window.open('dividend-investing.html', '_blank')" style="cursor:pointer">
                     <div class="strategy-icon">💰</div>
                     <h3>배당투자</h3>
-                    <p>안정적인 현금흐름을 위한 배당주 투자 전략</p>
-                    <a href="#" class="strategy-link">자세히 보기 →</a>
+                    <p>안정적 현금흐름</p>
+                    <span class="strategy-link">보기 →</span>
                 </div>
             </div>
         </section>
 
-        <!-- 섹션 4: 실전 투자 -->
-        <section class="card card-live" data-section="4">
+        <!-- 암호화폐 -->
+        <section class="card" data-section="4">
             <div class="card-header">
-                <h2>
-                    <span class="section-number">04</span>
-                    실전 투자 라이브
-                </h2>
-                <span class="live-badge">🔴 LIVE</span>
+                <h2><span class="section-number">04</span> 암호화폐 <span class="live-badge">LIVE</span></h2>
             </div>
-            <div class="live-content">
-                <div class="portfolio-summary">
-                    <div class="portfolio-item">
-                        <span class="portfolio-label">총 평가액</span>
-                        <span class="portfolio-value">52,340,000원</span>
-                    </div>
-                    <div class="portfolio-item">
-                        <span class="portfolio-label">총 수익률</span>
-                        <span class="portfolio-value positive">+15.8%</span>
-                    </div>
-                    <div class="portfolio-item">
-                        <span class="portfolio-label">보유 종목</span>
-                        <span class="portfolio-value">8개</span>
-                    </div>
-                </div>
-                <div class="recent-trades">
-                    <h4>최근 거래</h4>
-                    <div class="trade-item buy">
-                        <span class="trade-time">14:32</span>
-                        <span class="trade-type">매수</span>
-                        <span class="trade-stock">삼성전자</span>
-                        <span class="trade-amount">50주</span>
-                    </div>
-                    <div class="trade-item sell">
-                        <span class="trade-time">13:15</span>
-                        <span class="trade-type">매도</span>
-                        <span class="trade-stock">카카오</span>
-                        <span class="trade-amount">30주</span>
-                    </div>
-                    <div class="trade-item buy">
-                        <span class="trade-time">11:48</span>
-                        <span class="trade-type">매수</span>
-                        <span class="trade-stock">NAVER</span>
-                        <span class="trade-amount">20주</span>
-                    </div>
-                </div>
-            </div>
+            <div id="tradingview_crypto" style="height: 400px;"></div>
         </section>
 
-        <!-- 섹션 5: 경제 이슈 -->
-        <section class="card card-news" data-section="5">
+        <!-- 뉴스 -->
+        <section class="card" data-section="5" style="grid-column: 1 / -1;">
             <div class="card-header">
-                <h2>
-                    <span class="section-number">05</span>
-                    주요 경제 이슈
-                </h2>
+                <h2><span class="section-number">05</span> 경제 뉴스</h2>
             </div>
             <div class="news-list">
-                <article class="news-item">
-                    <div class="news-category">금리정책</div>
-                    <h3 class="news-title">미 연준, 금리 동결 결정... 시장 반응은?</h3>
-                    <p class="news-summary">연방준비제도가 기준금리를 5.25%~5.50%로 유지하기로 결정하면서 시장은 안도 랠리를 보였습니다.</p>
-                    <div class="news-meta">
-                        <span class="news-time">2시간 전</span>
-                        <span class="news-source">경제일보</span>
-                    </div>
+                <article class="news-item" onclick="window.open('https://finance.naver.com', '_blank')" style="cursor:pointer">
+                    <div class="news-category">증시</div>
+                    <h3 class="news-title">코스피 2650선, 외국인 매수세</h3>
+                    <p class="news-summary">반도체·2차전지 강세</p>
+                    <div class="news-meta"><span class="news-time">실시간</span><span class="news-source">네이버 금융</span></div>
                 </article>
-                <article class="news-item">
-                    <div class="news-category">산업동향</div>
-                    <h3 class="news-title">AI 반도체 수요 급증, HBM 시장 전망</h3>
-                    <p class="news-summary">생성형 AI 붐으로 고대역폭 메모리(HBM) 수요가 급증하면서 관련 기업들의 실적 개선이 예상됩니다.</p>
-                    <div class="news-meta">
-                        <span class="news-time">4시간 전</span>
-                        <span class="news-source">테크타임즈</span>
-                    </div>
+                <article class="news-item" onclick="window.open('https://www.hankyung.com', '_blank')" style="cursor:pointer">
+                    <div class="news-category">산업</div>
+                    <h3 class="news-title">AI 반도체 수요 급증</h3>
+                    <p class="news-summary">HBM 업체 주가 상승</p>
+                    <div class="news-meta"><span class="news-time">실시간</span><span class="news-source">한국경제</span></div>
                 </article>
-                <article class="news-item">
-                    <div class="news-category">환율</div>
-                    <h3 class="news-title">원/달러 환율 1,320원대, 수출기업 영향은?</h3>
-                    <p class="news-summary">원화 강세로 수출 대기업들의 실적 우려가 커지는 가운데, 전문가들은 추가 하락 가능성을 점쳤습니다.</p>
-                    <div class="news-meta">
-                        <span class="news-time">6시간 전</span>
-                        <span class="news-source">금융신문</span>
-                    </div>
+                <article class="news-item" onclick="window.open('https://www.mk.co.kr', '_blank')" style="cursor:pointer">
+                    <div class="news-category">금리</div>
+                    <h3 class="news-title">한은 금리 동결 전망</h3>
+                    <p class="news-summary">물가 안정세 지속</p>
+                    <div class="news-meta"><span class="news-time">실시간</span><span class="news-source">매일경제</span></div>
                 </article>
             </div>
         </section>
 
-        <!-- 섹션 6: 초보자 교육 -->
-        <section class="card card-education" data-section="6">
+        <!-- 교육 -->
+        <section class="card" data-section="6" style="grid-column: 1 / -1;">
             <div class="card-header">
-                <h2>
-                    <span class="section-number">06</span>
-                    초보자 투자 가이드
-                </h2>
+                <h2><span class="section-number">06</span> 투자 가이드</h2>
             </div>
             <div class="education-content">
                 <div class="progress-tracker">
-                    <div class="progress-step completed">
-                        <div class="step-number">1</div>
-                        <div class="step-info">
-                            <h4>계좌 개설하기</h4>
-                            <p>증권사 선택 및 계좌 개설 방법</p>
-                        </div>
-                    </div>
-                    <div class="progress-step active">
-                        <div class="step-number">2</div>
-                        <div class="step-info">
-                            <h4>기본 용어 익히기</h4>
-                            <p>주식 투자에 필요한 핵심 용어</p>
-                        </div>
-                    </div>
-                    <div class="progress-step">
-                        <div class="step-number">3</div>
-                        <div class="step-info">
-                            <h4>첫 매수하기</h4>
-                            <p>HTS/MTS로 주식 매수하는 방법</p>
-                        </div>
-                    </div>
-                    <div class="progress-step">
-                        <div class="step-number">4</div>
-                        <div class="step-info">
-                            <h4>포트폴리오 관리</h4>
-                            <p>분산투자와 리스크 관리</p>
-                        </div>
-                    </div>
+                    <div class="progress-step completed"><div class="step-number">1</div><div class="step-info"><h4>계좌 개설</h4></div></div>
+                    <div class="progress-step active"><div class="step-number">2</div><div class="step-info"><h4>기본 용어</h4></div></div>
+                    <div class="progress-step"><div class="step-number">3</div><div class="step-info"><h4>첫 매수</h4></div></div>
+                    <div class="progress-step"><div class="step-number">4</div><div class="step-info"><h4>포트폴리오</h4></div></div>
                 </div>
                 <div class="learning-resources">
-                    <h4>추천 학습 자료</h4>
+                    <h4>학습 자료</h4>
                     <div class="resource-tags">
-                        <span class="tag">📘 주식 기초</span>
-                        <span class="tag">📊 차트 읽기</span>
-                        <span class="tag">💡 투자 심리</span>
-                        <span class="tag">🎓 고급 전략</span>
+                        <span class="tag" onclick="window.open('chart-analysis.html', '_blank')" style="cursor:pointer">📘 차트</span>
+                        <span class="tag" onclick="window.open('value-investing.html', '_blank')" style="cursor:pointer">💎 가치</span>
+                        <span class="tag" onclick="window.open('risk-management.html', '_blank')" style="cursor:pointer">🎯 손익</span>
+                        <span class="tag" onclick="window.open('dividend-investing.html', '_blank')" style="cursor:pointer">💰 배당</span>
                     </div>
                 </div>
             </div>
@@ -330,11 +139,74 @@
 
     <footer class="main-footer">
         <div class="footer-content">
-            <p>본 정보는 투자 참고용이며, 투자 판단의 책임은 투자자 본인에게 있습니다.</p>
-            <p class="footer-copy">© 2026 STOCKHUB. Educational purposes only.</p>
+            <p>투자 판단의 책임은 투자자 본인에게 있습니다. TradingView 제공</p>
         </div>
     </footer>
 
-    <script src="script.js"></script>
+    <script>
+        // 시간
+        function updateTime() {
+            const now = new Date();
+            document.getElementById('currentTime').textContent = now.toLocaleTimeString('ko-KR');
+        }
+        updateTime();
+        setInterval(updateTime, 1000);
+
+        // TradingView 위젯
+        new TradingView.widget({
+            container_id: "tradingview_market",
+            width: "100%",
+            height: 400,
+            symbol: "KRX:KOSPI",
+            interval: "D",
+            timezone: "Asia/Seoul",
+            theme: "dark",
+            style: "1",
+            locale: "kr",
+            toolbar_bg: "#1a2332",
+            enable_publishing: false,
+            allow_symbol_change: true,
+            save_image: false,
+            studies: ["MASimple@tv-basicstudies"],
+            show_popup_button: true,
+            popup_width: "1000",
+            popup_height: "650"
+        });
+
+        new TradingView.MediumWidget({
+            symbols: [
+                ["삼성전자", "KRX:005930|1D"],
+                ["SK하이닉스", "KRX:000660|1D"],
+                ["NAVER", "KRX:035420|1D"],
+                ["카카오", "KRX:035720|1D"],
+                ["LG에너지", "KRX:373220|1D"]
+            ],
+            chartOnly: false,
+            width: "100%",
+            height: 400,
+            locale: "kr",
+            colorTheme: "dark",
+            isTransparent: true,
+            container_id: "tradingview_stocks"
+        });
+
+        new TradingView.MediumWidget({
+            symbols: [
+                ["BTC", "BINANCE:BTCUSDT|1D"],
+                ["ETH", "BINANCE:ETHUSDT|1D"],
+                ["XRP", "BINANCE:XRPUSDT|1D"],
+                ["SOL", "BINANCE:SOLUSDT|1D"]
+            ],
+            chartOnly: false,
+            width: "100%",
+            height: 400,
+            locale: "kr",
+            colorTheme: "dark",
+            isTransparent: true,
+            container_id: "tradingview_crypto"
+        });
+
+        console.log('✅ STOCKHUB - Real-time data from TradingView');
+    </script>
 </body>
 </html>
