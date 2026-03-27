@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StockHub - 주식 정보 통합 플랫폼</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <svg class="logo-icon" width="32" height="32" viewBox="0 0 32 32" fill="none">
+                    <path d="M4 28L4 20M4 20L12 12M12 12L20 16M20 16L28 4" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+                    <circle cx="4" cy="20" r="2" fill="currentColor"/>
+                    <circle cx="12" cy="12" r="2" fill="currentColor"/>
+                    <circle cx="20" cy="16" r="2" fill="currentColor"/>
+                    <circle cx="28" cy="4" r="2" fill="currentColor"/>
+                </svg>
+                <span class="brand-name">StockHub</span>
+            </div>
+            <div class="nav-links">
+                <a href="#home" class="nav-link active">홈</a>
+                <a href="#markets" class="nav-link">시장</a>
+                <a href="#search" class="nav-link">종목검색</a>
+                <a href="#youtube" class="nav-link">투자콘텐츠</a>
+                <a href="#news" class="nav-link">뉴스</a>
+            </div>
+            <button class="nav-cta">로그인</button>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero" id="home">
+        <div class="hero-background">
+            <div class="gradient-orb orb-1"></div>
+            <div class="gradient-orb orb-2"></div>
+            <div class="gradient-orb orb-3"></div>
+        </div>
+        <div class="hero-content">
+            <div class="hero-badge">
+                <span class="badge-dot"></span>
+                실시간 업데이트
+            </div>
+            <h1 class="hero-title">
+                투자자를 위한<br>
+                <span class="gradient-text">올인원 주식 플랫폼</span>
+            </h1>
+            <p class="hero-subtitle">
+                한국과 미국 주식 정보를 한 곳에서.<br>
+                실시간 시세부터 유튜브 투자 콘텐츠까지.
+            </p>
+            <div class="hero-search">
+                <svg class="search-icon" width="20" height="20" viewBox="0 0 20 20" fill="none">
+                    <circle cx="9" cy="9" r="6" stroke="currentColor" stroke-width="2"/>
+                    <path d="M14 14L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+                <input type="text" class="search-input" placeholder="삼성전자, AAPL, AI 관련주..." id="mainSearch">
+                <button class="search-btn">검색</button>
+            </div>
+            <div class="hero-stats">
+                <div class="stat-item">
+                    <div class="stat-number">5,000+</div>
+                    <div class="stat-label">등록 종목</div>
+                </div>
+                <div class="stat-divider"></div>
+                <div class="stat-item">
+                    <div class="stat-number">100+</div>
+                    <div class="stat-label">유튜브 채널</div>
+                </div>
+                <div class="stat-divider"></div>
+                <div class="stat-item">
+                    <div class="stat-number">24/7</div>
+                    <div class="stat-label">실시간 데이터</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Market Overview -->
+    <section class="market-overview" id="markets">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">시장 현황</h2>
+                <div class="market-tabs">
+                    <button class="tab-btn active" data-market="kr">🇰🇷 한국</button>
+                    <button class="tab-btn" data-market="us">🇺🇸 미국</button>
+                </div>
+            </div>
+            
+            <div class="market-content" id="marketContent">
+                <div class="indices-grid">
+                    <div class="index-card">
+                        <div class="index-header">
+                            <span class="index-name">KOSPI</span>
+                            <span class="index-change positive">▲ 0.82%</span>
+                        </div>
+                        <div class="index-value">2,650.45</div>
+                        <div class="mini-chart" data-trend="up">
+                            <svg viewBox="0 0 100 30" preserveAspectRatio="none">
+                                <polyline points="0,25 20,20 40,22 60,15 80,12 100,8" 
+                                    stroke="var(--accent-green)" stroke-width="2" fill="none"/>
+                            </svg>
+                        </div>
+                    </div>
+                    
+                    <div class="index-card">
+                        <div class="index-header">
+                            <span class="index-name">KOSDAQ</span>
+                            <span class="index-change negative">▼ 0.35%</span>
+                        </div>
+                        <div class="index-value">845.20</div>
+                        <div class="mini-chart" data-trend="down">
+                            <svg viewBox="0 0 100 30" preserveAspectRatio="none">
+                                <polyline points="0,8 20,12 40,10 60,18 80,20 100,25" 
+                                    stroke="var(--accent-red)" stroke-width="2" fill="none"/>
+                            </svg>
+                        </div>
+                    </div>
+                    
+                    <div class="index-card">
+                        <div class="index-header">
+                            <span class="index-name">KOSPI 200</span>
+                            <span class="index-change positive">▲ 1.05%</span>
+                        </div>
+                        <div class="index-value">352.80</div>
+                        <div class="mini-chart" data-trend="up">
+                            <svg viewBox="0 0 100 30" preserveAspectRatio="none">
+                                <polyline points="0,28 20,24 40,25 60,18 80,14 100,10" 
+                                    stroke="var(--accent-green)" stroke-width="2" fill="none"/>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Popular Stocks -->
+    <section class="popular-stocks">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">실시간 인기 종목</h2>
+                <a href="#" class="view-all">전체보기 →</a>
+            </div>
+            
+            <div class="stocks-grid" id="popularStocks">
+                <!-- Stocks will be dynamically loaded -->
+            </div>
+        </div>
+    </section>
+
+    <!-- Search Features -->
+    <section class="features" id="search">
+        <div class="container">
+            <div class="section-header centered">
+                <h2 class="section-title">강력한 검색 기능</h2>
+                <p class="section-subtitle">국내외 주식을 빠르고 정확하게 찾아보세요</p>
+            </div>
+            
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
+                            <circle cx="18" cy="18" r="12" stroke="currentColor" stroke-width="3"/>
+                            <path d="M28 28L36 36" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+                        </svg>
+                    </div>
+                    <h3 class="feature-title">통합 검색</h3>
+                    <p class="feature-desc">종목명, 코드, 키워드로 한국과 미국 주식을 한 번에 검색</p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
+                            <rect x="5" y="10" width="8" height="25" rx="2" stroke="currentColor" stroke-width="2.5"/>
+                            <rect x="16" y="5" width="8" height="30" rx="2" stroke="currentColor" stroke-width="2.5"/>
+                            <rect x="27" y="15" width="8" height="20" rx="2" stroke="currentColor" stroke-width="2.5"/>
+                        </svg>
+                    </div>
+                    <h3 class="feature-title">고급 필터</h3>
+                    <p class="feature-desc">시가총액, PER, 배당률 등 다양한 조건으로 종목 필터링</p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
+                            <path d="M20 5C11.7 5 5 11.7 5 20C5 28.3 11.7 35 20 35C28.3 35 35 28.3 35 20C35 11.7 28.3 5 20 5Z" stroke="currentColor" stroke-width="2.5"/>
+                            <path d="M20 20L20 12" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+                            <path d="M20 20L26 26" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+                        </svg>
+                    </div>
+                    <h3 class="feature-title">실시간 업데이트</h3>
+                    <p class="feature-desc">주가, 거래량, 뉴스가 실시간으로 자동 업데이트</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- YouTube Section -->
+    <section class="youtube-section" id="youtube">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">추천 투자 콘텐츠</h2>
+                <div class="youtube-filters">
+                    <button class="filter-btn active" data-category="all">전체</button>
+                    <button class="filter-btn" data-category="market">시황분석</button>
+                    <button class="filter-btn" data-category="stock">종목분석</button>
+                    <button class="filter-btn" data-category="chart">차트분석</button>
+                    <button class="filter-btn" data-category="beginner">초보가이드</button>
+                </div>
+            </div>
+            
+            <div class="youtube-grid" id="youtubeVideos">
+                <!-- Videos will be dynamically loaded -->
+            </div>
+        </div>
+    </section>
+
+    <!-- Info Types -->
+    <section class="info-types">
+        <div class="container">
+            <div class="section-header centered">
+                <h2 class="section-title">제공하는 정보</h2>
+                <p class="section-subtitle">투자 결정에 필요한 모든 데이터</p>
+            </div>
+            
+            <div class="info-grid">
+                <div class="info-card">
+                    <div class="info-accent"></div>
+                    <h3 class="info-title">실시간 시세</h3>
+                    <ul class="info-list">
+                        <li>현재가, 변동률, 거래량</li>
+                        <li>고가/저가, 시가총액</li>
+                        <li>외국인/기관 매매 동향</li>
+                    </ul>
+                </div>
+                
+                <div class="info-card">
+                    <div class="info-accent"></div>
+                    <h3 class="info-title">재무 분석</h3>
+                    <ul class="info-list">
+                        <li>PER, PBR, EPS, ROE</li>
+                        <li>매출액, 영업이익</li>
+                        <li>부채비율, 배당수익률</li>
+                    </ul>
+                </div>
+                
+                <div class="info-card">
+                    <div class="info-accent"></div>
+                    <h3 class="info-title">차트 분석</h3>
+                    <ul class="info-list">
+                        <li>캔들차트, 이동평균선</li>
+                        <li>거래량 그래프</li>
+                        <li>기술적 지표 (RSI, MACD)</li>
+                    </ul>
+                </div>
+                
+                <div class="info-card">
+                    <div class="info-accent"></div>
+                    <h3 class="info-title">뉴스 & 공시</h3>
+                    <ul class="info-list">
+                        <li>실시간 관련 뉴스</li>
+                        <li>공시 정보</li>
+                        <li>증권사 리포트</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="cta-section">
+        <div class="cta-content">
+            <h2 class="cta-title">지금 시작하세요</h2>
+            <p class="cta-subtitle">5,000개 이상의 종목 정보와 100개 이상의 투자 콘텐츠가 기다립니다</p>
+            <div class="cta-buttons">
+                <button class="cta-primary">무료로 시작하기</button>
+                <button class="cta-secondary">더 알아보기</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-brand">
+                    <div class="footer-logo">
+                        <svg class="logo-icon" width="32" height="32" viewBox="0 0 32 32" fill="none">
+                            <path d="M4 28L4 20M4 20L12 12M12 12L20 16M20 16L28 4" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+                            <circle cx="4" cy="20" r="2" fill="currentColor"/>
+                            <circle cx="12" cy="12" r="2" fill="currentColor"/>
+                            <circle cx="20" cy="16" r="2" fill="currentColor"/>
+                            <circle cx="28" cy="4" r="2" fill="currentColor"/>
+                        </svg>
+                        <span>StockHub</span>
+                    </div>
+                    <p class="footer-desc">투자자를 위한 원스톱 주식 정보 플랫폼</p>
+                </div>
+                
+                <div class="footer-links">
+                    <div class="footer-col">
+                        <h4>서비스</h4>
+                        <a href="#">주식 검색</a>
+                        <a href="#">시장 현황</a>
+                        <a href="#">투자 콘텐츠</a>
+                        <a href="#">뉴스</a>
+                    </div>
+                    
+                    <div class="footer-col">
+                        <h4>지원</h4>
+                        <a href="#">도움말</a>
+                        <a href="#">FAQ</a>
+                        <a href="#">문의하기</a>
+                        <a href="#">API</a>
+                    </div>
+                    
+                    <div class="footer-col">
+                        <h4>회사</h4>
+                        <a href="#">소개</a>
+                        <a href="#">채용</a>
+                        <a href="#">블로그</a>
+                        <a href="#">파트너</a>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="footer-bottom">
+                <p>&copy; 2026 StockHub. All rights reserved.</p>
+                <div class="footer-legal">
+                    <a href="#">이용약관</a>
+                    <a href="#">개인정보처리방침</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>
